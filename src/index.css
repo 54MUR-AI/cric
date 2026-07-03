@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-stone-50 text-stone-900 antialiased;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .rbc-calendar {
+    @apply font-sans;
+  }
+}

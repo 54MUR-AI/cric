@@ -1,0 +1,15 @@
+export const NAV_ITEMS = [
+  { to: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
+  { to: '/schedule', label: 'Schedule', icon: 'Calendar' },
+  { to: '/maintenance', label: 'Maintenance', icon: 'Wrench' },
+  { to: '/meetings', label: 'Meetings', icon: 'FileText' },
+  { to: '/cabins', label: 'Cabins', icon: 'Home' },
+]
+
+export const TASK_STATUSES = ['todo', 'in_progress', 'done']
+
+export const TASK_STATUS_LABELS = {
+  todo: 'To Do',
+  in_progress: 'In Progress',
+  done: 'Done',
+}
