@@ -38,8 +38,10 @@ function WindArrow({ speed, direction, lat, lon, name, temp }) {
     iconAnchor: [24, 28],
   })
 
+  if (lat == null || lon == null || isNaN(Number(lat)) || isNaN(Number(lon))) return null
+
   const pos = [lat, lon]
-  return <Marker position={pos} icon={icon}><Popup><strong>{name}</strong><br/>{temp != null ? `${Math.round(temp)}°F` : ''}<br/>Wind: ${speedMph} mph ${Math.round(direction)}°<br/>{/* Popup content */}</Popup></Marker>
+  return <Marker position={pos} icon={icon}><Popup><strong>{name}</strong><br/>{temp != null ? `${Math.round(temp)}°F` : ''}<br/>Wind: ${speedMph} mph ${Math.round(direction)}°</Popup></Marker>
 }
 
 function RadarLayer() {

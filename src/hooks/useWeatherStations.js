@@ -26,17 +26,25 @@ export function useWeatherStations() {
           stationList.map(async (s) => {
             try {
               const obsRes = await fetch(`https://api.weather.gov/stations/${s.properties.stationIdentifier}/observations/latest`)
-              if (!obsRes.ok) return { ...s.properties, observation: null }
+              if (!obsRes.ok) return null
               const obsData = await obsRes.json()
-              return { ...s.properties, observation: obsData.properties }
+              const coords = s.geometry?.coordinates
+              if (!coords || coords.length < 2) return null
+              return {
+                stationIdentifier: s.properties.stationIdentifier,
+                name: s.properties.name,
+                latitude: coords[1],
+                longitude: coords[0],
+                observation: obsData.properties,
+              }
             } catch {
-              return { ...s.properties, observation: null }
+              return null
             }
           })
         )
 
         if (!cancelled) {
-          setStations(withObs.filter((s) => s.observation))
+          setStations(withObs.filter(Boolean))
           setLoading(false)
         }
       } catch {
