@@ -2,11 +2,11 @@ import Dexie from 'dexie'
 
 const db = new Dexie('cric')
 
-db.version(2).stores({
+db.version(3).stores({
   cabins: 'id, name, sort_order',
   bookings: 'id, cabin_id, start_date, end_date',
   maintenance_tasks: 'id, status, category_id, due_date, created_at',
-  maintenance_categories: 'id, name',
+  maintenance_categories: 'id, name, sort_order',
   maintenance_comments: 'id, task_id, created_at',
   meetings: 'id, date',
   meeting_agenda_items: 'id, meeting_id, sort_order',
