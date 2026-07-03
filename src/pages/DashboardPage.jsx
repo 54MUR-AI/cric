@@ -13,7 +13,7 @@ export default function DashboardPage() {
   useEffect(() => {
     supabase.from('bookings').select('*, cabins(name)').gte('start_date', new Date().toISOString().split('T')[0]).order('start_date').limit(5).then(({ data }) => setUpcomingBookings(data || []))
     supabase.from('maintenance_tasks').select('*, maintenance_categories(name)').in('status', ['todo', 'in_progress']).order('due_date').limit(5).then(({ data }) => setOpenTasks(data || []))
-    supabase.from('meetings').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date').limit(1).single().then(({ data }) => setNextMeeting(data || null))
+    supabase.from('meetings').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date').limit(1).then(({ data }) => setNextMeeting(data?.[0] || null))
   }, [])
 
   return (

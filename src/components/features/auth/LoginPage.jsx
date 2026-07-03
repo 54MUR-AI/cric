@@ -67,7 +67,7 @@ export default function LoginPage() {
           {mode === 'password' && (
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1">Password</label>
-              <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600" placeholder="Your password" />
+              <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600" placeholder="Your password" />
             </div>
           )}
           {error && <p className="text-sm text-red-600">{error}</p>}
