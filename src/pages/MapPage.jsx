@@ -249,7 +249,7 @@ export default function MapPage() {
       <div className="rounded-lg overflow-hidden border border-stone-200 shadow-sm relative" style={{ height: 'calc(100vh - 280px)', minHeight: 450 }}>
         <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} maxZoom={20} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
-          <TileLayer attribution={baseLayer === 'satellite' ? ESRI_ATTR : baseLayer === 'winter' ? USGS_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'winter' ? USGS_WINTER : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
+          <TileLayer key={baseLayer} attribution={baseLayer === 'satellite' ? ESRI_ATTR : baseLayer === 'winter' ? USGS_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'winter' ? USGS_WINTER : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
           {showLightning && <LightningLayer />}
