@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
 import { formatDate } from '../lib/utils'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronUp, ChevronDown } from 'lucide-react'
 
 export default function MeetingsPage() {
   const { meetings, loading, createMeeting, updateMeeting, deleteMeeting } = useMeetings()
@@ -86,13 +86,48 @@ export default function MeetingsPage() {
           </div>
 
           <div className="space-y-3">
-            {meetingDetail.agenda_items.map((item) => (
+            {meetingDetail.agenda_items.map((item, idx) => (
               <div key={item.id} className="rounded-lg border border-stone-200 p-4">
                 <div className="flex items-start justify-between">
-                  <h3 className="font-medium text-stone-800">{item.title}</h3>
-                  {item.outcome && (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${outcomeColors[item.outcome]}`}>{item.outcome}</span>
-                  )}
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <span className="text-xs text-stone-400 font-mono mt-0.5 shrink-0">{idx + 1}.</span>
+                    <h3 className="font-medium text-stone-800">{item.title}</h3>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    {meetingDetail.agenda_items.length > 1 && (
+                      <>
+                        <button
+                          onClick={async () => {
+                            const items = [...meetingDetail.agenda_items]
+                            if (idx === 0) return
+                            ;[items[idx - 1], items[idx]] = [items[idx], items[idx - 1]]
+                            const updated = items.map((it, i) => ({ ...it, sort_order: i }))
+                            setMeetingDetail({ ...meetingDetail, agenda_items: updated })
+                            for (const it of updated) {
+                              await supabase.from('meeting_agenda_items').update({ sort_order: it.sort_order }).eq('id', it.id)
+                            }
+                          }}
+                          className="text-stone-300 hover:text-stone-600 transition-colors" aria-label="Move up"
+                        ><ChevronUp className="h-4 w-4" /></button>
+                        <button
+                          onClick={async () => {
+                            const items = [...meetingDetail.agenda_items]
+                            if (idx === items.length - 1) return
+                            ;[items[idx], items[idx + 1]] = [items[idx + 1], items[idx]]
+                            const updated = items.map((it, i) => ({ ...it, sort_order: i }))
+                            setMeetingDetail({ ...meetingDetail, agenda_items: updated })
+                            for (const it of updated) {
+                              await supabase.from('meeting_agenda_items').update({ sort_order: it.sort_order }).eq('id', it.id)
+                            }
+                          }}
+                          className="text-stone-300 hover:text-stone-600 transition-colors" aria-label="Move down"
+                        ><ChevronDown className="h-4 w-4" /></button>
+                      </>
+                    )}
+                    {item.outcome && (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${outcomeColors[item.outcome]}`}>{item.outcome}</span>
+                    )}
+                  </div>
                 </div>
                 {item.description && <p className="text-sm text-stone-600 mt-1">{item.description}</p>}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-stone-500">

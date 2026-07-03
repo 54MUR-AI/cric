@@ -33,14 +33,29 @@ export default function PhotosPage() {
   const filtered = albumFilter ? photos.filter(p => p.album_id === albumFilter) : photos
   useEffect(() => { setGroups(groupByDate(filtered)) }, [filtered])
 
-  const doUpload = useCallback(async (file) => {
-    if (!file) return
-    setUploading(true)
-    try { await uploadPhoto(file, { album_id: albumFilter }); vibrate([10, 20, 10]) } catch {} finally { setUploading(false) }
-  }, [uploadPhoto, albumFilter])
+  const [showUpload, setShowUpload] = useState(false)
+  const [uploadFile, setUploadFile] = useState(null)
+  const [uploadCaption, setUploadCaption] = useState('')
+  const [uploadAlbumId, setUploadAlbumId] = useState(albumFilter || '')
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const uploadPreview = uploadFile ? URL.createObjectURL(uploadFile) : null
 
-  const handleUpload = async (e) => { await doUpload(e.target.files?.[0]); e.target.value = '' }
-  const handleDrop = async (e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) { await doUpload(f) } }
+  const doUpload = useCallback(async () => {
+    if (!uploadFile) return
+    setUploading(true)
+    setUploadProgress(10)
+    const prog = setInterval(() => setUploadProgress(p => Math.min(p + 15, 85)), 400)
+    try {
+      await uploadPhoto(uploadFile, { caption: uploadCaption || undefined, album_id: uploadAlbumId || undefined })
+      clearInterval(prog)
+      setUploadProgress(100)
+      vibrate([10, 20, 10])
+      setTimeout(() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }, 400)
+    } catch { clearInterval(prog); setUploadProgress(0) } finally { setUploading(false) }
+  }, [uploadPhoto, uploadFile, uploadCaption, uploadAlbumId])
+
+  const handleFilePick = (e) => { const f = e.target.files?.[0]; if (f) { setUploadFile(f); setShowUpload(true) }; e.target.value = '' }
+  const handleDrop = async (e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) { setUploadFile(f); setShowUpload(true) } }
 
   const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const clearSelection = () => setSelected(new Set())
@@ -85,9 +100,9 @@ export default function PhotosPage() {
           <button onClick={() => setShowAlbumForm(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white text-stone-600 border-stone-300 hover:border-stone-400 transition-colors">
             <Plus className="h-3 w-3" /> Album
           </button>
-          <label className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors ${uploading ? 'bg-stone-800 text-white border-stone-800 opacity-50' : 'bg-white text-stone-600 border-stone-300 hover:border-stone-400'}`}>
-            <Upload className="h-3 w-3" />{uploading ? 'Uploading...' : 'Upload'}
-            <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
+          <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors bg-white text-stone-600 border-stone-300 hover:border-stone-400">
+            <Upload className="h-3 w-3" /> Upload
+            <input type="file" accept="image/*" className="hidden" onChange={handleFilePick} />
           </label>
         </div>
       </div>
@@ -175,6 +190,49 @@ export default function PhotosPage() {
               </button>
             </div>
             <button onClick={() => setLightbox(null)} className="absolute top-2 right-2 bg-white/20 hover:bg-white/40 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg" aria-label="Close lightbox">✕</button>
+          </div>
+        </div>
+      )}
+
+      {showUpload && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => { if (!uploading) { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }}} role="dialog" aria-label="Upload photo">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-stone-800">Upload Photo</h3>
+              {!uploading && <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} aria-label="Close"><X className="h-4 w-4 text-stone-400" /></button>}
+            </div>
+            {uploadPreview && (
+              <img src={uploadPreview} alt="Preview" className="w-full aspect-video object-cover rounded-lg mb-4 bg-stone-100" />
+            )}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-stone-500 mb-1">Caption (optional)</label>
+                <input type="text" value={uploadCaption} onChange={e => setUploadCaption(e.target.value)} placeholder="What's happening in this photo?" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400" />
+              </div>
+              {albums.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-stone-500 mb-1">Album</label>
+                  <select value={uploadAlbumId} onChange={e => setUploadAlbumId(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm">
+                    <option value="">None</option>
+                    {albums.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {uploading && (
+                <div className="space-y-1">
+                  <div className="h-2 w-full rounded-full bg-stone-200 overflow-hidden">
+                    <div className="h-full rounded-full bg-emerald-600 transition-all duration-300 ease-out" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                  <p className="text-xs text-stone-400 text-right">{uploadProgress}%</p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} disabled={uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-100 border border-stone-300 disabled:opacity-40">Cancel</button>
+              <button onClick={doUpload} disabled={uploading || !uploadFile} className="rounded-md px-4 py-1.5 text-xs text-white bg-stone-800 hover:bg-stone-700 disabled:opacity-40">
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
           </div>
         </div>
       )}
