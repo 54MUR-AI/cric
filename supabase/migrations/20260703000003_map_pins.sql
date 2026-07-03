@@ -18,19 +18,13 @@ create policy "Pins are viewable by everyone"
 create policy "Admins can insert pins"
   on map_pins for insert
   with check (
-    exists (select 1 from profiles where id = auth.uid() and (role = 'super_admin' or is_admin = true))
-  );
-
-create policy "Admins can update pins"
-  on map_pins for update
-  using (
-    exists (select 1 from profiles where id = auth.uid() and (role = 'super_admin' or is_admin = true))
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
   );
 
 create policy "Admins can delete pins"
   on map_pins for delete
   using (
-    exists (select 1 from profiles where id = auth.uid() and (role = 'super_admin' or is_admin = true))
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
   );
 
 insert into map_pins (label, type, latitude, longitude, description) values
