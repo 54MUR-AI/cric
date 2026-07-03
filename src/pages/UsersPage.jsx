@@ -1,81 +1,166 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Trash2, ShieldCheck, Shield } from 'lucide-react'
+import { useToast } from '../components/ui/Toast'
+import { Trash2, Mail, Plus, X } from 'lucide-react'
 import Button from '../components/ui/Button'
+
+const OFFICER_TITLES = ['Chair', 'Vice Chair', 'Treasurer', 'Secretary', 'Trustee']
 
 export default function UsersPage() {
   const { isAdmin } = useAuth()
+  const toast = useToast()
   const [users, setUsers] = useState([])
+  const [officers, setOfficers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [sendingReset, setSendingReset] = useState(null)
+  const [showAddOfficer, setShowAddOfficer] = useState(false)
+  const [newOfficer, setNewOfficer] = useState({ profile_id: '', title: OFFICER_TITLES[0] })
 
-  async function fetchUsers() {
-    const { data } = await supabase.from('profiles').select('*').order('display_name')
-    setUsers(data || [])
+  async function fetchAll() {
+    const [uRes, oRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('display_name'),
+      supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order'),
+    ])
+    setUsers(uRes.data || [])
+    setOfficers(oRes.data || [])
     setLoading(false)
   }
 
-  useEffect(() => { fetchUsers() }, [])
+  useEffect(() => { fetchAll() }, [])
 
-  async function toggleRole(userId, currentRole) {
-    setError('')
-    const newRole = currentRole === 'super_admin' ? 'member' : 'super_admin'
-    const { error: err } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
-    if (err) { setError(err.message); return }
-    fetchUsers()
+  async function sendReset(email) {
+    if (!email) { toast.error('No email on file for this user'); return }
+    setSendingReset(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://54mur-ai.github.io/cric/update-password',
+    })
+    setSendingReset(null)
+    if (error) { toast.error(error.message); return }
+    toast.success('Password reset email sent')
   }
 
-  async function deleteUser(userId) {
-    if (!confirm('Remove this user? They will no longer be able to sign in.')) return
-    setError('')
-    const { error: err } = await supabase.from('profiles').delete().eq('id', userId)
-    if (err) { setError(err.message); return }
-    fetchUsers()
+  async function removeOfficer(id) {
+    if (!confirm('Remove this officer?')) return
+    const { error } = await supabase.from('officers').delete().eq('id', id)
+    if (error) { toast.error(error.message); return }
+    toast.info('Officer removed')
+    fetchAll()
+  }
+
+  async function addOfficer() {
+    if (!newOfficer.profile_id) return
+    const { error } = await supabase.from('officers').insert({
+      profile_id: newOfficer.profile_id,
+      title: newOfficer.title,
+      sort_order: officers.length,
+    })
+    if (error) { toast.error(error.message); return }
+    toast.success(`${newOfficer.title} assigned`)
+    setShowAddOfficer(false)
+    setNewOfficer({ profile_id: '', title: OFFICER_TITLES[0] })
+    fetchAll()
   }
 
   if (!isAdmin) return <div className="text-stone-500">Access denied.</div>
   if (loading) return <div className="text-stone-500">Loading...</div>
 
+  const assignedIds = new Set(officers.map(o => o.profile_id))
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold text-stone-800">Manage Users</h1>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="rounded-lg bg-white shadow-sm border border-stone-200 overflow-hidden">
+
+      <div className="rounded-lg bg-white shadow-sm border border-stone-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-stone-700">Officers</h2>
+          <Button size="sm" onClick={() => setShowAddOfficer(true)}>
+            <Plus className="h-3 w-3 mr-1" /> Assign Officer
+          </Button>
+        </div>
+        {officers.length === 0 && <p className="text-sm text-stone-400">No officers assigned</p>}
+        <div className="space-y-1.5">
+          {officers.map((o) => (
+            <div key={o.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-stone-50">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-stone-800">{o.profile?.display_name || 'Unknown'}</span>
+                <span className="text-stone-400">—</span>
+                <span className="text-stone-600">{o.title}</span>
+              </div>
+              <button onClick={() => removeOfficer(o.id)} className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {showAddOfficer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAddOfficer(false)}>
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-stone-800">Assign Officer</h3>
+              <button onClick={() => setShowAddOfficer(false)}><X className="h-4 w-4 text-stone-400" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-stone-500 mb-1">Member</label>
+                <select value={newOfficer.profile_id} onChange={e => setNewOfficer({ ...newOfficer, profile_id: e.target.value })} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm">
+                  <option value="">Select a member...</option>
+                  {users.filter(u => !assignedIds.has(u.id)).map(u => (
+                    <option key={u.id} value={u.id}>{u.display_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-stone-500 mb-1">Title</label>
+                <select value={newOfficer.title} onChange={e => setNewOfficer({ ...newOfficer, title: e.target.value })} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm">
+                  {OFFICER_TITLES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="secondary" size="sm" onClick={() => setShowAddOfficer(false)}>Cancel</Button>
+              <Button size="sm" onClick={addOfficer} disabled={!newOfficer.profile_id}>Assign</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-lg bg-white shadow-sm border border-stone-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-stone-50 text-stone-600 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-200">
-            {users.map((u) => (
-              <tr key={u.id} className="hover:bg-stone-50">
-                <td className="px-4 py-3 text-stone-800">{u.display_name}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                    u.role === 'super_admin' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600'
-                  }`}>
-                    {u.role === 'super_admin' ? <ShieldCheck className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                    {u.role === 'super_admin' ? 'Super Admin' : 'Member'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => toggleRole(u.id, u.role)} className="text-xs px-2 py-1 h-auto">
-                      {u.role === 'super_admin' ? 'Demote' : 'Promote'}
-                    </Button>
-                    {u.role !== 'super_admin' && (
-                      <button onClick={() => deleteUser(u.id)} className="p-1.5 rounded text-stone-400 hover:text-red-600 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {users.map((u) => {
+              const officer = officers.find(o => o.profile_id === u.id)
+              return (
+                <tr key={u.id} className="hover:bg-stone-50">
+                  <td className="px-4 py-3">
+                    <span className="text-stone-800">{u.display_name}</span>
+                    {officer && <span className="ml-2 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">{officer.title}</span>}
+                  </td>
+                  <td className="px-4 py-3 text-stone-500 text-xs">{u.email || <span className="italic text-stone-300">No email</span>}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => sendReset(u.email)} disabled={sendingReset === u.email || !u.email}>
+                        <Mail className="h-3 w-3 mr-1" />{sendingReset === u.email ? 'Sending...' : 'Reset'}
+                      </Button>
+                      {!officer && !u.is_admin && (
+                        <button onClick={() => { if (confirm('Remove this user?')) { supabase.from('profiles').delete().eq('id', u.id).then(() => fetchAll()) }}} className="p-1.5 rounded text-stone-400 hover:text-red-600 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

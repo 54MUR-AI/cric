@@ -15,6 +15,7 @@ const RecordsPage = lazy(() => import('./pages/RecordsPage'))
 const MapPage = lazy(() => import('./pages/MapPage'))
 const PhotosPage = lazy(() => import('./pages/PhotosPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
+const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'))
 
 function PageFallback() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/update-password" element={<Suspense fallback={<PageFallback />}><UpdatePasswordPage /></Suspense>} />
       <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
         <Route path="/" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><DashboardPage /></Suspense></ErrorBoundary>} />
         <Route path="/schedule" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><SchedulePage /></Suspense></ErrorBoundary>} />

@@ -18,6 +18,7 @@ export async function refreshAll() {
     syncTable('map_pins', supabase.from('map_pins').select('*, cabin:cabins(name)').order('label')),
     syncTable('photos', supabase.from('photos').select('*').order('taken_at', { ascending: false }).order('created_at', { ascending: false })),
     syncTable('photo_albums', supabase.from('photo_albums').select('*').order('name')),
+    syncTable('officers', supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order')),
     syncTable('profiles', supabase.from('profiles').select('*').order('display_name')),
   ])
 }

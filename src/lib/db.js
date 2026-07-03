@@ -2,7 +2,7 @@ import Dexie from 'dexie'
 
 const db = new Dexie('cric')
 
-db.version(3).stores({
+db.version(4).stores({
   cabins: 'id, name, sort_order',
   bookings: 'id, cabin_id, start_date, end_date',
   maintenance_tasks: 'id, status, category_id, due_date, created_at',
@@ -16,6 +16,7 @@ db.version(3).stores({
   weather_cache: '++id, key',
   pending_changes: '++id, table, action, payload, created_at',
   profiles: 'id',
+  officers: 'id, profile_id, title, sort_order',
 })
 
 export default db

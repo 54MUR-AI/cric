@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Map, Image, LogOut, X, Moon, Sun,
@@ -5,6 +6,7 @@ import {
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '../../lib/constants'
 import { useAuth } from '../../hooks/useAuth'
 import { useDarkMode } from '../../lib/useDarkMode'
+import { supabase } from '../../lib/supabase'
 
 const iconMap = { LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Map, Image }
 
@@ -22,6 +24,10 @@ function DarkModeToggle() {
 
 export default function Sidebar({ open, onClose }) {
   const { profile, isAdmin, signOut } = useAuth()
+  const [officers, setOfficers] = useState([])
+  useEffect(() => {
+    supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order').then(({ data }) => setOfficers(data || []))
+  }, [])
 
   const nav = (
     <>
@@ -92,6 +98,17 @@ export default function Sidebar({ open, onClose }) {
             {isAdmin && <span className="text-xs text-amber-300 font-medium">Super Admin</span>}
           </div>
         </div>
+        {officers.length > 0 && (
+          <div className="mb-2 pt-2 border-t border-emerald-800">
+            <div className="text-xs text-emerald-400 font-medium px-2 mb-1">Officers</div>
+            {officers.map(o => (
+              <div key={o.id} className="flex items-center gap-2 px-2 py-0.5 text-xs text-stone-400">
+                <span className="font-medium text-stone-300">{o.profile?.display_name}</span>
+                <span>— {o.title}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <button
           onClick={signOut}
           className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-stone-400 hover:text-white hover:bg-emerald-800 transition-colors"
