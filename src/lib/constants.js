@@ -1,6 +1,7 @@
 export const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
   { to: '/schedule', label: 'Schedule', icon: 'Calendar' },
+  { to: '/map', label: 'Map', icon: 'Map' },
   { to: '/guide', label: 'Guide', icon: 'BookOpen' },
   { to: '/records', label: 'Records', icon: 'ScrollText' },
   { to: '/maintenance', label: 'Maintenance', icon: 'Wrench' },
