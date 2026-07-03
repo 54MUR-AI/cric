@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
+import { Radio, Zap, Thermometer, Navigation, MapPin, Layers } from 'lucide-react'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -198,11 +199,11 @@ export default function MapPage() {
   const baseLayerColors = { map: 'bg-stone-500', satellite: 'bg-purple-600', winter: 'bg-sky-600' }
 
   const overlayButtons = [
-    { key: 'showRadar', label: 'Radar', color: 'bg-blue-500' },
-    { key: 'showLightning', label: 'Lightning', color: 'bg-amber-500' },
-    { key: 'showStations', label: 'Weather Stn', color: 'bg-red-500' },
-    { key: 'showTrails', label: 'Trails', color: 'bg-green-600' },
-    { key: 'showPins', label: 'Pins', color: 'bg-pink-500' },
+    { key: 'showRadar', label: 'Radar', icon: Radio, color: 'bg-blue-500' },
+    { key: 'showLightning', label: 'Lightning', icon: Zap, color: 'bg-amber-500' },
+    { key: 'showStations', label: 'Weather Stn', icon: Thermometer, color: 'bg-red-500' },
+    { key: 'showTrails', label: 'Trails', icon: Navigation, color: 'bg-green-600' },
+    { key: 'showPins', label: 'Pins', icon: MapPin, color: 'bg-pink-500' },
   ]
   const valMap = { showRadar, showLightning, showStations, showTrails, showPins }
   const setterMap = { showRadar: setShowRadar, showLightning: setShowLightning, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins }
@@ -215,13 +216,13 @@ export default function MapPage() {
           <p className="text-sm text-stone-400">Interactive map with weather, trails, and radar</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
-          {overlayButtons.map(({ key, label, color }) => (
-            <button key={key} onClick={() => setterMap[key](!valMap[key])} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors ${valMap[key] ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-300 hover:border-stone-400'}`}>
-              <span className={`inline-block h-2 w-2 rounded-full ${color}`} />{label}
+          {overlayButtons.map(({ key, label, icon: Icon, color }) => (
+            <button key={key} onClick={() => setterMap[key](!valMap[key])} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors ${valMap[key] ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-300 hover:border-stone-400'}`}>
+              {Icon && <Icon className="h-3.5 w-3.5" />}<span className="hidden md:inline">{label}</span>
             </button>
           ))}
-          <button onClick={cycleBaseMap} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors bg-white text-stone-500 border-stone-300 hover:border-stone-400`}>
-            <span className={`inline-block h-2 w-2 rounded-full ${baseLayerColors[baseLayer]}`} />{baseLayerLabels[baseLayer]}
+          <button onClick={cycleBaseMap} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors bg-white text-stone-500 border-stone-300 hover:border-stone-400`}>
+            <Layers className="h-3.5 w-3.5" /><span className="hidden md:inline">{baseLayerLabels[baseLayer]}</span>
           </button>
           {isAdmin && (
             <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white text-rose-600 border-rose-300 hover:border-rose-400'}`}>
