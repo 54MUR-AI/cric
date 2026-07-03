@@ -18,8 +18,8 @@ export default defineConfig({
         theme_color: '#1a3c2e',
         background_color: '#f0f4f0',
         display: 'standalone',
-        scope: '/',
-        start_url: '/',
+        scope: process.env.VITE_BASE_URL || '/',
+        start_url: process.env.VITE_BASE_URL || '/',
         icons: [],
       },
       workbox: {
