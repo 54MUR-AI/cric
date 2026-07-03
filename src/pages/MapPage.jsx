@@ -7,6 +7,8 @@ import { useWeatherStations } from '../hooks/useWeatherStations'
 const CRANBERRY_LAKE = [44.2228, -74.8344]
 const RADAR_API = 'https://api.rainviewer.com/public/weather-maps.json'
 const RADAR_TILES = 'https://tilecache.rainviewer.com/v2/radar'
+const ESRI_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+const ESRI_ATTR = '&copy; <a href="https://www.esri.com/">Esri</a>'
 
 function WindArrow({ speed, direction, lat, lon, name, temp }) {
   if (speed == null || direction == null) return null
@@ -110,6 +112,7 @@ export default function MapPage() {
   const [showLightning, setShowLightning] = useState(true)
   const [showStations, setShowStations] = useState(true)
   const [showTrails, setShowTrails] = useState(true)
+  const [isSatellite, setIsSatellite] = useState(false)
 
   return (
     <div className="space-y-3">
@@ -124,9 +127,10 @@ export default function MapPage() {
             { key: 'showLightning', label: 'Lightning', color: 'bg-amber-500' },
             { key: 'showStations', label: 'Weather Stn', color: 'bg-red-500' },
             { key: 'showTrails', label: 'Trails', color: 'bg-green-600' },
+            { key: 'isSatellite', label: isSatellite ? 'Map' : 'Satellite', color: 'bg-purple-600' },
           ].map(({ key, label, color }) => {
-            const val = key === 'showRadar' ? showRadar : key === 'showLightning' ? showLightning : key === 'showStations' ? showStations : showTrails
-            const setter = key === 'showRadar' ? setShowRadar : key === 'showLightning' ? setShowLightning : key === 'showStations' ? setShowStations : setShowTrails
+            const val = key === 'showRadar' ? showRadar : key === 'showLightning' ? showLightning : key === 'showStations' ? showStations : key === 'showTrails' ? showTrails : isSatellite
+            const setter = key === 'showRadar' ? setShowRadar : key === 'showLightning' ? setShowLightning : key === 'showStations' ? setShowStations : key === 'showTrails' ? setShowTrails : setIsSatellite
             return (
               <button key={key} onClick={() => setter(!val)} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors ${val ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-300 hover:border-stone-400'}`}>
                 <span className={`inline-block h-2 w-2 rounded-full ${color}`} />
@@ -138,10 +142,10 @@ export default function MapPage() {
       </div>
 
       <div className="rounded-lg overflow-hidden border border-stone-200 shadow-sm" style={{ height: 'calc(100vh - 220px)', minHeight: 500 }}>
-        <MapContainer center={CRANBERRY_LAKE} zoom={11} className="h-full w-full" zoomControl={false}>
+        <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} className="h-full w-full" zoomControl={false}>
           <TileLayer
-            attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution={isSatellite ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'}
+            url={isSatellite ? ESRI_SAT : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
           />
 
           {showTrails && (
