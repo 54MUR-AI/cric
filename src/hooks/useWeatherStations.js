@@ -1,60 +1,63 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import db from '../lib/db'
 
-const CRANBERRY_LAKE = { lat: 44.2228, lon: -74.8344 }
+const CRANBERRY = 'https://api.weather.gov/points/44.2228,-74.8344'
+const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
 export function useWeatherStations() {
   const [stations, setStations] = useState([])
   const [loading, setLoading] = useState(true)
+  const cancelledRef = useRef(false)
 
   useEffect(() => {
-    let cancelled = false
+    cancelledRef.current = false
 
-    async function fetchData() {
+    async function fetchStations() {
       try {
-        const pointRes = await fetch(`https://api.weather.gov/points/${CRANBERRY_LAKE.lat},${CRANBERRY_LAKE.lon}`)
-        if (!pointRes.ok) throw new Error('Failed to get grid point')
-        const pointData = await pointRes.json()
-        const { gridId, gridX, gridY } = pointData.properties
-
-        const stationsRes = await fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/stations`)
-        if (!stationsRes.ok) throw new Error('Failed to get stations')
-        const stationsData = await stationsRes.json()
-
-        const stationList = stationsData.features.slice(0, 10)
-
-        const withObs = await Promise.all(
-          stationList.map(async (s) => {
-            try {
-              const obsRes = await fetch(`https://api.weather.gov/stations/${s.properties.stationIdentifier}/observations/latest`)
-              if (!obsRes.ok) return null
-              const obsData = await obsRes.json()
-              const coords = s.geometry?.coordinates
-              if (!coords || coords.length < 2) return null
-              return {
-                stationIdentifier: s.properties.stationIdentifier,
-                name: s.properties.name,
-                latitude: coords[1],
-                longitude: coords[0],
-                observation: obsData.properties,
-              }
-            } catch {
-              return null
-            }
-          })
-        )
-
-        if (!cancelled) {
-          setStations(withObs.filter(Boolean))
+        const cached = await db.weather_cache.get('stations')
+        if (cached?.data && Date.now() - cached.ts < 60000) {
+          setStations(cached.data)
           setLoading(false)
+          return
+        }
+
+        const gridRes = await fetch(CRANBERRY, { headers: { 'User-Agent': UA } })
+        const grid = await gridRes.json()
+        const stationsRes = await fetch(grid.properties.observationStations, { headers: { 'User-Agent': UA } })
+        const stationsData = await stationsRes.json()
+        const stationIds = stationsData.features.slice(0, 5).map(f => f.properties.stationIdentifier)
+
+        const withObs = await Promise.all(stationIds.map(async (id) => {
+          try {
+            const obsRes = await fetch(`https://api.weather.gov/stations/${id}/observations/latest`, { headers: { 'User-Agent': UA } })
+            const obs = await obsRes.json()
+            const props = obs.properties
+            const geo = obs.geometry?.coordinates || []
+            return {
+              stationIdentifier: id,
+              name: props.station?.properties?.name || id,
+              latitude: geo[1],
+              longitude: geo[0],
+              observation: props,
+            }
+          } catch { return null }
+        }))
+
+        const result = withObs.filter(Boolean)
+        if (!cancelledRef.current) {
+          setStations(result)
+          db.weather_cache.put({ key: 'stations', data: result, ts: Date.now() })
         }
       } catch {
-        if (!cancelled) setLoading(false)
+        if (!cancelledRef.current) setStations([])
+      } finally {
+        if (!cancelledRef.current) setLoading(false)
       }
     }
 
-    fetchData()
-    const interval = setInterval(fetchData, 5 * 60 * 1000)
-    return () => { cancelled = true; clearInterval(interval) }
+    fetchStations()
+    const interval = setInterval(fetchStations, 300000)
+    return () => { cancelledRef.current = true; clearInterval(interval) }
   }, [])
 
   return { stations, loading }

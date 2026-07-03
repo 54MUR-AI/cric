@@ -1,11 +1,24 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Map, Image, LogOut, X,
+  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Map, Image, LogOut, X, Moon, Sun,
 } from 'lucide-react'
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '../../lib/constants'
 import { useAuth } from '../../hooks/useAuth'
+import { useDarkMode } from '../../lib/useDarkMode'
 
 const iconMap = { LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Map, Image }
+
+function DarkModeToggle() {
+  const { dark, toggle } = useDarkMode()
+  return (
+    <div className="px-4 py-2 border-t border-emerald-800">
+      <button onClick={toggle} className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-stone-300 hover:bg-emerald-800 hover:text-white transition-colors">
+        {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        {dark ? 'Light Mode' : 'Dark Mode'}
+      </button>
+    </div>
+  )
+}
 
 export default function Sidebar({ open, onClose }) {
   const { profile, isAdmin, signOut } = useAuth()
@@ -66,6 +79,8 @@ export default function Sidebar({ open, onClose }) {
           </>
         )}
       </nav>
+
+      <DarkModeToggle />
 
       <div className="border-t border-emerald-800 px-4 py-3">
         <div className="flex items-center gap-2 mb-2">
