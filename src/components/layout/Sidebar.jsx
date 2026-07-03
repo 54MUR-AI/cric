@@ -94,7 +94,7 @@ export default function Sidebar({ open, onClose }) {
         {nav}
       </aside>
       {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-[2000] md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={onClose} />
           <aside className="relative w-64 max-w-[80vw] h-full bg-emerald-900 text-stone-100 flex flex-col shadow-xl animate-slide-in">
             {nav}

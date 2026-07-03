@@ -3,6 +3,64 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
+import { CloudSun, Thermometer, Wind, Droplets } from 'lucide-react'
+
+const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
+const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
+
+function WeatherWidget() {
+  const [current, setCurrent] = useState(null)
+  const [forecast, setForecast] = useState(null)
+
+  useEffect(() => {
+    fetch(CRANBERRY_POINT, { headers: { 'User-Agent': UA } })
+      .then(r => r.json())
+      .then(points => {
+        Promise.all([
+          fetch(points.properties.forecast, { headers: { 'User-Agent': UA } }).then(r => r.json()),
+          fetch(points.properties.observationStations, { headers: { 'User-Agent': UA } }).then(r => r.json()),
+        ]).then(([fc, st]) => {
+          setForecast(fc.properties.periods.slice(0, 7))
+          const sid = st.features[0].properties.stationIdentifier
+          fetch(`https://api.weather.gov/stations/${sid}/observations/latest`, { headers: { 'User-Agent': UA } })
+            .then(r => r.json())
+            .then(o => setCurrent(o.properties))
+        })
+      })
+  }, [])
+
+  return (
+    <div className="rounded-lg bg-white p-4 shadow-sm border border-stone-200">
+      <h2 className="font-semibold text-stone-700 mb-3 flex items-center gap-2">
+        <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {current && (
+          <div className="flex items-center gap-4">
+            <div className="text-4xl font-bold text-stone-800">{current.temperature?.value != null ? `${Math.round(current.temperature.value)}°` : '--'}</div>
+            <div className="text-sm text-stone-500 space-y-1">
+              <p className="text-stone-700 font-medium">{current.textDescription || '--'}</p>
+              {current.windSpeed?.value != null && <p className="flex items-center gap-1"><Wind className="h-3 w-3" />{Math.round(current.windSpeed.value)} mph</p>}
+              {current.relativeHumidity?.value != null && <p className="flex items-center gap-1"><Droplets className="h-3 w-3" />{Math.round(current.relativeHumidity.value)}%</p>}
+            </div>
+          </div>
+        )}
+        {forecast && (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {forecast.map((p, i) => (
+              <div key={i} className="flex flex-col items-center gap-1 min-w-[64px] text-center">
+                <span className="text-[10px] text-stone-400 font-medium leading-tight">{p.name.replace('Night', '').replace('Evening', '').trim()}</span>
+                <Thermometer className={`h-4 w-4 ${p.temperature > 70 ? 'text-amber-500' : p.temperature > 50 ? 'text-stone-500' : 'text-blue-500'}`} />
+                <span className="text-sm font-bold text-stone-700">{p.temperature}°</span>
+                <span className="text-[9px] text-stone-400 leading-tight">{p.shortForecast}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const { profile } = useAuth()
@@ -19,6 +77,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-stone-800">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</h1>
+
+      <WeatherWidget />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-lg bg-white p-4 shadow-sm border border-stone-200">
