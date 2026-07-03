@@ -14,7 +14,9 @@ const CRANBERRY_LAKE = [44.2228, -74.8344]
 const RADAR_API = 'https://api.rainviewer.com/public/weather-maps.json'
 const RADAR_TILES = 'https://tilecache.rainviewer.com/v2/radar'
 const ESRI_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+const USGS_WINTER = 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}'
 const ESRI_ATTR = '&copy; <a href="https://www.esri.com/">Esri</a>'
+const USGS_ATTR = '&copy; <a href="https://www.usgs.gov/">USGS</a>'
 
 const PIN_COLORS = {
   cabin: '#10b981', boathouse: '#3b82f6', dock: '#06b6d4',
@@ -138,7 +140,7 @@ export default function MapPage() {
   const [showStations, setShowStations] = useState(true)
   const [showTrails, setShowTrails] = useState(true)
   const [showPins, setShowPins] = useState(true)
-  const [isSatellite, setIsSatellite] = useState(false)
+  const [baseLayer, setBaseLayer] = useState('map')
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [newPinLatLng, setNewPinLatLng] = useState(null)
   const [pinForm, setPinForm] = useState({ label: '', type: 'cabin', description: '', cabin_id: '' })
@@ -190,16 +192,20 @@ export default function MapPage() {
     setActiveTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type])
   }
 
+  const cycleBaseMap = () => setBaseLayer(prev => prev === 'map' ? 'satellite' : prev === 'satellite' ? 'winter' : 'map')
+
+  const baseLayerLabels = { map: 'Map', satellite: 'Satellite', winter: 'Winter' }
+  const baseLayerColors = { map: 'bg-stone-500', satellite: 'bg-purple-600', winter: 'bg-sky-600' }
+
   const overlayButtons = [
     { key: 'showRadar', label: 'Radar', color: 'bg-blue-500' },
     { key: 'showLightning', label: 'Lightning', color: 'bg-amber-500' },
     { key: 'showStations', label: 'Weather Stn', color: 'bg-red-500' },
     { key: 'showTrails', label: 'Trails', color: 'bg-green-600' },
     { key: 'showPins', label: 'Pins', color: 'bg-pink-500' },
-    { key: 'isSatellite', label: isSatellite ? 'Map' : 'Satellite', color: 'bg-purple-600' },
   ]
-  const valMap = { showRadar, showLightning, showStations, showTrails, showPins, isSatellite }
-  const setterMap = { showRadar: setShowRadar, showLightning: setShowLightning, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, isSatellite: setIsSatellite }
+  const valMap = { showRadar, showLightning, showStations, showTrails, showPins }
+  const setterMap = { showRadar: setShowRadar, showLightning: setShowLightning, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins }
 
   return (
     <div className="space-y-3">
@@ -214,6 +220,9 @@ export default function MapPage() {
               <span className={`inline-block h-2 w-2 rounded-full ${color}`} />{label}
             </button>
           ))}
+          <button onClick={cycleBaseMap} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors bg-white text-stone-500 border-stone-300 hover:border-stone-400`}>
+            <span className={`inline-block h-2 w-2 rounded-full ${baseLayerColors[baseLayer]}`} />{baseLayerLabels[baseLayer]}
+          </button>
           {isAdmin && (
             <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white text-rose-600 border-rose-300 hover:border-rose-400'}`}>
               <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
@@ -237,9 +246,9 @@ export default function MapPage() {
       </div>
 
       <div className="rounded-lg overflow-hidden border border-stone-200 shadow-sm relative" style={{ height: 'calc(100vh - 280px)', minHeight: 450 }}>
-        <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
+        <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} maxZoom={20} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
-          <TileLayer attribution={isSatellite ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={isSatellite ? ESRI_SAT : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
+          <TileLayer attribution={baseLayer === 'satellite' ? ESRI_ATTR : baseLayer === 'winter' ? USGS_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'winter' ? USGS_WINTER : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
           {showLightning && <LightningLayer />}
