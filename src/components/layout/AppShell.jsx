@@ -65,6 +65,7 @@ export default function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <a href="#main-content" className="skip-to-content">Skip to content</a>
       <OfflineIndicator />
       {updateAvailable && (
         <div className="fixed top-0 left-0 right-0 z-[9999] bg-emerald-700 text-white text-center text-xs py-1.5 flex items-center justify-center gap-1.5">
@@ -94,7 +95,7 @@ export default function AppShell() {
           <span className="font-semibold text-sm">CRIC Island Manager</span>
           <div className="w-7" />
         </header>
-        <main className="flex-1 overflow-y-auto bg-stone-50 pb-16 md:pb-0" key={refreshKey}>
+        <main id="main-content" className="flex-1 overflow-y-auto bg-stone-50 pb-16 md:pb-0" key={refreshKey}>
           <PullToRefresh onRefresh={triggerRefresh} />
           <div className="p-4 md:p-6">
             <AnimatePresence mode="wait">

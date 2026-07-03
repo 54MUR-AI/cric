@@ -3,6 +3,7 @@ import { useMaintenance } from '../hooks/useMaintenance'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
+import SwipeToDelete from '../components/ui/SwipeToDelete'
 import { formatDate } from '../lib/utils'
 import { Plus, MessageCircle } from 'lucide-react'
 
@@ -52,20 +53,22 @@ export default function MaintenancePage() {
 
       <div className="space-y-2">
         {tasks.map((task) => (
-          <div key={task.id} className="rounded-lg bg-white p-4 shadow-sm border border-stone-200 flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-colors" onClick={() => openTask(task)}>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-stone-800 truncate">{task.title}</span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[task.status]}`}>{task.status.replace('_', ' ')}</span>
+          <SwipeToDelete key={task.id} onDelete={() => { if (confirm('Delete this task?')) { deleteTask(task.id); setSelectedTask(null) } }}>
+            <div className="rounded-lg bg-white p-4 shadow-sm border border-stone-200 flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-colors" onClick={() => openTask(task)}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-stone-800 truncate">{task.title}</span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[task.status]}`}>{task.status.replace('_', ' ')}</span>
+                </div>
+                <div className="flex gap-3 mt-1 text-xs text-stone-400">
+                  <span>{task.maintenance_categories?.name}</span>
+                  {task.due_date && <span>Due: {formatDate(task.due_date)}</span>}
+                  {task.assigned_to_profile && <span>Assigned to: {task.assigned_to_profile.display_name}</span>}
+                </div>
               </div>
-              <div className="flex gap-3 mt-1 text-xs text-stone-400">
-                <span>{task.maintenance_categories?.name}</span>
-                {task.due_date && <span>Due: {formatDate(task.due_date)}</span>}
-                {task.assigned_to_profile && <span>Assigned to: {task.assigned_to_profile.display_name}</span>}
-              </div>
+              <MessageCircle className="h-4 w-4 text-stone-400 shrink-0 ml-2" />
             </div>
-            <MessageCircle className="h-4 w-4 text-stone-400 shrink-0 ml-2" />
-          </div>
+          </SwipeToDelete>
         ))}
         {tasks.length === 0 && <p className="text-sm text-stone-400 text-center py-8">No maintenance tasks yet</p>}
       </div>
