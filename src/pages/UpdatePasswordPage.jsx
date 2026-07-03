@@ -13,15 +13,10 @@ export default function UpdatePasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const hash = window.location.hash
-    if (hash && hash.includes('type=recovery')) {
-      supabase.auth.getSession().then(({ data, error }) => {
-        if (data?.session) setReady(true)
-        else setError('Invalid or expired reset link. Request a new one.')
-      })
-    } else {
-      setError('No reset token found. Use the link from your email.')
-    }
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) setReady(true)
+      else setError('No reset token found. Use the link from your email.')
+    })
   }, [])
 
   async function handleSubmit(e) {
@@ -56,11 +51,11 @@ export default function UpdatePasswordPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">New Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required minLength={6} />
+            <input type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required minLength={6} />
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Confirm Password</label>
-            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required minLength={6} />
+            <input type="password" autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required minLength={6} />
           </div>
           <Button type="submit" className="w-full" disabled={loading || !ready}>
             {loading ? 'Updating...' : 'Update Password'}
