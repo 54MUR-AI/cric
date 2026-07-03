@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+html { scroll-behavior: smooth; }
+.skip-to-content { position: absolute; left: -9999px; z-index: 9999; padding: 0.5rem 1rem; background: #1c1917; color: white; font-size: 0.875rem; text-decoration: none; border-radius: 0 0 0.5rem 0; }
+.skip-to-content:focus { left: 0; }
+
 @layer base {
   *,
   *::before,

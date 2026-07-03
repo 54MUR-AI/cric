@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { Share2, FolderOpen, Plus, X } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Share2, FolderOpen, Plus, X, Upload, Trash2 } from 'lucide-react'
 import { usePhotos } from '../hooks/usePhotos'
 import { useShare } from '../lib/share'
+import { vibrate } from '../lib/haptics'
 import { supabase } from '../lib/supabase'
 
 function groupByDate(photos) {
@@ -24,15 +25,33 @@ export default function PhotosPage() {
   const [albumFilter, setAlbumFilter] = useState(null)
   const [showAlbumForm, setShowAlbumForm] = useState(false)
   const [albumName, setAlbumName] = useState('')
+  const [dragOver, setDragOver] = useState(false)
+  const [selected, setSelected] = useState(new Set())
+  const fileRef = useRef()
+  const dropRef = useRef()
 
   const filtered = albumFilter ? photos.filter(p => p.album_id === albumFilter) : photos
   useEffect(() => { setGroups(groupByDate(filtered)) }, [filtered])
 
-  const handleUpload = async (e) => {
-    const file = e.target.files?.[0]
+  const doUpload = useCallback(async (file) => {
     if (!file) return
     setUploading(true)
-    try { await uploadPhoto(file, { album_id: albumFilter }) } catch {} finally { setUploading(false); e.target.value = '' }
+    try { await uploadPhoto(file, { album_id: albumFilter }); vibrate([10, 20, 10]) } catch {} finally { setUploading(false) }
+  }, [uploadPhoto, albumFilter])
+
+  const handleUpload = async (e) => { await doUpload(e.target.files?.[0]); e.target.value = '' }
+  const handleDrop = async (e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) { await doUpload(f) } }
+
+  const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const clearSelection = () => setSelected(new Set())
+  const deleteSelected = async () => {
+    if (!confirm(`Delete ${selected.size} photo${selected.size > 1 ? 's' : ''}?`)) return
+    for (const id of selected) {
+      const photo = photos.find(p => p.id === id)
+      if (photo) await deletePhoto(photo)
+    }
+    setSelected(new Set())
+    vibrate([10, 20, 10])
   }
 
   const handleCreateAlbum = async () => {
@@ -54,12 +73,20 @@ export default function PhotosPage() {
           <p className="text-sm text-stone-400">Share and browse camp memories</p>
         </div>
         <div className="flex gap-2">
+          {selected.size > 0 && (
+            <>
+              <span className="text-xs text-stone-500 self-center">{selected.size} selected</span>
+              <button onClick={deleteSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100 transition-colors">
+                <Trash2 className="h-3 w-3" /> Delete
+              </button>
+              <button onClick={clearSelection} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white text-stone-600 border-stone-300 hover:border-stone-400 transition-colors">Cancel</button>
+            </>
+          )}
           <button onClick={() => setShowAlbumForm(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white text-stone-600 border-stone-300 hover:border-stone-400 transition-colors">
             <Plus className="h-3 w-3" /> Album
           </button>
           <label className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors ${uploading ? 'bg-stone-800 text-white border-stone-800 opacity-50' : 'bg-white text-stone-600 border-stone-300 hover:border-stone-400'}`}>
-            <span className="text-lg leading-none">+</span>
-            {uploading ? 'Uploading...' : 'Upload'}
+            <Upload className="h-3 w-3" />{uploading ? 'Uploading...' : 'Upload'}
             <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
           </label>
         </div>
@@ -78,60 +105,86 @@ export default function PhotosPage() {
         </div>
       )}
 
-      {groups.length === 0 && (
-        <div className="text-center py-16 text-stone-400">
-          <p className="text-5xl mb-3">📷</p>
-          <p className="font-medium">No photos yet</p>
-          <p className="text-sm">Upload the first camp memory!</p>
-        </div>
-      )}
-
-      {groups.map(([key, group]) => (
-        <div key={key}>
-          <h2 className="text-sm font-semibold text-stone-500 mb-2 sticky top-0 bg-stone-50 py-2 z-10">{formatDate(group.date)}</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {group.photos.map((photo) => (
-              <div key={photo.id} className="relative group aspect-square rounded-lg overflow-hidden bg-stone-100 cursor-pointer" onClick={() => setLightbox(photo)}>
-                <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                {photo.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-xs truncate">{photo.caption}</p>
-                  </div>
-                )}
-                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={(e) => { e.stopPropagation(); share({ title: 'CRIC Photo', text: photo.caption || 'Camp memory', url: photo.url }) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-stone-600">
-                    <Share2 className="h-3 w-3" />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs text-stone-600">✕</button>
-                </div>
-              </div>
-            ))}
+      <div
+        ref={dropRef}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`relative ${dragOver ? 'ring-2 ring-emerald-500 ring-offset-2 rounded-lg' : ''}`}
+      >
+        {dragOver && (
+          <div className="absolute inset-0 z-20 bg-emerald-50/90 rounded-lg flex items-center justify-center">
+            <div className="text-center text-emerald-700">
+              <Upload className="h-8 w-8 mx-auto mb-2" />
+              <p className="font-medium">Drop photo to upload</p>
+            </div>
           </div>
-        </div>
-      ))}
+        )}
+
+        {groups.length === 0 && (
+          <div className="text-center py-16 text-stone-400">
+            <p className="text-5xl mb-3">📷</p>
+            <p className="font-medium">No photos yet</p>
+            <p className="text-sm">Drop a photo here or click Upload</p>
+          </div>
+        )}
+
+        {groups.map(([key, group]) => (
+          <div key={key}>
+            <h2 className="text-sm font-semibold text-stone-500 mb-2 sticky top-0 bg-stone-50 py-2 z-10">{formatDate(group.date)}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {group.photos.map((photo) => {
+                const isSelected = selected.has(photo.id)
+                return (
+                  <div key={photo.id} className={`relative group aspect-square rounded-lg overflow-hidden bg-stone-100 cursor-pointer ${isSelected ? 'ring-2 ring-emerald-500 ring-offset-1' : ''}`} onClick={() => { if (selected.size > 0) toggleSelect(photo.id); else setLightbox(photo) }}>
+                    <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover" loading="lazy" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                    {photo.caption && (
+                      <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-white text-xs truncate">{photo.caption}</p>
+                      </div>
+                    )}
+                    <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(photo.id)} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500" />
+                    </div>
+                    <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.stopPropagation(); share({ title: 'CRIC Photo', text: photo.caption || 'Camp memory', url: photo.url }) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-stone-600">
+                        <Share2 className="h-3 w-3" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs text-stone-600">✕</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {lightbox && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)} role="dialog" aria-label="Photo lightbox">
           <div className="relative max-w-4xl max-h-full" onClick={e => e.stopPropagation()}>
             <img src={lightbox.url} alt={lightbox.caption || ''} className="max-w-full max-h-[85vh] rounded-lg shadow-2xl" />
             {lightbox.caption && <p className="text-white text-sm mt-2 text-center">{lightbox.caption}</p>}
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center gap-3 mt-2">
               <button onClick={() => share({ title: 'CRIC Photo', text: lightbox.caption || 'Camp memory', url: lightbox.url })} className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors">
                 <Share2 className="h-3 w-3" /> Share
               </button>
+              <button onClick={() => { navigator.clipboard.writeText(lightbox.url); vibrate(8) }} className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors">
+                Copy Link
+              </button>
             </div>
-            <button onClick={() => setLightbox(null)} className="absolute top-2 right-2 bg-white/20 hover:bg-white/40 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg">✕</button>
+            <button onClick={() => setLightbox(null)} className="absolute top-2 right-2 bg-white/20 hover:bg-white/40 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg" aria-label="Close lightbox">✕</button>
           </div>
         </div>
       )}
 
       {showAlbumForm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setShowAlbumForm(false)}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setShowAlbumForm(false)} role="dialog" aria-label="Create album">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-stone-800">New Album</h3>
-              <button onClick={() => setShowAlbumForm(false)}><X className="h-4 w-4 text-stone-400" /></button>
+              <button onClick={() => setShowAlbumForm(false)} aria-label="Close"><X className="h-4 w-4 text-stone-400" /></button>
             </div>
             <input type="text" placeholder="Album name" value={albumName} onChange={e => setAlbumName(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-stone-400" autoFocus />
             <div className="flex gap-2 justify-end">

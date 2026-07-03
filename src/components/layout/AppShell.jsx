@@ -8,6 +8,8 @@ import OfflineIndicator from '../ui/OfflineIndicator'
 import { useSync } from '../../lib/useSync'
 import { useSWUpdate } from '../../lib/useSWUpdate'
 import { useKeyBindings } from '../../lib/useKeyBindings'
+import { useInstallPrompt } from '../../lib/useInstallPrompt'
+import { Download, X } from 'lucide-react'
 
 function PullToRefresh({ onRefresh }) {
   const [pulling, setPulling] = useState(false)
@@ -57,6 +59,7 @@ export default function AppShell() {
   useSync()
   const { updateAvailable, activateUpdate } = useSWUpdate()
   useKeyBindings()
+  const { showInstall, install, dismiss } = useInstallPrompt()
 
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
 
@@ -69,6 +72,17 @@ export default function AppShell() {
           <button onClick={activateUpdate} className="inline-flex items-center gap-1 bg-white text-emerald-800 rounded-full px-2.5 py-0.5 font-medium hover:bg-emerald-50 transition-colors">
             <RotateCcw className="h-3 w-3" /> Update
           </button>
+        </div>
+      )}
+      {showInstall && (
+        <div className="fixed bottom-20 left-4 right-4 z-50 md:bottom-4 md:left-auto md:right-4 md:max-w-xs bg-emerald-900 text-white rounded-xl shadow-2xl p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-emerald-700 flex items-center justify-center text-lg font-bold">CR</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Install CRIC</p>
+            <p className="text-xs text-emerald-200">Add to your home screen</p>
+          </div>
+          <button onClick={install} className="bg-white text-emerald-900 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-emerald-50 shrink-0">Install</button>
+          <button onClick={dismiss} className="text-emerald-300 hover:text-white shrink-0"><X className="h-4 w-4" /></button>
         </div>
       )}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />

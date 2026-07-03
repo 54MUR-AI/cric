@@ -16,7 +16,7 @@ export async function refreshAll() {
     syncTable('maintenance_categories', supabase.from('maintenance_categories').select('*').order('sort_order').order('name')),
     syncTable('meetings', supabase.from('meetings').select('*, profiles:created_by(display_name)').order('date', { ascending: false })),
     syncTable('map_pins', supabase.from('map_pins').select('*, cabin:cabins(name)').order('label')),
-    syncTable('photos', supabase.from('photos').select('*, profile:uploaded_by(display_name)').order('taken_at', { ascending: false }).order('created_at', { ascending: false })),
+    syncTable('photos', supabase.from('photos').select('*').order('taken_at', { ascending: false }).order('created_at', { ascending: false })),
     syncTable('photo_albums', supabase.from('photo_albums').select('*').order('name')),
     syncTable('profiles', supabase.from('profiles').select('*').order('display_name')),
   ])

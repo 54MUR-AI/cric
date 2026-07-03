@@ -14,7 +14,7 @@ export function usePhotos() {
   const fetchAll = useCallback(async () => {
     try {
       const [photosRes, albumsRes] = await Promise.all([
-        supabase.from('photos').select('*, profile:uploaded_by(display_name)').order('taken_at', { ascending: false }).order('created_at', { ascending: false }),
+        supabase.from('photos').select('*').order('taken_at', { ascending: false }).order('created_at', { ascending: false }),
         supabase.from('photo_albums').select('*').order('name'),
       ])
       if (!photosRes.error) { setPhotos(photosRes.data || []); db.photos.bulkPut(photosRes.data || []) }
@@ -52,7 +52,7 @@ export function usePhotos() {
         album_id: album_id || null,
         uploaded_by: user?.id,
       })
-      .select('*, profile:uploaded_by(display_name)')
+      .select('*')
       .single()
 
     if (error) {

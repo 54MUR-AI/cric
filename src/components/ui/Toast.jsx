@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react'
+import { vibrate } from '../../lib/haptics'
 
 const ToastContext = createContext(null)
 
@@ -16,6 +17,9 @@ export function ToastProvider({ children }) {
   const addToast = useCallback((message, type = 'info', duration = 4000) => {
     const id = Date.now() + Math.random()
     setToasts(prev => [...prev, { id, message, type }])
+    if (type === 'error') vibrate([30, 15, 30])
+    else if (type === 'success') vibrate([10, 20, 10])
+    else vibrate(8)
     if (duration > 0) setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration)
   }, [])
 
