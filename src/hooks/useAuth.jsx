@@ -6,12 +6,14 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [role, setRole] = useState('member')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user)
+        setRole(session.user.app_metadata?.role || 'member')
         fetchProfile(session.user.id)
       } else {
         setLoading(false)
@@ -21,10 +23,12 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user)
+        setRole(session.user.app_metadata?.role || 'member')
         fetchProfile(session.user.id)
       } else {
         setUser(null)
         setProfile(null)
+        setRole('member')
         setLoading(false)
       }
     })
@@ -51,8 +55,10 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
+  const isAdmin = role === 'super_admin'
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, role, isAdmin, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

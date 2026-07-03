@@ -14,9 +14,10 @@ const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales
 export default function SchedulePage() {
   const { bookings, loading: loadingB, createBooking, deleteBooking } = useBookings()
   const { cabins, loading: loadingC } = useCabins()
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
+  const [selectedEvent, setSelectedEvent] = useState(null)
   const [formData, setFormData] = useState({ cabin_id: '', notes: '' })
   const [error, setError] = useState('')
 
@@ -53,6 +54,10 @@ export default function SchedulePage() {
     }
   }
 
+  function handleSelectEvent(event) {
+    setSelectedEvent(event.resource)
+  }
+
   async function handleDelete(id) {
     if (confirm('Cancel this booking?')) await deleteBooking(id)
   }
@@ -84,7 +89,7 @@ export default function SchedulePage() {
           views={[Views.MONTH, Views.WEEK]}
           selectable
           onSelectSlot={handleSelectSlot}
-          onSelectEvent={(e) => handleDelete(e.id)}
+          onSelectEvent={handleSelectEvent}
           eventPropGetter={(event) => ({
             style: {
               backgroundColor: event.resource.cabins?.color || '#3b82f6',
@@ -140,6 +145,23 @@ export default function SchedulePage() {
                 <Button type="submit">Book</Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedEvent(null)}>
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-stone-800 mb-1">{selectedEvent.cabins?.name}</h2>
+            <p className="text-sm text-stone-500 mb-4">
+              {formatDate(selectedEvent.start_date)} – {formatDate(selectedEvent.end_date)}
+              {selectedEvent.profiles?.display_name && <> · Booked by {selectedEvent.profiles.display_name}</>}
+            </p>
+            {selectedEvent.notes && <p className="text-sm text-stone-600 mb-4">{selectedEvent.notes}</p>}
+            <div className="flex gap-2 justify-end">
+              <Button variant="secondary" onClick={() => setSelectedEvent(null)}>Close</Button>
+              <Button variant="danger" onClick={() => { handleDelete(selectedEvent.id); setSelectedEvent(null) }}>Cancel Booking</Button>
+            </div>
           </div>
         </div>
       )}

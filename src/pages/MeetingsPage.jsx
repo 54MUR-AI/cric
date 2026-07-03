@@ -7,8 +7,8 @@ import { formatDate } from '../lib/utils'
 import { Plus } from 'lucide-react'
 
 export default function MeetingsPage() {
-  const { meetings, loading, createMeeting } = useMeetings()
-  const { user } = useAuth()
+  const { meetings, loading, createMeeting, updateMeeting, deleteMeeting } = useMeetings()
+  const { user, isAdmin } = useAuth()
   const [selectedMeetingId, setSelectedMeetingId] = useState(null)
   const [meetingDetail, setMeetingDetail] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -79,7 +79,10 @@ export default function MeetingsPage() {
               <h2 className="text-xl font-bold text-stone-800">{meetingDetail.title}</h2>
               <p className="text-sm text-stone-400">{formatDate(meetingDetail.date)}{meetingDetail.location ? ` · ${meetingDetail.location}` : ''}</p>
             </div>
-            <Button variant="ghost" onClick={() => setSelectedMeetingId(null)}>Close</Button>
+            <div className="flex gap-2">
+              {isAdmin && <Button variant="danger" onClick={() => { if (confirm('Delete this meeting permanently?')) { deleteMeeting(meetingDetail.id); setMeetingDetail(null); setSelectedMeetingId(null) } }}>Delete</Button>}
+              <Button variant="ghost" onClick={() => setSelectedMeetingId(null)}>Close</Button>
+            </div>
           </div>
 
           <div className="space-y-3">

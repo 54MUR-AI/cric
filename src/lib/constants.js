@@ -6,6 +6,10 @@ export const NAV_ITEMS = [
   { to: '/cabins', label: 'Cabins', icon: 'Home' },
 ]
 
+export const ADMIN_NAV_ITEMS = [
+  { to: '/users', label: 'Manage Users', icon: 'Users' },
+]
+
 export const TASK_STATUSES = ['todo', 'in_progress', 'done']
 
 export const TASK_STATUS_LABELS = {

@@ -7,6 +7,7 @@ import SchedulePage from './pages/SchedulePage'
 import MaintenancePage from './pages/MaintenancePage'
 import MeetingsPage from './pages/MeetingsPage'
 import CabinsPage from './pages/CabinsPage'
+import UsersPage from './pages/UsersPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/meetings" element={<MeetingsPage />} />
         <Route path="/cabins" element={<CabinsPage />} />
+        <Route path="/users" element={<UsersPage />} />
       </Route>
     </Routes>
   )

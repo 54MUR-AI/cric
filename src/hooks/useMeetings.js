@@ -27,6 +27,12 @@ export function useMeetings() {
     return data
   }
 
+  async function deleteMeeting(id) {
+    const { error } = await supabase.from('meetings').delete().eq('id', id)
+    if (error) throw error
+    setMeetings((prev) => prev.filter((m) => m.id !== id))
+  }
+
   async function getMeetingWithItems(id) {
     const { data: meeting } = await supabase.from('meetings').select('*, profiles:created_by(display_name)').eq('id', id).single()
     if (!meeting) return null
@@ -34,5 +40,5 @@ export function useMeetings() {
     return { ...meeting, agenda_items: items || [] }
   }
 
-  return { meetings, loading, createMeeting, updateMeeting, getMeetingWithItems, refetch: fetchMeetings }
+  return { meetings, loading, createMeeting, updateMeeting, deleteMeeting, getMeetingWithItems, refetch: fetchMeetings }
 }
