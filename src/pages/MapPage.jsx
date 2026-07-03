@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
+import { useCabins } from '../hooks/useCabins'
 import { useAuth } from '../hooks/useAuth'
 
 const CRANBERRY_LAKE = [44.2228, -74.8344]
@@ -111,6 +112,7 @@ export default function MapPage() {
   const { isAdmin } = useAuth()
   const { stations, loading: stationsLoading } = useWeatherStations()
   const { pins, loading: pinsLoading, addPin, deletePin } = useMapPins()
+  const { cabins } = useCabins()
 
   const [showRadar, setShowRadar] = useState(true)
   const [showLightning, setShowLightning] = useState(true)
@@ -120,7 +122,7 @@ export default function MapPage() {
   const [isSatellite, setIsSatellite] = useState(false)
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [newPinLatLng, setNewPinLatLng] = useState(null)
-  const [pinForm, setPinForm] = useState({ label: '', type: 'cabin', description: '' })
+  const [pinForm, setPinForm] = useState({ label: '', type: 'cabin', description: '', cabin_id: '' })
   const [pinError, setPinError] = useState('')
   const [savingPin, setSavingPin] = useState(false)
 
@@ -140,9 +142,10 @@ export default function MapPage() {
         latitude: newPinLatLng.lat,
         longitude: newPinLatLng.lng,
         description: pinForm.description.trim() || null,
+        cabin_id: pinForm.cabin_id || null,
       })
       setNewPinLatLng(null)
-      setPinForm({ label: '', type: 'cabin', description: '' })
+      setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' })
       setIsAddingPin(false)
     } catch (err) {
       setPinError(err.message || 'Failed to add pin')
@@ -153,7 +156,7 @@ export default function MapPage() {
 
   const handleCancelPin = () => {
     setNewPinLatLng(null)
-    setPinForm({ label: '', type: 'cabin', description: '' })
+    setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' })
     setIsAddingPin(false)
     setPinError('')
   }
@@ -237,7 +240,7 @@ export default function MapPage() {
               <Popup>
                 <div className="text-xs space-y-1">
                   <strong className="text-sm">{pin.label}</strong>
-                  <div><span className="capitalize text-stone-400">{pin.type}</span></div>
+                  <div><span className="capitalize text-stone-400">{pin.type}</span>{pin.cabin?.name && <span className="text-stone-400"> &middot; {pin.cabin.name}</span>}</div>
                   {pin.description && <div>{pin.description}</div>}
                   {isAdmin && (
                     <button onClick={() => { if (confirm('Delete this pin?')) deletePin(pin.id) }} className="text-rose-600 hover:text-rose-800 font-medium">Delete</button>
@@ -267,6 +270,10 @@ export default function MapPage() {
               />
               <select value={pinForm.type} onChange={e => setPinForm(f => ({ ...f, type: e.target.value }))} className="w-full rounded border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400">
                 {Object.keys(PIN_COLORS).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              </select>
+              <select value={pinForm.cabin_id} onChange={e => setPinForm(f => ({ ...f, cabin_id: e.target.value }))} className="w-full rounded border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400">
+                <option value="">No cabin linked</option>
+                {cabins.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <textarea placeholder="Description (optional)" value={pinForm.description} rows={2}
                 onChange={e => setPinForm(f => ({ ...f, description: e.target.value }))}

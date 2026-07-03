@@ -5,6 +5,7 @@ create table if not exists map_pins (
   latitude double precision not null,
   longitude double precision not null,
   description text,
+  cabin_id uuid references cabins(id) on delete set null,
   created_by uuid references auth.users(id),
   created_at timestamptz default now()
 );
@@ -26,13 +27,3 @@ create policy "Admins can delete pins"
   using (
     exists (select 1 from profiles where id = auth.uid() and is_admin = true)
   );
-
-insert into map_pins (label, type, latitude, longitude, description) values
-  ('Main House', 'cabin', 44.226, -74.832, 'Main cabin / gathering house'),
-  ('Toad Hall', 'cabin', 44.224, -74.835, 'Guest cabin'),
-  ('Loon Lodge', 'cabin', 44.221, -74.836, 'Lakeside cabin'),
-  ('The Bunkhouse', 'cabin', 44.223, -74.830, 'Bunkhouse sleeping quarters'),
-  ('Boathouse', 'boathouse', 44.225, -74.833, 'Boat storage and dock area'),
-  ('Main Dock', 'dock', 44.2255, -74.8325, 'Primary docking area'),
-  ('Lean-to', 'lean-to', 44.222, -74.833, 'Campsite lean-to shelter'),
-  ('Firepit', 'firepit', 44.2235, -74.834, 'Main campfire circle');

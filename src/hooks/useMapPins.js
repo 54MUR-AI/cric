@@ -9,7 +9,7 @@ export function useMapPins() {
     try {
       const { data, error } = await supabase
         .from('map_pins')
-        .select('*')
+        .select('*, cabin:cabins(name)')
         .order('label')
       if (error) throw error
       setPins(data || [])
@@ -24,12 +24,14 @@ export function useMapPins() {
     fetchPins()
   }, [fetchPins])
 
-  const addPin = useCallback(async ({ label, type, latitude, longitude, description }) => {
+  const addPin = useCallback(async ({ label, type, latitude, longitude, description, cabin_id }) => {
     const { data: { user } } = await supabase.auth.getUser()
+    const payload = { label, type, latitude, longitude, description, created_by: user?.id }
+    if (cabin_id) payload.cabin_id = cabin_id
     const { data, error } = await supabase
       .from('map_pins')
-      .insert({ label, type, latitude, longitude, description, created_by: user?.id })
-      .select()
+      .insert(payload)
+      .select('*, cabin:cabins(name)')
       .single()
     if (error) throw error
     setPins(prev => [...prev, data].sort((a, b) => a.label.localeCompare(b.label)))
