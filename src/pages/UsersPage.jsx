@@ -29,8 +29,8 @@ export default function UsersPage() {
       supabase.from('profiles').select('*').order('display_name'),
       supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order'),
     ])
-    setUsers(uRes.data || [])
-    setOfficers(oRes.data || [])
+    setUsers(uRes?.data || [])
+    setOfficers(oRes?.data || [])
     setLoading(false)
   }
 
@@ -96,7 +96,8 @@ export default function UsersPage() {
     if (error) { toast.error(error.message); return }
     toast.success('Name updated')
     setEditingName(null)
-    fetchAll()
+    await fetchAll()
+    window.dispatchEvent(new CustomEvent('officers-refresh'))
   }
 
   useEffect(() => {
