@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, Thermometer, Navigation, MapPin, Layers } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, Layers, Share2 } from 'lucide-react'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -96,6 +96,12 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
 
   const guideKey = Object.keys(GUIDE_SECTIONS).find(k => pin.label.toLowerCase().includes(k) || pin.type === k)
 
+  const handleShare = () => {
+    const text = `${pin.label} — ${(dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`)} ${dir} of landing`
+    if (navigator.share) navigator.share({ title: pin.label, text }).catch(() => {})
+    else navigator.clipboard.writeText(text)
+  }
+
   return (
     <div className="text-xs space-y-1.5 min-w-[180px]">
       <div className="flex items-center gap-1.5">
@@ -115,6 +121,8 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
       )}
 
       {guideKey && <a href={GUIDE_SECTIONS[guideKey]} className="block text-amber-600 hover:text-amber-800 font-medium">View Guide &rarr;</a>}
+
+      <button onClick={handleShare} className="inline-flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors mt-1"><Share2 className="h-3 w-3" /> Share</button>
 
       {pin.image_url && <img src={pin.image_url} alt="" className="w-full h-24 object-cover rounded mt-1" />}
 

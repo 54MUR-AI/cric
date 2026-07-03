@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
+import { Share2 } from 'lucide-react'
 import { useBookings } from '../hooks/useBookings'
 import { useCabins } from '../hooks/useCabins'
 import { useAuth } from '../hooks/useAuth'
+import { useShare } from '../lib/share'
 import Button from '../components/ui/Button'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
@@ -15,6 +17,7 @@ export default function SchedulePage() {
   const { bookings, loading: loadingB, createBooking, deleteBooking } = useBookings()
   const { cabins, loading: loadingC } = useCabins()
   const { user, isAdmin } = useAuth()
+  const { copy } = useShare()
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -158,9 +161,14 @@ export default function SchedulePage() {
               {selectedEvent.profiles?.display_name && <> · Booked by {selectedEvent.profiles.display_name}</>}
             </p>
             {selectedEvent.notes && <p className="text-sm text-stone-600 mb-4">{selectedEvent.notes}</p>}
-            <div className="flex gap-2 justify-end">
-              <Button variant="secondary" onClick={() => setSelectedEvent(null)}>Close</Button>
-              <Button variant="danger" onClick={() => { handleDelete(selectedEvent.id); setSelectedEvent(null) }}>Cancel Booking</Button>
+            <div className="flex gap-2 justify-between items-center">
+              <button onClick={() => copy(`${selectedEvent.cabins?.name}: ${formatDate(selectedEvent.start_date)} – ${formatDate(selectedEvent.end_date)}${selectedEvent.notes ? ` — ${selectedEvent.notes}` : ''}`, 'Booking copied')} className="inline-flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                <Share2 className="h-3 w-3" /> Share
+              </button>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setSelectedEvent(null)}>Close</Button>
+                <Button variant="danger" onClick={() => { handleDelete(selectedEvent.id); setSelectedEvent(null) }}>Cancel Booking</Button>
+              </div>
             </div>
           </div>
         </div>
