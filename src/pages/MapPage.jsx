@@ -15,9 +15,8 @@ const CRANBERRY_LAKE = [44.2228, -74.8344]
 const RADAR_API = 'https://api.rainviewer.com/public/weather-maps.json'
 const RADAR_TILES = 'https://tilecache.rainviewer.com/v2/radar'
 const ESRI_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-const USGS_WINTER = 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}'
+const ESRI_TOPO = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
 const ESRI_ATTR = '&copy; <a href="https://www.esri.com/">Esri</a>'
-const USGS_ATTR = '&copy; <a href="https://www.usgs.gov/">USGS</a>'
 
 const PIN_COLORS = {
   cabin: '#10b981', boathouse: '#3b82f6', dock: '#06b6d4',
@@ -193,10 +192,10 @@ export default function MapPage() {
     setActiveTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type])
   }
 
-  const cycleBaseMap = () => setBaseLayer(prev => prev === 'map' ? 'satellite' : prev === 'satellite' ? 'winter' : 'map')
+  const cycleBaseMap = () => setBaseLayer(prev => prev === 'map' ? 'satellite' : prev === 'satellite' ? 'topo' : 'map')
 
-  const baseLayerLabels = { map: 'Map', satellite: 'Satellite', winter: 'Winter' }
-  const baseLayerColors = { map: 'bg-stone-500', satellite: 'bg-purple-600', winter: 'bg-sky-600' }
+  const baseLayerLabels = { map: 'Map', satellite: 'Satellite', topo: 'Topo' }
+  const baseLayerColors = { map: 'bg-stone-500', satellite: 'bg-purple-600', topo: 'bg-amber-700' }
 
   const overlayButtons = [
     { key: 'showRadar', label: 'Radar', icon: Radio, color: 'bg-blue-500' },
@@ -249,7 +248,7 @@ export default function MapPage() {
       <div className="rounded-lg overflow-hidden border border-stone-200 shadow-sm relative" style={{ height: 'calc(100vh - 280px)', minHeight: 450 }}>
         <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} maxZoom={20} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
-          <TileLayer key={baseLayer} attribution={baseLayer === 'satellite' ? ESRI_ATTR : baseLayer === 'winter' ? USGS_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'winter' ? USGS_WINTER : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
+          <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
           {showLightning && <LightningLayer />}
