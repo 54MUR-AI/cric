@@ -7,6 +7,7 @@ export const NAV_ITEMS = [
   { to: '/maintenance', label: 'Maintenance', icon: 'Wrench' },
   { to: '/meetings', label: 'Meetings', icon: 'FileText' },
   { to: '/cabins', label: 'Cabins', icon: 'Home' },
+  { to: '/photos', label: 'Photos', icon: 'Image' },
 ]
 
 export const ADMIN_NAV_ITEMS = [
