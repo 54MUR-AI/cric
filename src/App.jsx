@@ -7,6 +7,8 @@ import SchedulePage from './pages/SchedulePage'
 import MaintenancePage from './pages/MaintenancePage'
 import MeetingsPage from './pages/MeetingsPage'
 import CabinsPage from './pages/CabinsPage'
+import GuidePage from './pages/GuidePage'
+import RecordsPage from './pages/RecordsPage'
 import UsersPage from './pages/UsersPage'
 
 function ProtectedRoute({ children }) {
@@ -32,6 +34,8 @@ export default function App() {
         <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/meetings" element={<MeetingsPage />} />
         <Route path="/cabins" element={<CabinsPage />} />
+        <Route path="/guide" element={<GuidePage />} />
+        <Route path="/records" element={<RecordsPage />} />
         <Route path="/users" element={<UsersPage />} />
       </Route>
     </Routes>

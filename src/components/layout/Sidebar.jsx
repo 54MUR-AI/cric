@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, LogOut,
+  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, LogOut,
 } from 'lucide-react'
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '../../lib/constants'
 import { useAuth } from '../../hooks/useAuth'
 
-const iconMap = { LayoutDashboard, Calendar, Wrench, FileText, Home, Users }
+const iconMap = { LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText }
 
 export default function Sidebar() {
   const { profile, isAdmin, signOut } = useAuth()
