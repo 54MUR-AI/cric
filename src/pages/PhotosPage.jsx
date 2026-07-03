@@ -78,29 +78,29 @@ export default function PhotosPage() {
 
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
-  if (loading) return <div className="text-stone-400 text-sm p-4">Loading photos...</div>
+  if (loading) return <div className="text-stone-400 dark:text-stone-500 text-sm p-4">Loading photos...</div>
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Photos</h1>
-          <p className="text-sm text-stone-400">Share and browse camp memories</p>
+          <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Photos</h1>
+          <p className="text-sm text-stone-400 dark:text-stone-500">Share and browse camp memories</p>
         </div>
         <div className="flex gap-2">
           {selected.size > 0 && (
             <>
-              <span className="text-xs text-stone-500 self-center">{selected.size} selected</span>
-              <button onClick={deleteSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100 transition-colors">
+              <span className="text-xs text-stone-500 dark:text-stone-400 self-center">{selected.size} selected</span>
+              <button onClick={deleteSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-800 transition-colors">
                 <Trash2 className="h-3 w-3" /> Delete
               </button>
-              <button onClick={clearSelection} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white text-stone-600 border-stone-300 hover:border-stone-400 transition-colors">Cancel</button>
+              <button onClick={clearSelection} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">Cancel</button>
             </>
           )}
-          <button onClick={() => setShowAlbumForm(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white text-stone-600 border-stone-300 hover:border-stone-400 transition-colors">
+          <button onClick={() => setShowAlbumForm(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
             <Plus className="h-3 w-3" /> Album
           </button>
-          <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors bg-white text-stone-600 border-stone-300 hover:border-stone-400">
+          <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500">
             <Upload className="h-3 w-3" /> Upload
             <input type="file" accept="image/*" className="hidden" onChange={handleFilePick} />
           </label>
@@ -109,11 +109,11 @@ export default function PhotosPage() {
 
       {albums.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => setAlbumFilter(null)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${!albumFilter ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-300 hover:border-stone-400'}`}>
+          <button onClick={() => setAlbumFilter(null)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${!albumFilter ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
             <FolderOpen className="h-3 w-3" /> All
           </button>
           {albums.map(a => (
-            <button key={a.id} onClick={() => setAlbumFilter(a.id)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${albumFilter === a.id ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-300 hover:border-stone-400'}`}>
+            <button key={a.id} onClick={() => setAlbumFilter(a.id)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${albumFilter === a.id ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
               <FolderOpen className="h-3 w-3" />{a.name}
             </button>
           ))}
@@ -125,11 +125,11 @@ export default function PhotosPage() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`relative ${dragOver ? 'ring-2 ring-emerald-500 ring-offset-2 rounded-lg' : ''}`}
+        className={`relative ${dragOver ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 ring-offset-2 dark:ring-offset-stone-900 rounded-lg' : ''}`}
       >
         {dragOver && (
-          <div className="absolute inset-0 z-20 bg-emerald-50/90 rounded-lg flex items-center justify-center">
-            <div className="text-center text-emerald-700">
+          <div className="absolute inset-0 z-20 bg-emerald-50/90 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+            <div className="text-center text-emerald-700 dark:text-emerald-400">
               <Upload className="h-8 w-8 mx-auto mb-2" />
               <p className="font-medium">Drop photo to upload</p>
             </div>
@@ -137,7 +137,7 @@ export default function PhotosPage() {
         )}
 
         {groups.length === 0 && (
-          <div className="text-center py-16 text-stone-400">
+          <div className="text-center py-16 text-stone-400 dark:text-stone-500">
             <p className="text-5xl mb-3">📷</p>
             <p className="font-medium">No photos yet</p>
             <p className="text-sm">Drop a photo here or click Upload</p>
@@ -146,12 +146,12 @@ export default function PhotosPage() {
 
         {groups.map(([key, group]) => (
           <div key={key}>
-            <h2 className="text-sm font-semibold text-stone-500 mb-2 sticky top-0 bg-stone-50 py-2 z-10">{formatDate(group.date)}</h2>
+            <h2 className="text-sm font-semibold text-stone-500 dark:text-stone-400 mb-2 sticky top-0 bg-stone-50 dark:bg-stone-950 py-2 z-10">{formatDate(group.date)}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {group.photos.map((photo) => {
                 const isSelected = selected.has(photo.id)
                 return (
-                  <div key={photo.id} className={`relative group aspect-square rounded-lg overflow-hidden bg-stone-100 cursor-pointer ${isSelected ? 'ring-2 ring-emerald-500 ring-offset-1' : ''}`} onClick={() => { if (selected.size > 0) toggleSelect(photo.id); else setLightbox(photo) }}>
+                  <div key={photo.id} className={`relative group aspect-square rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 cursor-pointer ${isSelected ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 ring-offset-1 dark:ring-offset-stone-900' : ''}`} onClick={() => { if (selected.size > 0) toggleSelect(photo.id); else setLightbox(photo) }}>
                     <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                     {photo.caption && (
@@ -160,13 +160,13 @@ export default function PhotosPage() {
                       </div>
                     )}
                     <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(photo.id)} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500" />
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(photo.id)} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-stone-300 dark:border-stone-600 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400" />
                     </div>
                     <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => { e.stopPropagation(); share({ title: 'CRIC Photo', text: photo.caption || 'Camp memory', url: photo.url }) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-stone-600">
+                      <button onClick={(e) => { e.stopPropagation(); share({ title: 'CRIC Photo', text: photo.caption || 'Camp memory', url: photo.url }) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-stone-600 dark:text-stone-400">
                         <Share2 className="h-3 w-3" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs text-stone-600">✕</button>
+                      <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs text-stone-600 dark:text-stone-400">✕</button>
                     </div>
                   </div>
                 )
@@ -196,23 +196,23 @@ export default function PhotosPage() {
 
       {showUpload && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => { if (!uploading) { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }}} role="dialog" aria-label="Upload photo">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-stone-800">Upload Photo</h3>
-              {!uploading && <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} aria-label="Close"><X className="h-4 w-4 text-stone-400" /></button>}
+              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Upload Photo</h3>
+              {!uploading && <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>}
             </div>
             {uploadPreview && (
-              <img src={uploadPreview} alt="Preview" className="w-full aspect-video object-cover rounded-lg mb-4 bg-stone-100" />
+              <img src={uploadPreview} alt="Preview" className="w-full aspect-video object-cover rounded-lg mb-4 bg-stone-100 dark:bg-stone-800" />
             )}
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-stone-500 mb-1">Caption (optional)</label>
-                <input type="text" value={uploadCaption} onChange={e => setUploadCaption(e.target.value)} placeholder="What's happening in this photo?" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400" />
+                <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Caption (optional)</label>
+                <input type="text" value={uploadCaption} onChange={e => setUploadCaption(e.target.value)} placeholder="What's happening in this photo?" className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" />
               </div>
               {albums.length > 0 && (
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 mb-1">Album</label>
-                  <select value={uploadAlbumId} onChange={e => setUploadAlbumId(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm">
+                  <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Album</label>
+                  <select value={uploadAlbumId} onChange={e => setUploadAlbumId(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm">
                     <option value="">None</option>
                     {albums.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
@@ -220,16 +220,16 @@ export default function PhotosPage() {
               )}
               {uploading && (
                 <div className="space-y-1">
-                  <div className="h-2 w-full rounded-full bg-stone-200 overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-600 transition-all duration-300 ease-out" style={{ width: `${uploadProgress}%` }} />
+                  <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+                    <div className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all duration-300 ease-out" style={{ width: `${uploadProgress}%` }} />
                   </div>
-                  <p className="text-xs text-stone-400 text-right">{uploadProgress}%</p>
+                  <p className="text-xs text-stone-400 dark:text-stone-500 text-right">{uploadProgress}%</p>
                 </div>
               )}
             </div>
             <div className="flex gap-2 justify-end mt-4">
-              <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} disabled={uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-100 border border-stone-300 disabled:opacity-40">Cancel</button>
-              <button onClick={doUpload} disabled={uploading || !uploadFile} className="rounded-md px-4 py-1.5 text-xs text-white bg-stone-800 hover:bg-stone-700 disabled:opacity-40">
+              <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} disabled={uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600 disabled:opacity-40">Cancel</button>
+              <button onClick={doUpload} disabled={uploading || !uploadFile} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
                 {uploading ? 'Uploading...' : 'Upload'}
               </button>
             </div>
@@ -239,15 +239,15 @@ export default function PhotosPage() {
 
       {showAlbumForm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setShowAlbumForm(false)} role="dialog" aria-label="Create album">
-          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-stone-800">New Album</h3>
-              <button onClick={() => setShowAlbumForm(false)} aria-label="Close"><X className="h-4 w-4 text-stone-400" /></button>
+              <h3 className="font-semibold text-stone-800 dark:text-stone-200">New Album</h3>
+              <button onClick={() => setShowAlbumForm(false)} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
             </div>
-            <input type="text" placeholder="Album name" value={albumName} onChange={e => setAlbumName(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-stone-400" autoFocus />
+            <input type="text" placeholder="Album name" value={albumName} onChange={e => setAlbumName(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" autoFocus />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowAlbumForm(false)} className="rounded-md px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-100 border border-stone-300">Cancel</button>
-              <button onClick={handleCreateAlbum} className="rounded-md px-3 py-1.5 text-xs text-white bg-stone-800 hover:bg-stone-700">Create</button>
+              <button onClick={() => setShowAlbumForm(false)} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600">Cancel</button>
+              <button onClick={handleCreateAlbum} className="rounded-md px-3 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300">Create</button>
             </div>
           </div>
         </div>

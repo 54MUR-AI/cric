@@ -75,12 +75,12 @@ export default function CabinsPage() {
     fetchCabins()
   }
 
-  if (loading) return <div className="text-stone-500">Loading...</div>
+  if (loading) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-stone-800">Cabins</h1>
+        <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Cabins</h1>
         {isAdmin && (
           <Button onClick={() => { setFormData({ name: '', description: '', color: '#3b82f6' }); setEditing(null); setShowForm(true) }}>
             <Plus className="h-4 w-4 mr-1" /> Add Cabin
@@ -96,28 +96,28 @@ export default function CabinsPage() {
           const isExpanded = expandedCabin === cabin.id
 
           return (
-            <div key={cabin.id} className={`rounded-lg bg-white shadow-sm border ${cabin.is_active ? 'border-stone-200' : 'border-stone-200 opacity-60'}`}>
+            <div key={cabin.id} className={`rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border ${cabin.is_active ? 'border-stone-200 dark:border-stone-700' : 'border-stone-200 dark:border-stone-700 opacity-60'}`}>
               <div className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="inline-block h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: cabin.color }} />
                     <div>
-                      <h3 className="font-medium text-stone-800 truncate">{cabinName}</h3>
-                      <p className="text-xs text-stone-400">{blurb || cabin.description}</p>
+                      <h3 className="font-medium text-stone-800 dark:text-stone-200 truncate">{cabinName}</h3>
+                      <p className="text-xs text-stone-400 dark:text-stone-500">{blurb || cabin.description}</p>
                     </div>
                   </div>
                   {isAdmin && (
                     <div className="flex gap-1 shrink-0">
-                      <button onClick={() => editCabin(cabin)} className="p-1.5 rounded text-stone-400 hover:text-stone-600 hover:bg-stone-100"><Pencil className="h-4 w-4" /></button>
-                      <button onClick={() => toggleActive(cabin)} className="p-1.5 rounded text-stone-400 hover:text-stone-600 hover:bg-stone-100 text-xs font-medium">{cabin.is_active ? 'Disable' : 'Enable'}</button>
+                      <button onClick={() => editCabin(cabin)} className="p-1.5 rounded text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800"><Pencil className="h-4 w-4" /></button>
+                      <button onClick={() => toggleActive(cabin)} className="p-1.5 rounded text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium">{cabin.is_active ? 'Disable' : 'Enable'}</button>
                     </div>
                   )}
                 </div>
               </div>
 
               {improvements && improvements.length > 0 && (
-                <div className="border-t border-stone-100">
-                  <button onClick={() => setExpandedCabin(isExpanded ? null : cabin.id)} className="flex items-center gap-1.5 w-full px-4 py-2 text-xs font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-50 transition-colors">
+                <div className="border-t border-stone-100 dark:border-stone-800">
+                  <button onClick={() => setExpandedCabin(isExpanded ? null : cabin.id)} className="flex items-center gap-1.5 w-full px-4 py-2 text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
                     <History className="h-3.5 w-3.5" />
                     Improvement History ({improvements.length})
                     <span className="ml-auto">{isExpanded ? '▲' : '▼'}</span>
@@ -125,8 +125,8 @@ export default function CabinsPage() {
                   {isExpanded && (
                     <div className="px-4 pb-3 space-y-1">
                       {improvements.map((imp, i) => (
-                        <div key={i} className="flex gap-3 text-xs text-stone-600 py-1">
-                          <span className="font-medium text-stone-400 w-8 shrink-0">{imp.year}</span>
+                        <div key={i} className="flex gap-3 text-xs text-stone-600 dark:text-stone-400 py-1">
+                          <span className="font-medium text-stone-400 dark:text-stone-500 w-8 shrink-0">{imp.year}</span>
                           <span>{imp.desc}</span>
                         </div>
                       ))}
@@ -141,20 +141,20 @@ export default function CabinsPage() {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-stone-800 mb-4">{editing ? 'Edit Cabin' : 'Add Cabin'}</h2>
+          <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-4">{editing ? 'Edit Cabin' : 'Add Cabin'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">Name</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" required />
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Name</label>
+                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">Description</label>
-                <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Description</label>
+                <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">Color</label>
-                <input type="color" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="h-9 w-full rounded-md border border-stone-300 cursor-pointer" />
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Color</label>
+                <input type="color" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="h-9 w-full rounded-md border border-stone-300 dark:border-stone-600 cursor-pointer" />
               </div>
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>

@@ -108,28 +108,28 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
         <span className="inline-block w-3 h-3 rounded-full" style={{ background: PIN_COLORS[pin.type] || '#6b7280' }} />
         <strong className="text-sm">{pin.label}</strong>
       </div>
-      <div><span className="capitalize text-stone-400">{pin.type}</span>{cabin && <span className="text-stone-400"> &middot; {cabin.color && <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: cabin.color }} />}{cabin.name || 'Linked cabin'}</span>}</div>
-      {pin.description && <div className="text-stone-500">{pin.description}</div>}
-      <div className="text-stone-400">{dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`} {dir} of landing</div>
+      <div><span className="capitalize text-stone-400 dark:text-stone-500">{pin.type}</span>{cabin && <span className="text-stone-400 dark:text-stone-500"> &middot; {cabin.color && <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: cabin.color }} />}{cabin.name || 'Linked cabin'}</span>}</div>
+      {pin.description && <div className="text-stone-500 dark:text-stone-400">{pin.description}</div>}
+      <div className="text-stone-400 dark:text-stone-500">{dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`} {dir} of landing</div>
 
       {cabin && (
         <>
-          <Link to={`/cabins`} className="block text-blue-600 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
-          <Link to={`/schedule`} className="block text-blue-600 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
-          {nextBooking && <div className="bg-stone-50 rounded p-1.5 text-stone-500">Next: {nextBooking.profiles?.display_name || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
+          <Link to={`/cabins`} className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
+          <Link to={`/schedule`} className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
+          {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.profiles?.display_name || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
         </>
       )}
 
-      {guideKey && <a href={GUIDE_SECTIONS[guideKey]} className="block text-amber-600 hover:text-amber-800 font-medium">View Guide &rarr;</a>}
+      {guideKey && <a href={GUIDE_SECTIONS[guideKey]} className="block text-amber-600 dark:text-amber-400 hover:text-amber-800 font-medium">View Guide &rarr;</a>}
 
-      <button onClick={handleShare} className="inline-flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors mt-1"><Share2 className="h-3 w-3" /> Share</button>
+      <button onClick={handleShare} className="inline-flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors mt-1"><Share2 className="h-3 w-3" /> Share</button>
 
       {pin.image_url && <img src={pin.image_url} alt="" className="w-full h-24 object-cover rounded mt-1" />}
 
       {admin && (
-        <div className="flex gap-2 pt-1 border-t border-stone-200 mt-2">
-          <label className="text-blue-600 hover:text-blue-800 cursor-pointer text-xs">📷 Add Photo<input type="file" accept="image/*" className="hidden" onChange={(e) => onPhotoUpload(pin, e.target.files?.[0])} /></label>
-          <button onClick={() => { if (confirm('Delete this pin?')) onDelete(pin.id) }} className="text-rose-600 hover:text-rose-800 text-xs">Delete</button>
+        <div className="flex gap-2 pt-1 border-t border-stone-200 dark:border-stone-700 mt-2">
+          <label className="text-blue-600 dark:text-blue-400 hover:text-blue-800 cursor-pointer text-xs">📷 Add Photo<input type="file" accept="image/*" className="hidden" onChange={(e) => onPhotoUpload(pin, e.target.files?.[0])} /></label>
+          <button onClick={() => { if (confirm('Delete this pin?')) onDelete(pin.id) }} className="text-rose-600 dark:text-rose-400 hover:text-rose-800 text-xs">Delete</button>
         </div>
       )}
     </div>
@@ -219,20 +219,20 @@ export default function MapPage() {
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Cranberry Lake Map</h1>
-          <p className="text-sm text-stone-400">Interactive map with weather, trails, and radar</p>
+          <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Cranberry Lake Map</h1>
+          <p className="text-sm text-stone-400 dark:text-stone-500">Interactive map with weather, trails, and radar</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           {overlayButtons.map(({ key, label, icon: Icon, color }) => (
-            <button key={key} onClick={() => setterMap[key](!valMap[key])} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors ${valMap[key] ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-300 hover:border-stone-400'}`}>
+            <button key={key} onClick={() => setterMap[key](!valMap[key])} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors ${valMap[key] ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
               {Icon && <Icon className="h-3.5 w-3.5" />}<span className="hidden md:inline">{label}</span>
             </button>
           ))}
-          <button onClick={cycleBaseMap} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors bg-white text-stone-500 border-stone-300 hover:border-stone-400`}>
+          <button onClick={cycleBaseMap} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500`}>
             <Layers className="h-3.5 w-3.5" /><span className="hidden md:inline">{baseLayerLabels[baseLayer]}</span>
           </button>
           {isAdmin && (
-            <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white text-rose-600 border-rose-300 hover:border-rose-400'}`}>
+            <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white dark:bg-stone-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-600'}`}>
               <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
           )}
@@ -240,12 +240,12 @@ export default function MapPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <input type="text" placeholder="Search pins..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="rounded-full border border-stone-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400 w-48" />
+        <input type="text" placeholder="Search pins..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="rounded-full border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 w-48" />
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(PIN_TYPE_LABELS).map(([type, label]) => {
             const active = activeTypes.includes(type)
             return (
-              <button key={type} onClick={() => toggleType(type)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${active ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-300 hover:border-stone-400'}`}>
+              <button key={type} onClick={() => toggleType(type)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${active ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
                 <span className="inline-block w-2 h-2 rounded-full" style={{ background: PIN_COLORS[type] }} />{label}
               </button>
             )
@@ -253,7 +253,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      <div className="rounded-lg overflow-hidden border border-stone-200 shadow-sm relative" style={{ height: 'calc(100vh - 280px)', minHeight: 450 }}>
+      <div className="rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative" style={{ height: 'calc(100vh - 280px)', minHeight: 450 }}>
         <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
@@ -281,29 +281,29 @@ export default function MapPage() {
         </MapContainer>
 
         {newPinLatLng && (
-          <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white rounded-lg shadow-xl border border-stone-200 p-4 max-w-sm mx-auto">
-            <h3 className="text-sm font-bold text-stone-800 mb-3">Add Pin</h3>
+          <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white dark:bg-stone-900 rounded-lg shadow-xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 p-4 max-w-sm mx-auto">
+            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 mb-3">Add Pin</h3>
             <div className="space-y-2">
-              <input type="text" placeholder="Label *" value={pinForm.label} autoFocus onChange={e => setPinForm(f => ({ ...f, label: e.target.value }))} className="w-full rounded border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400" />
-              <select value={pinForm.type} onChange={e => setPinForm(f => ({ ...f, type: e.target.value }))} className="w-full rounded border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400">
+              <input type="text" placeholder="Label *" value={pinForm.label} autoFocus onChange={e => setPinForm(f => ({ ...f, label: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" />
+              <select value={pinForm.type} onChange={e => setPinForm(f => ({ ...f, type: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500">
                 {Object.keys(PIN_COLORS).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
               </select>
-              <select value={pinForm.cabin_id} onChange={e => setPinForm(f => ({ ...f, cabin_id: e.target.value }))} className="w-full rounded border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400">
+              <select value={pinForm.cabin_id} onChange={e => setPinForm(f => ({ ...f, cabin_id: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500">
                 <option value="">No cabin linked</option>
                 {cabins.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <textarea placeholder="Description (optional)" value={pinForm.description} rows={2} onChange={e => setPinForm(f => ({ ...f, description: e.target.value }))} className="w-full rounded border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400" />
-              {pinError && <p className="text-xs text-rose-600">{pinError}</p>}
+              <textarea placeholder="Description (optional)" value={pinForm.description} rows={2} onChange={e => setPinForm(f => ({ ...f, description: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" />
+              {pinError && <p className="text-xs text-rose-600 dark:text-rose-400">{pinError}</p>}
               <div className="flex gap-2 justify-end">
-                <button onClick={handleCancelPin} className="rounded px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-100 border border-stone-300">Cancel</button>
-                <button onClick={handleSavePin} disabled={savingPin} className="rounded px-3 py-1.5 text-xs text-white bg-stone-800 hover:bg-stone-700 disabled:opacity-50">{savingPin ? 'Saving...' : 'Save Pin'}</button>
+                <button onClick={handleCancelPin} className="rounded px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600">Cancel</button>
+                <button onClick={handleSavePin} disabled={savingPin} className="rounded px-3 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-50">{savingPin ? 'Saving...' : 'Save Pin'}</button>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-4 text-xs text-stone-400">
+      <div className="flex flex-wrap gap-4 text-xs text-stone-400 dark:text-stone-500">
         <span>Radar: RainViewer</span><span>Lightning: Blitzortung.org</span>
         <span>Trails: Waymarked Trails (OSM)</span><span>Stations: Weather.gov</span>
         {stationsLoading && <span>Loading stations...</span>}{!stationsLoading && <span>{stations.length} stations</span>}

@@ -62,32 +62,32 @@ export default function UsersPage() {
     fetchAll()
   }
 
-  if (!isAdmin) return <div className="text-stone-500">Access denied.</div>
-  if (loading) return <div className="text-stone-500">Loading...</div>
+  if (!isAdmin) return <div className="text-stone-500 dark:text-stone-400">Access denied.</div>
+  if (loading) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
 
   const assignedIds = new Set(officers.map(o => o.profile_id))
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-stone-800">Manage Users</h1>
+      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Manage Users</h1>
 
-      <div className="rounded-lg bg-white shadow-sm border border-stone-200 p-4">
+      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-stone-700">Officers</h2>
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300">Officers</h2>
           <Button size="sm" onClick={() => setShowAddOfficer(true)}>
             <Plus className="h-3 w-3 mr-1" /> Assign Officer
           </Button>
         </div>
-        {officers.length === 0 && <p className="text-sm text-stone-400">No officers assigned</p>}
+        {officers.length === 0 && <p className="text-sm text-stone-400 dark:text-stone-500">No officers assigned</p>}
         <div className="space-y-1.5">
           {officers.map((o) => (
-            <div key={o.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-stone-50">
+            <div key={o.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-stone-50 dark:hover:bg-stone-800">
               <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-stone-800">{o.profile?.display_name || 'Unknown'}</span>
-                <span className="text-stone-400">—</span>
-                <span className="text-stone-600">{o.title}</span>
+                <span className="font-medium text-stone-800 dark:text-stone-200">{o.profile?.display_name || 'Unknown'}</span>
+                <span className="text-stone-400 dark:text-stone-500">—</span>
+                <span className="text-stone-600 dark:text-stone-400">{o.title}</span>
               </div>
-              <button onClick={() => removeOfficer(o.id)} className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50">
+              <button onClick={() => removeOfficer(o.id)} className="p-1 rounded text-stone-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -97,15 +97,15 @@ export default function UsersPage() {
 
       {showAddOfficer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAddOfficer(false)}>
-          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-stone-800">Assign Officer</h3>
-              <button onClick={() => setShowAddOfficer(false)}><X className="h-4 w-4 text-stone-400" /></button>
+              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Assign Officer</h3>
+              <button onClick={() => setShowAddOfficer(false)}><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-stone-500 mb-1">Member</label>
-                <select value={newOfficer.profile_id} onChange={e => setNewOfficer({ ...newOfficer, profile_id: e.target.value })} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm">
+                <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Member</label>
+                <select value={newOfficer.profile_id} onChange={e => setNewOfficer({ ...newOfficer, profile_id: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm">
                   <option value="">Select a member...</option>
                   {users.filter(u => !assignedIds.has(u.id)).map(u => (
                     <option key={u.id} value={u.id}>{u.display_name}</option>
@@ -113,8 +113,8 @@ export default function UsersPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-stone-500 mb-1">Title</label>
-                <select value={newOfficer.title} onChange={e => setNewOfficer({ ...newOfficer, title: e.target.value })} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm">
+                <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Title</label>
+                <select value={newOfficer.title} onChange={e => setNewOfficer({ ...newOfficer, title: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm">
                   {OFFICER_TITLES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
@@ -127,32 +127,32 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="rounded-lg bg-white shadow-sm border border-stone-200 overflow-x-auto">
+      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-stone-50 text-stone-600 text-left">
+          <thead className="bg-stone-50 dark:bg-stone-950 text-stone-600 dark:text-stone-400 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-200">
+          <tbody className="divide-y divide-stone-200 dark:divide-stone-700">
             {users.map((u) => {
               const officer = officers.find(o => o.profile_id === u.id)
               return (
-                <tr key={u.id} className="hover:bg-stone-50">
+                <tr key={u.id} className="hover:bg-stone-50 dark:hover:bg-stone-800">
                   <td className="px-4 py-3">
-                    <span className="text-stone-800">{u.display_name}</span>
-                    {officer && <span className="ml-2 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">{officer.title}</span>}
+                    <span className="text-stone-800 dark:text-stone-200">{u.display_name}</span>
+                    {officer && <span className="ml-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-full px-2 py-0.5">{officer.title}</span>}
                   </td>
-                  <td className="px-4 py-3 text-stone-500 text-xs">{u.email || <span className="italic text-stone-300">No email</span>}</td>
+                  <td className="px-4 py-3 text-stone-500 dark:text-stone-400 text-xs">{u.email || <span className="italic text-stone-300 dark:text-stone-600">No email</span>}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <Button variant="ghost" size="sm" onClick={() => sendReset(u.email)} disabled={sendingReset === u.email || !u.email}>
                         <Mail className="h-3 w-3 mr-1" />{sendingReset === u.email ? 'Sending...' : 'Reset'}
                       </Button>
                       {!officer && !u.is_admin && (
-                        <button onClick={() => { if (confirm('Remove this user?')) { supabase.from('profiles').delete().eq('id', u.id).then(() => fetchAll()) }}} className="p-1.5 rounded text-stone-400 hover:text-red-600 hover:bg-red-50">
+                        <button onClick={() => { if (confirm('Remove this user?')) { supabase.from('profiles').delete().eq('id', u.id).then(() => fetchAll()) }}} className="p-1.5 rounded text-stone-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}

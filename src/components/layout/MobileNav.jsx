@@ -11,7 +11,7 @@ const ITEMS = [
 
 export default function MobileNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-stone-200 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white dark:bg-stone-900 border-t border-stone-200 dark:border-stone-700 safe-area-bottom">
       <div className="flex">
         {ITEMS.map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -20,7 +20,7 @@ export default function MobileNav() {
             end={to === '/'}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
-                isActive ? 'text-emerald-700' : 'text-stone-400 hover:text-stone-600'
+                isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400'
               }`
             }
           >

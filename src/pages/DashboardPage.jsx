@@ -30,16 +30,16 @@ function WeatherWidget() {
   }, [])
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-sm border border-stone-200">
-      <h2 className="font-semibold text-stone-700 mb-3 flex items-center gap-2">
+    <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+      <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
         <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {current && (
           <div className="flex items-center gap-4">
-            <div className="text-4xl font-bold text-stone-800">{current.temperature?.value != null ? `${Math.round(current.temperature.value)}°` : '--'}</div>
-            <div className="text-sm text-stone-500 space-y-1">
-              <p className="text-stone-700 font-medium">{current.textDescription || '--'}</p>
+            <div className="text-4xl font-bold text-stone-800 dark:text-stone-200">{current.temperature?.value != null ? `${Math.round(current.temperature.value)}°` : '--'}</div>
+            <div className="text-sm text-stone-500 dark:text-stone-400 space-y-1">
+              <p className="text-stone-700 dark:text-stone-300 font-medium">{current.textDescription || '--'}</p>
               {current.windSpeed?.value != null && <p className="flex items-center gap-1"><Wind className="h-3 w-3" />{Math.round(current.windSpeed.value)} mph</p>}
               {current.relativeHumidity?.value != null && <p className="flex items-center gap-1"><Droplets className="h-3 w-3" />{Math.round(current.relativeHumidity.value)}%</p>}
             </div>
@@ -49,10 +49,10 @@ function WeatherWidget() {
           <div className="flex gap-3 overflow-x-auto pb-1">
             {forecast.map((p, i) => (
               <div key={i} className="flex flex-col items-center gap-1 min-w-[64px] text-center">
-                <span className="text-[10px] text-stone-400 font-medium leading-tight">{p.name.replace('Night', '').replace('Evening', '').trim()}</span>
-                <Thermometer className={`h-4 w-4 ${p.temperature > 70 ? 'text-amber-500' : p.temperature > 50 ? 'text-stone-500' : 'text-blue-500'}`} />
-                <span className="text-sm font-bold text-stone-700">{p.temperature}°</span>
-                <span className="text-[9px] text-stone-400 leading-tight">{p.shortForecast}</span>
+                <span className="text-[10px] text-stone-400 dark:text-stone-500 font-medium leading-tight">{p.name.replace('Night', '').replace('Evening', '').trim()}</span>
+                <Thermometer className={`h-4 w-4 ${p.temperature > 70 ? 'text-amber-500 dark:text-amber-400' : p.temperature > 50 ? 'text-stone-500 dark:text-stone-400' : 'text-blue-500 dark:text-blue-400'}`} />
+                <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{p.temperature}°</span>
+                <span className="text-[9px] text-stone-400 dark:text-stone-500 leading-tight">{p.shortForecast}</span>
               </div>
             ))}
           </div>
@@ -76,55 +76,55 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-stone-800">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</h1>
+      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</h1>
 
       <WeatherWidget />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-lg bg-white p-4 shadow-sm border border-stone-200">
-          <h2 className="font-semibold text-stone-700 mb-3">Upcoming Bookings</h2>
+        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Upcoming Bookings</h2>
           {upcomingBookings.length === 0 ? (
-            <p className="text-sm text-stone-400">No upcoming bookings</p>
+            <p className="text-sm text-stone-400 dark:text-stone-500">No upcoming bookings</p>
           ) : (
             <ul className="space-y-2">
               {upcomingBookings.map((b) => (
                 <li key={b.id} className="text-sm flex justify-between">
-                  <span className="text-stone-600">{b.cabins?.name}</span>
-                  <span className="text-stone-400">{formatDate(b.start_date)}</span>
+                  <span className="text-stone-600 dark:text-stone-400">{b.cabins?.name}</span>
+                  <span className="text-stone-400 dark:text-stone-500">{formatDate(b.start_date)}</span>
                 </li>
               ))}
             </ul>
           )}
-          <Link to="/schedule" className="mt-3 inline-block text-sm text-emerald-700 hover:underline">View schedule →</Link>
+          <Link to="/schedule" className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:underline">View schedule →</Link>
         </div>
 
-        <div className="rounded-lg bg-white p-4 shadow-sm border border-stone-200">
-          <h2 className="font-semibold text-stone-700 mb-3">Open Tasks</h2>
+        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Open Tasks</h2>
           {openTasks.length === 0 ? (
-            <p className="text-sm text-stone-400">No open tasks</p>
+            <p className="text-sm text-stone-400 dark:text-stone-500">No open tasks</p>
           ) : (
             <ul className="space-y-2">
               {openTasks.map((t) => (
                 <li key={t.id} className="text-sm flex justify-between">
-                  <span className="text-stone-600 truncate">{t.title}</span>
-                  <span className="text-stone-400">{t.maintenance_categories?.name}</span>
+                  <span className="text-stone-600 dark:text-stone-400 truncate">{t.title}</span>
+                  <span className="text-stone-400 dark:text-stone-500">{t.maintenance_categories?.name}</span>
                 </li>
               ))}
             </ul>
           )}
-          <Link to="/maintenance" className="mt-3 inline-block text-sm text-emerald-700 hover:underline">View all tasks →</Link>
+          <Link to="/maintenance" className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:underline">View all tasks →</Link>
         </div>
 
-        <div className="rounded-lg bg-white p-4 shadow-sm border border-stone-200">
-          <h2 className="font-semibold text-stone-700 mb-3">Next Meeting</h2>
+        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Next Meeting</h2>
           {nextMeeting ? (
             <div>
-              <p className="text-sm font-medium text-stone-800">{nextMeeting.title}</p>
-              <p className="text-sm text-stone-400">{formatDate(nextMeeting.date)}</p>
-              <Link to="/meetings" className="mt-3 inline-block text-sm text-emerald-700 hover:underline">View meetings →</Link>
+              <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{nextMeeting.title}</p>
+              <p className="text-sm text-stone-400 dark:text-stone-500">{formatDate(nextMeeting.date)}</p>
+              <Link to="/meetings" className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:underline">View meetings →</Link>
             </div>
           ) : (
-            <p className="text-sm text-stone-400">No upcoming meetings</p>
+            <p className="text-sm text-stone-400 dark:text-stone-500">No upcoming meetings</p>
           )}
         </div>
       </div>

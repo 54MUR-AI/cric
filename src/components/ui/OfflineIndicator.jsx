@@ -16,7 +16,7 @@ export default function OfflineIndicator() {
   if (online) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-white text-center text-xs py-1.5 flex items-center justify-center gap-1.5">
+    <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 dark:bg-amber-600 text-white text-center text-xs py-1.5 flex items-center justify-center gap-1.5">
       <WifiOff className="h-3 w-3" /> You're offline — changes will sync when you reconnect
     </div>
   )

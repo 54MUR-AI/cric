@@ -8,7 +8,7 @@ const ICONS = {
   success: CheckCircle, error: AlertCircle, info: Info, warning: AlertTriangle,
 }
 const COLORS = {
-  success: 'bg-emerald-600', error: 'bg-rose-600', info: 'bg-blue-600', warning: 'bg-amber-500',
+  success: 'bg-emerald-600 dark:bg-emerald-700', error: 'bg-rose-600 dark:bg-rose-700', info: 'bg-blue-600 dark:bg-blue-700', warning: 'bg-amber-500 dark:bg-amber-600',
 }
 
 export function ToastProvider({ children }) {
@@ -37,7 +37,7 @@ export function ToastProvider({ children }) {
         {toasts.map(t => {
           const Icon = ICONS[t.type]
           return (
-            <div key={t.id} className={`${COLORS[t.type]} text-white rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 text-sm animate-slide-up`}>
+            <div key={t.id} className={`${COLORS[t.type]} text-white rounded-lg shadow-lg dark:shadow-black/30 px-4 py-3 flex items-center gap-3 text-sm animate-slide-up`}>
               <Icon className="h-4 w-4 shrink-0" />
               <span className="flex-1">{t.message}</span>
               <button onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))} className="shrink-0 opacity-70 hover:opacity-100"><X className="h-3.5 w-3.5" /></button>

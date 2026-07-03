@@ -13,7 +13,7 @@ html { scroll-behavior: smooth; }
   }
 
   body {
-    @apply bg-stone-50 text-stone-900 antialiased;
+    @apply bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
     font-family: system-ui, -apple-system, sans-serif;
   }
 

@@ -38,29 +38,29 @@ export default function UpdatePasswordPage() {
   }
 
   if (success) return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
-      <div className="text-center bg-white rounded-lg shadow-sm border border-stone-200 p-8 max-w-sm w-full">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950 p-4">
+      <div className="text-center bg-white dark:bg-stone-900 rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 p-8 max-w-sm w-full">
         <div className="text-3xl mb-3">✅</div>
-        <h1 className="text-xl font-bold text-stone-800 mb-1">Password Updated</h1>
-        <p className="text-sm text-stone-500">Redirecting to dashboard...</p>
+        <h1 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-1">Password Updated</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400">Redirecting to dashboard...</p>
       </div>
     </div>
   )
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
-      <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-8 max-w-sm w-full">
-        <h1 className="text-xl font-bold text-stone-800 mb-1">Set New Password</h1>
-        <p className="text-sm text-stone-500 mb-6">Enter your new password below.</p>
-        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950 p-4">
+      <div className="bg-white dark:bg-stone-900 rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 p-8 max-w-sm w-full">
+        <h1 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-1">Set New Password</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Enter your new password below.</p>
+        {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">New Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" required minLength={6} />
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">New Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required minLength={6} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Confirm Password</label>
-            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" required minLength={6} />
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Confirm Password</label>
+            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required minLength={6} />
           </div>
           <Button type="submit" className="w-full" disabled={loading || !ready}>
             {loading ? 'Updating...' : 'Update Password'}
