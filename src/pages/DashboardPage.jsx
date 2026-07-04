@@ -104,9 +104,14 @@ export default function DashboardPage() {
           ) : (
             <ul className="space-y-2">
               {upcomingBookings.map((b) => (
-                <li key={b.id} className="text-sm flex justify-between">
+                <li key={b.id} className="text-sm flex justify-between group relative">
                   <span className="text-stone-600 dark:text-stone-400">{b.cabins?.name}</span>
                   <span className="text-stone-400 dark:text-stone-500">{formatDate(b.start_date)}</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                    <div className="bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                      {formatDate(b.start_date)} – {formatDate(b.end_date)}{b.guests ? ` · ${b.guests}` : ''}
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
