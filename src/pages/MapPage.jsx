@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
 const CRANBERRY_LAKE = [44.2228, -74.8344]
+const CHAIR_ROCK_ISLAND = [44.14722, -74.81194]
 const RADAR_API = 'https://api.rainviewer.com/public/weather-maps.json'
 const RADAR_TILES = 'https://tilecache.rainviewer.com/v2/radar'
 const ESRI_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -169,7 +170,7 @@ export default function MapPage({ compact } = {}) {
   const [showStations, setShowStations] = useState(true)
   const [showTrails, setShowTrails] = useState(true)
   const [showPins, setShowPins] = useState(true)
-  const [baseLayer, setBaseLayer] = useState('map')
+  const [baseLayer, setBaseLayer] = useState('satellite')
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [newPinLatLng, setNewPinLatLng] = useState(null)
   const [pinForm, setPinForm] = useState({ label: '', type: 'cabin', description: '', cabin_id: '' })
@@ -290,7 +291,7 @@ export default function MapPage({ compact } = {}) {
       )}
 
       <div ref={mapRef} className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative ${mapHeight}`} style={mapStyle}>
-        <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
+        <MapContainer center={CHAIR_ROCK_ISLAND} zoom={14} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
