@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, ExternalLink, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search } from 'lucide-react'
+import { Radio, Zap, ExternalLink, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search, Maximize, Minimize } from 'lucide-react'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -150,6 +150,19 @@ export default function MapPage({ compact } = {}) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTypes, setActiveTypes] = useState(Object.keys(PIN_COLORS))
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const mapRef = useRef(null)
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) mapRef.current?.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   const cabinMap = useMemo(() => Object.fromEntries(cabins.map(c => [c.id, c])), [cabins])
 
@@ -227,7 +240,7 @@ export default function MapPage({ compact } = {}) {
         </div>
       )}
 
-      <div className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative ${mapHeight}`} style={mapStyle}>
+      <div ref={mapRef} className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative ${mapHeight}`} style={mapStyle}>
         <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
@@ -252,6 +265,13 @@ export default function MapPage({ compact } = {}) {
             <Popup><strong>Cranberry Lake</strong><br/>St. Lawrence County, NY</Popup>
           </Marker>
         </MapContainer>
+
+        {/* Fullscreen button */}
+        <div className="absolute top-2 right-2 z-[1000] pointer-events-none">
+          <button onClick={toggleFullscreen} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+            {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+          </button>
+        </div>
 
         {/* Collapsible right sidebar */}
         <div className="absolute right-0 top-0 bottom-0 z-[1000] flex pointer-events-none">
