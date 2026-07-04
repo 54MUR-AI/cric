@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, ExternalLink, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair } from 'lucide-react'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -77,6 +77,92 @@ function RadarLayer() {
   useEffect(() => { fetch(RADAR_API).then(r => r.json()).then(d => { const past = d.radar.past?.map(f => f.time) || []; setTimestamps(past); setCurrentIdx(past.length - 1) }).catch(() => {}) }, [])
   useEffect(() => { if (timestamps.length === 0) return; if (layerRef.current) map.removeLayer(layerRef.current); const ts = timestamps[currentIdx]; layerRef.current = L.tileLayer(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`, { opacity: 0.5, attribution: 'RainViewer', minZoom: 6, maxZoom: 12, transparent: true }); layerRef.current.addTo(map); return () => { if (layerRef.current) map.removeLayer(layerRef.current) } }, [currentIdx, timestamps, map])
   useEffect(() => { timerRef.current = setInterval(() => setCurrentIdx(prev => Math.max(0, prev - 1)), 1500); return () => clearInterval(timerRef.current) }, [timestamps])
+  return null
+}
+
+function LightningLayer() {
+  const map = useMap()
+  const markersRef = useRef([])
+  const wsRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const markers = markersRef.current
+    const seen = new Set()
+
+    function pruneStrikes() {
+      const cutoff = Date.now() - 120000
+      for (let i = markers.length - 1; i >= 0; i--) {
+        if (markers[i]._strikeTime < cutoff) {
+          map.removeLayer(markers[i])
+          markers.splice(i, 1)
+        }
+      }
+    }
+
+    function connect() {
+      if (cancelled) return
+      try {
+        const ws = new WebSocket('wss://live.lightningmaps.org')
+        wsRef.current = ws
+        ws.binaryType = 'arraybuffer'
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            v: 24, i: {}, s: true, x: 0, w: 0, tx: 0, tw: 0,
+            a: 4, z: 5, b: true, h: '', l: 0, t: 0,
+            from_lightningmaps_org: true,
+            p: [90, 180, -90, -180],
+            r: 'feed',
+          }))
+        }
+
+        ws.onmessage = (event) => {
+          try {
+            const text = typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
+            const msg = JSON.parse(text)
+            const strokes = msg?.strokes ?? []
+            for (const s of strokes) {
+              if (!s.id || seen.has(s.id)) continue
+              seen.add(s.id)
+              if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) continue
+              const icon = L.divIcon({
+                className: '',
+                html: '<div style="color:#fbbf24;font-size:18px;filter:drop-shadow(0 0 4px rgba(251,191,36,0.8));text-shadow:0 0 6px rgba(251,191,36,0.5);line-height:1;">⚡</div>',
+                iconSize: [20, 20], iconAnchor: [10, 10],
+              })
+              const marker = L.marker([s.lat, s.lon], { icon }).addTo(map)
+              marker._strikeTime = s.time
+              markers.push(marker)
+            }
+          } catch { /* skip unparseable */ }
+        }
+
+        ws.onclose = () => {
+          if (!cancelled) setTimeout(connect, 5000)
+        }
+
+        ws.onerror = () => { ws.close() }
+
+        const pruneInterval = setInterval(pruneStrikes, 30000)
+        ws._pruneInterval = pruneInterval
+      } catch { /* connection failed */ }
+    }
+
+    connect()
+
+    return () => {
+      cancelled = true
+      if (wsRef.current) {
+        clearInterval(wsRef.current._pruneInterval)
+        wsRef.current.close()
+        wsRef.current = null
+      }
+      markers.forEach(m => map.removeLayer(m))
+      markers.length = 0
+    }
+  }, [map])
+
   return null
 }
 
@@ -170,6 +256,7 @@ export default function MapPage({ compact } = {}) {
   const [showStations, setShowStations] = useState(true)
   const [showTrails, setShowTrails] = useState(true)
   const [showPins, setShowPins] = useState(true)
+  const [showLightning, setShowLightning] = useState(false)
   const [baseLayer, setBaseLayer] = useState('satellite')
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [newPinLatLng, setNewPinLatLng] = useState(null)
@@ -296,6 +383,7 @@ export default function MapPage({ compact } = {}) {
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
+          {showLightning && <LightningLayer />}
 
           {showStations && stations.map((s) => (
             <WindArrow key={s.stationIdentifier} name={s.name} lat={s.latitude} lon={s.longitude} speed={s.observation?.windSpeed?.value} direction={s.observation?.windDirection?.value} temp={s.observation?.temperature?.value} />
@@ -363,11 +451,12 @@ export default function MapPage({ compact } = {}) {
                         {label}
                       </label>
                     ))}
-                    <a href="https://maps.blitzortung.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 py-1 text-stone-500 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
-                      <Zap className="h-3.5 w-3.5 text-amber-500" />
-                      Lightning (external)
-                      <ExternalLink className="h-3 w-3 ml-auto" />
-                    </a>
+                    <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                      <input type="checkbox" checked={showLightning} onChange={() => setShowLightning(!showLightning)} className="accent-stone-800 dark:accent-stone-200" />
+                      <Zap className={`h-3.5 w-3.5 ${showLightning ? 'text-amber-500' : 'text-stone-400'}`} />
+                      Lightning
+                      {showLightning && <span className="ml-auto flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span>}
+                    </label>
                     <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
                       <input type="checkbox" checked={trackingEnabled} onChange={() => setTrackingEnabled(!trackingEnabled)} className="accent-stone-800 dark:accent-stone-200" />
                       <Crosshair className={`h-3.5 w-3.5 ${trackingEnabled ? 'text-blue-500' : 'text-stone-400'}`} />
@@ -405,7 +494,7 @@ export default function MapPage({ compact } = {}) {
                   <div>Radar: RainViewer</div>
                   <div>Trails: Waymarked Trails</div>
                   <div>Stations: Weather.gov</div>
-                  <div>Lightning: <a href="https://maps.blitzortung.org/" target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-400 hover:underline">Blitzortung.org</a> (external)</div>
+                  <div>Lightning: Blitzortung.org</div>
                   <div className="mt-1">{stationsLoading ? 'Loading stations...' : `${stations.length} stations`} &middot; {pins.length} pins</div>
                 </div>
               </div>
