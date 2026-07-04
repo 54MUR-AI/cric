@@ -159,7 +159,7 @@ const sections = [
       <div className="text-sm text-stone-700 dark:text-stone-300 space-y-3">
         <p><strong>Dr Fun (Pontoon):</strong> Wet gear warning on front deck. Only 93 octane. $25/round trip. Top white light needs repair. Registration inside foam part of key fob.<Img name="image10.jpg" alt="Pontoon full cover" className="mt-1" /></p>
         <p><strong>Gas fee:</strong> $25/round trip (log book + box on desk in Main House). First/last launch/retrieval of season paid by CRIC.</p>
-        <p><strong>15hp:</strong> Short pull only — if you pull the handle all the way out it will get stuck and need finagling to rewind.</p>
+        <p><strong>15hp:</strong> Must be in <strong>neutral</strong> before starting (starting in gear can strip the rewind). Short pull only — if you pull the handle all the way out it will get stuck and need finagling to rewind.</p>
         <p><strong>Boating safety:</strong> Proof of passing a boating safety class required for operators.</p>
         <p><strong>Propane fee:</strong> $6/night per adult (first 7 days), $3/night per adult (additional nights). No charge for young kids.</p>
       </div>
