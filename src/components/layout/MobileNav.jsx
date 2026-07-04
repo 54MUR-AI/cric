@@ -1,10 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Calendar, Map, BookOpen, Image } from 'lucide-react'
+import { LayoutDashboard, Calendar, BookOpen, Image } from 'lucide-react'
 
 const ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/schedule', label: 'Schedule', icon: Calendar },
-  { to: '/map', label: 'Map', icon: Map },
   { to: '/guide', label: 'Guide', icon: BookOpen },
   { to: '/photos', label: 'Photos', icon: Image },
 ]

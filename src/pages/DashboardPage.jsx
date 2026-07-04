@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { CloudSun, Thermometer, Wind, Droplets } from 'lucide-react'
+import MapPage from './MapPage'
 
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
@@ -89,6 +90,11 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</h1>
 
       <WeatherWidget />
+
+      <div>
+        <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
+        <MapPage compact />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">

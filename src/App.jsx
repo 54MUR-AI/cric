@@ -12,7 +12,6 @@ const MeetingsPage = lazy(() => import('./pages/MeetingsPage'))
 const CabinsPage = lazy(() => import('./pages/CabinsPage'))
 const GuidePage = lazy(() => import('./pages/GuidePage'))
 const RecordsPage = lazy(() => import('./pages/RecordsPage'))
-const MapPage = lazy(() => import('./pages/MapPage'))
 const PhotosPage = lazy(() => import('./pages/PhotosPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'))
@@ -51,7 +50,7 @@ export default function App() {
         <Route path="/cabins" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><CabinsPage /></Suspense></ErrorBoundary>} />
         <Route path="/guide" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><GuidePage /></Suspense></ErrorBoundary>} />
         <Route path="/records" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><RecordsPage /></Suspense></ErrorBoundary>} />
-        <Route path="/map" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><MapPage /></Suspense></ErrorBoundary>} />
+        <Route path="/map" element={<Navigate to="/" replace />} />
         <Route path="/photos" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><PhotosPage /></Suspense></ErrorBoundary>} />
         <Route path="/users" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><UsersPage /></Suspense></ErrorBoundary>} />
       </Route>

@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, Thermometer, Navigation, MapPin, Layers, Share2 } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search } from 'lucide-react'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -136,7 +136,7 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
   )
 }
 
-export default function MapPage() {
+export default function MapPage({ compact } = {}) {
   const { isAdmin } = useAuth()
   const { stations, loading: stationsLoading } = useWeatherStations()
   const { pins, loading: pinsLoading, addPin, deletePin, refresh: refreshPins } = useMapPins()
@@ -156,6 +156,7 @@ export default function MapPage() {
   const [savingPin, setSavingPin] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTypes, setActiveTypes] = useState(Object.keys(PIN_COLORS))
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const cabinMap = useMemo(() => Object.fromEntries(cabins.map(c => [c.id, c])), [cabins])
 
@@ -200,60 +201,41 @@ export default function MapPage() {
     setActiveTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type])
   }
 
-  const cycleBaseMap = () => setBaseLayer(prev => prev === 'map' ? 'satellite' : prev === 'satellite' ? 'topo' : 'map')
+  const setBaseLayerFixed = (layer) => setBaseLayer(layer)
 
   const baseLayerLabels = { map: 'Map', satellite: 'Satellite', topo: 'Topo' }
   const baseLayerColors = { map: 'bg-stone-500', satellite: 'bg-purple-600', topo: 'bg-amber-700' }
 
-  const overlayButtons = [
-    { key: 'showRadar', label: 'Radar', icon: Radio, color: 'bg-blue-500' },
-    { key: 'showLightning', label: 'Lightning', icon: Zap, color: 'bg-amber-500' },
-    { key: 'showStations', label: 'Weather Stn', icon: Thermometer, color: 'bg-red-500' },
-    { key: 'showTrails', label: 'Trails', icon: Navigation, color: 'bg-green-600' },
-    { key: 'showPins', label: 'Pins', icon: MapPin, color: 'bg-pink-500' },
+  const overlayItems = [
+    { key: 'showRadar', label: 'Radar', icon: Radio },
+    { key: 'showLightning', label: 'Lightning', icon: Zap },
+    { key: 'showStations', label: 'Weather Stations', icon: Thermometer },
+    { key: 'showTrails', label: 'Trails', icon: Navigation },
+    { key: 'showPins', label: 'Pins', icon: MapPin },
   ]
   const valMap = { showRadar, showLightning, showStations, showTrails, showPins }
   const setterMap = { showRadar: setShowRadar, showLightning: setShowLightning, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins }
 
+  const mapHeight = compact ? 'min-h-[400px] h-[400px]' : 'min-h-[450px]'
+  const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Cranberry Lake Map</h1>
-          <p className="text-sm text-stone-400 dark:text-stone-500">Interactive map with weather, trails, and radar</p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs">
-          {overlayButtons.map(({ key, label, icon: Icon, color }) => (
-            <button key={key} onClick={() => setterMap[key](!valMap[key])} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors ${valMap[key] ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
-              {Icon && <Icon className="h-3.5 w-3.5" />}<span className="hidden md:inline">{label}</span>
-            </button>
-          ))}
-          <button onClick={cycleBaseMap} className={`inline-flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1.5 border transition-colors bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500`}>
-            <Layers className="h-3.5 w-3.5" /><span className="hidden md:inline">{baseLayerLabels[baseLayer]}</span>
-          </button>
+    <div className={compact ? '' : 'space-y-3'}>
+      {!compact && (
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Cranberry Lake Map</h1>
+            <p className="text-sm text-stone-400 dark:text-stone-500">Interactive map with weather, trails, and radar</p>
+          </div>
           {isAdmin && (
-            <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white dark:bg-stone-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-600'}`}>
+            <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors text-xs ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white dark:bg-stone-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-600'}`}>
               <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
           )}
         </div>
-      </div>
+      )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <input type="text" placeholder="Search pins..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="rounded-full border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 w-48" />
-        <div className="flex flex-wrap gap-1.5">
-          {Object.entries(PIN_TYPE_LABELS).map(([type, label]) => {
-            const active = activeTypes.includes(type)
-            return (
-              <button key={type} onClick={() => toggleType(type)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${active ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
-                <span className="inline-block w-2 h-2 rounded-full" style={{ background: PIN_COLORS[type] }} />{label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative" style={{ height: 'calc(100vh - 280px)', minHeight: 450 }}>
+      <div className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative ${mapHeight}`} style={mapStyle}>
         <MapContainer center={CRANBERRY_LAKE} zoom={11} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
@@ -280,6 +262,88 @@ export default function MapPage() {
           </Marker>
         </MapContainer>
 
+        {/* Collapsible right sidebar */}
+        <div className="absolute right-0 top-0 bottom-0 z-[1000] flex pointer-events-none">
+          <div className="pointer-events-auto self-center -ml-3">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="bg-white dark:bg-stone-900 rounded-l-md shadow-md border border-r-0 border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}>
+              <ChevronLeft className={`h-4 w-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
+            </button>
+          </div>
+          {sidebarOpen && (
+            <div className="pointer-events-auto w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm shadow-lg border-l border-stone-200 dark:border-stone-700 overflow-y-auto text-xs">
+              <div className="p-3 space-y-4">
+
+                {/* Base Map */}
+                <div>
+                  <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Base Map</h4>
+                  <div className="space-y-1">
+                    {Object.entries(baseLayerLabels).map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                        <input type="radio" name="baseLayer" checked={baseLayer === key} onChange={() => setBaseLayerFixed(key)} className="accent-stone-800 dark:accent-stone-200" />
+                        <span className={`inline-block w-2 h-2 rounded-full ${baseLayerColors[key]}`} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Overlays */}
+                <div>
+                  <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Overlays</h4>
+                  <div className="space-y-1">
+                    {overlayItems.map(({ key, label, icon: Icon }) => (
+                      <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                        <input type="checkbox" checked={valMap[key]} onChange={() => setterMap[key](!valMap[key])} className="accent-stone-800 dark:accent-stone-200" />
+                        <Icon className="h-3.5 w-3.5 text-stone-400" />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pin Filters */}
+                <div>
+                  <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Pin Filters</h4>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400 dark:text-stone-500" />
+                    <input type="text" placeholder="Search pins..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 pl-6 pr-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" />
+                  </div>
+                  <div className="space-y-1">
+                    {Object.entries(PIN_TYPE_LABELS).map(([type, label]) => {
+                      const active = activeTypes.includes(type)
+                      return (
+                        <label key={type} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                          <input type="checkbox" checked={active} onChange={() => toggleType(type)} className="accent-stone-800 dark:accent-stone-200" />
+                          <span className="inline-block w-2 h-2 rounded-full" style={{ background: PIN_COLORS[type] }} />
+                          {label}
+                          <span className="ml-auto text-stone-400 dark:text-stone-500">{pins.filter(p => p.type === type).length}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Attribution */}
+                <div className="pt-2 border-t border-stone-200 dark:border-stone-700 text-[10px] text-stone-400 dark:text-stone-500 space-y-0.5">
+                  <div>Radar: RainViewer</div>
+                  <div>Lightning: Blitzortung.org</div>
+                  <div>Trails: Waymarked Trails</div>
+                  <div>Stations: Weather.gov</div>
+                  <div className="mt-1">{stationsLoading ? 'Loading stations...' : `${stations.length} stations`} &middot; {pins.length} pins</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {compact && isAdmin && (
+          <div className="absolute top-2 left-2 z-[1000]">
+            <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 border transition-colors text-xs shadow-sm ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm text-rose-600 dark:text-rose-400 border-stone-300 dark:border-stone-600'}`}>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
+            </button>
+          </div>
+        )}
+
         {newPinLatLng && (
           <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white dark:bg-stone-900 rounded-lg shadow-xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 p-4 max-w-sm mx-auto">
             <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 mb-3">Add Pin</h3>
@@ -301,13 +365,6 @@ export default function MapPage() {
             </div>
           </div>
         )}
-      </div>
-
-      <div className="flex flex-wrap gap-4 text-xs text-stone-400 dark:text-stone-500">
-        <span>Radar: RainViewer</span><span>Lightning: Blitzortung.org</span>
-        <span>Trails: Waymarked Trails (OSM)</span><span>Stations: Weather.gov</span>
-        {stationsLoading && <span>Loading stations...</span>}{!stationsLoading && <span>{stations.length} stations</span>}
-        <span>{pins.length} pins</span>
       </div>
     </div>
   )
