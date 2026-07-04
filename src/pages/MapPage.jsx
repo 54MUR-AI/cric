@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, ExternalLink, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search, Maximize, Minimize } from 'lucide-react'
+import { Radio, Zap, ExternalLink, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair } from 'lucide-react'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -84,6 +84,34 @@ function MapClickHandler({ active, onMapClick }) {
   return null
 }
 
+function UserLocationMarker({ position, accuracy }) {
+  const map = useMap()
+  useEffect(() => { if (position) map.flyTo(position, map.getZoom() < 13 ? 13 : map.getZoom(), { duration: 0.5 }) }, [position])
+  if (!position) return null
+  const accRadius = accuracy && accuracy < 1000 ? accuracy : 100
+  return (
+    <>
+      <Circle center={position} radius={accRadius} pathOptions={{ color: '#3b82f6', weight: 1, fillColor: '#3b82f6', fillOpacity: 0.1, dashArray: '4' }} />
+      <Marker position={position} icon={L.divIcon({
+        className: '',
+        html: '<div style="width:18px;height:18px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px rgba(59,130,246,0.5),0 2px 6px rgba(0,0,0,0.3);"><div style="width:8px;height:8px;background:white;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 2s infinite;"></div></div><style>@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }</style>',
+        iconSize: [18, 18], iconAnchor: [9, 9],
+      })} />
+    </>
+  )
+}
+
+function LocateButton({ position }) {
+  const map = useMap()
+  return (
+    <div className="absolute top-2 left-2 z-[1000] pointer-events-none">
+      <button onClick={() => { if (position) map.flyTo(position, Math.max(map.getZoom(), 13), { duration: 0.5 }) }} disabled={!position} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors disabled:opacity-40" title="Center on my location">
+        <Crosshair className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
+
 function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUpload }) {
   const dist = haversineKm(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
   const dir = bearing(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
@@ -151,6 +179,11 @@ export default function MapPage({ compact } = {}) {
   const [activeTypes, setActiveTypes] = useState(Object.keys(PIN_COLORS))
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [trackingEnabled, setTrackingEnabled] = useState(false)
+  const [userLocation, setUserLocation] = useState(null)
+  const [locationAccuracy, setLocationAccuracy] = useState(null)
+  const [locationError, setLocationError] = useState(null)
+  const watchIdRef = useRef(null)
   const mapRef = useRef(null)
 
   useEffect(() => {
@@ -158,6 +191,22 @@ export default function MapPage({ compact } = {}) {
     document.addEventListener('fullscreenchange', handler)
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
+
+  useEffect(() => {
+    if (trackingEnabled) {
+      if (!navigator.geolocation) { setLocationError('Geolocation not available'); setTrackingEnabled(false); return }
+      setLocationError(null)
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationAccuracy(pos.coords.accuracy); setLocationError(null) },
+        (err) => { setLocationError(err.message); setTrackingEnabled(false) },
+        { enableHighAccuracy: true, maximumAge: 30000 }
+      )
+    } else {
+      if (watchIdRef.current != null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null }
+      setUserLocation(null); setLocationAccuracy(null); setLocationError(null)
+    }
+    return () => { if (watchIdRef.current != null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null } }
+  }, [trackingEnabled])
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) mapRef.current?.requestFullscreen()
@@ -264,7 +313,11 @@ export default function MapPage({ compact } = {}) {
           <Marker position={CRANBERRY_LAKE} icon={L.divIcon({ className: '', html: '<div style="background:#059669;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">CL</div>', iconSize: [24, 24], iconAnchor: [12, 12] })}>
             <Popup><strong>Cranberry Lake</strong><br/>St. Lawrence County, NY</Popup>
           </Marker>
+          {trackingEnabled && <UserLocationMarker position={userLocation} accuracy={locationAccuracy} />}
         </MapContainer>
+
+        {/* Locate button */}
+        {trackingEnabled && <LocateButton position={userLocation} />}
 
         {/* Fullscreen button */}
         <div className="absolute top-2 right-2 z-[1000] pointer-events-none">
@@ -314,6 +367,13 @@ export default function MapPage({ compact } = {}) {
                       Lightning (external)
                       <ExternalLink className="h-3 w-3 ml-auto" />
                     </a>
+                    <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                      <input type="checkbox" checked={trackingEnabled} onChange={() => setTrackingEnabled(!trackingEnabled)} className="accent-stone-800 dark:accent-stone-200" />
+                      <Crosshair className={`h-3.5 w-3.5 ${trackingEnabled ? 'text-blue-500' : 'text-stone-400'}`} />
+                      GPS Track
+                      {trackingEnabled && <span className="ml-auto flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span></span>}
+                    </label>
+                    {locationError && <div className="text-[10px] text-rose-500 dark:text-rose-400 mt-1">{locationError}</div>}
                   </div>
                 </div>
 
