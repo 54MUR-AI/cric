@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search } from 'lucide-react'
+import { Radio, Zap, ExternalLink, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search } from 'lucide-react'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -79,12 +79,6 @@ function RadarLayer() {
   return null
 }
 
-function LightningLayer() {
-  const map = useMap()
-  useEffect(() => { const layer = L.tileLayer('https://www.lightningmaps.org/tile/lightning/{z}/{x}/{y}/1/0/0', { opacity: 0.6, attribution: 'Blitzortung', minZoom: 5, maxZoom: 14 }); layer.addTo(map); return () => map.removeLayer(layer) }, [map])
-  return null
-}
-
 function MapClickHandler({ active, onMapClick }) {
   useMapEvents({ click(e) { if (active) onMapClick(e.latlng) } })
   return null
@@ -144,7 +138,6 @@ export default function MapPage({ compact } = {}) {
   const { bookings } = useBookings()
 
   const [showRadar, setShowRadar] = useState(true)
-  const [showLightning, setShowLightning] = useState(true)
   const [showStations, setShowStations] = useState(true)
   const [showTrails, setShowTrails] = useState(true)
   const [showPins, setShowPins] = useState(true)
@@ -208,13 +201,12 @@ export default function MapPage({ compact } = {}) {
 
   const overlayItems = [
     { key: 'showRadar', label: 'Radar', icon: Radio },
-    { key: 'showLightning', label: 'Lightning', icon: Zap },
     { key: 'showStations', label: 'Weather Stations', icon: Thermometer },
     { key: 'showTrails', label: 'Trails', icon: Navigation },
     { key: 'showPins', label: 'Pins', icon: MapPin },
   ]
-  const valMap = { showRadar, showLightning, showStations, showTrails, showPins }
-  const setterMap = { showRadar: setShowRadar, showLightning: setShowLightning, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins }
+  const valMap = { showRadar, showStations, showTrails, showPins }
+  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins }
 
   const mapHeight = compact ? 'min-h-[400px] h-[400px]' : 'min-h-[450px]'
   const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
@@ -241,7 +233,6 @@ export default function MapPage({ compact } = {}) {
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
-          {showLightning && <LightningLayer />}
 
           {showStations && stations.map((s) => (
             <WindArrow key={s.stationIdentifier} name={s.name} lat={s.latitude} lon={s.longitude} speed={s.observation?.windSpeed?.value} direction={s.observation?.windDirection?.value} temp={s.observation?.temperature?.value} />
@@ -298,6 +289,11 @@ export default function MapPage({ compact } = {}) {
                         {label}
                       </label>
                     ))}
+                    <a href="https://maps.blitzortung.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 py-1 text-stone-500 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                      <Zap className="h-3.5 w-3.5 text-amber-500" />
+                      Lightning (external)
+                      <ExternalLink className="h-3 w-3 ml-auto" />
+                    </a>
                   </div>
                 </div>
 
@@ -326,9 +322,9 @@ export default function MapPage({ compact } = {}) {
                 {/* Attribution */}
                 <div className="pt-2 border-t border-stone-200 dark:border-stone-700 text-[10px] text-stone-400 dark:text-stone-500 space-y-0.5">
                   <div>Radar: RainViewer</div>
-                  <div>Lightning: Blitzortung.org</div>
                   <div>Trails: Waymarked Trails</div>
                   <div>Stations: Weather.gov</div>
+                  <div>Lightning: <a href="https://maps.blitzortung.org/" target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-400 hover:underline">Blitzortung.org</a> (external)</div>
                   <div className="mt-1">{stationsLoading ? 'Loading stations...' : `${stations.length} stations`} &middot; {pins.length} pins</div>
                 </div>
               </div>
