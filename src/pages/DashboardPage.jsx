@@ -47,10 +47,10 @@ function WeatherWidget() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {current && (
           <div className="flex items-center gap-4">
-            <div className="text-4xl font-bold text-stone-800 dark:text-stone-200">{current.temperature?.value != null ? `${Math.round(current.temperature.value)}°` : '--'}</div>
+            <div className="text-4xl font-bold text-stone-800 dark:text-stone-200">{current.temperature?.value != null ? `${Math.round(current.temperature.value * 9 / 5 + 32)}°F` : '--'}</div>
             <div className="text-sm text-stone-500 dark:text-stone-400 space-y-1">
               <p className="text-stone-700 dark:text-stone-300 font-medium">{current.textDescription || '--'}</p>
-              {current.windSpeed?.value != null && <p className="flex items-center gap-1"><Wind className="h-3 w-3" />{Math.round(current.windSpeed.value)} mph</p>}
+              {current.windSpeed?.value != null && <p className="flex items-center gap-1"><Wind className="h-3 w-3" />{Math.round(current.windSpeed.value * 0.621371)} mph</p>}
               {current.relativeHumidity?.value != null && <p className="flex items-center gap-1"><Droplets className="h-3 w-3" />{Math.round(current.relativeHumidity.value)}%</p>}
             </div>
           </div>
