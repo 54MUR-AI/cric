@@ -100,6 +100,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-50 dark:bg-stone-950">
       <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-md dark:bg-stone-900 dark:shadow-stone-900/30">
+        <img src="/icons/icon-192x192.png" alt="CRIC" className="mx-auto h-16 w-16 mb-3" />
         <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 mb-1">CRIC Island Manager</h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Sign in to continue</p>
 
