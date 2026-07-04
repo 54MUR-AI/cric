@@ -15,13 +15,15 @@ const locales = { 'en-US': enUS }
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales })
 
 export default function SchedulePage() {
-  const { bookings, loading: loadingB, createBooking, deleteBooking } = useBookings()
+  const { bookings, loading: loadingB, createBooking, updateBooking, deleteBooking } = useBookings()
   const { cabins, loading: loadingC } = useCabins()
   const { user, isAdmin } = useAuth()
   const { copy } = useShare()
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [editData, setEditData] = useState({})
   const [formData, setFormData] = useState({ cabin_id: '', guests: '', notes: '' })
   const [error, setError] = useState('')
 
@@ -169,23 +171,50 @@ export default function SchedulePage() {
       )}
 
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedEvent(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setSelectedEvent(null); setEditing(false) }}>
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">{selectedEvent.cabins?.name}</h2>
-            <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
-              {formatDate(selectedEvent.start_date)} – {formatDate(selectedEvent.end_date)}
-              {selectedEvent.guests && <> · {selectedEvent.guests}</>}
-            </p>
-            {selectedEvent.notes && <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">{selectedEvent.notes}</p>}
-            <div className="flex gap-2 justify-between items-center">
-              <button onClick={() => copy(`${selectedEvent.cabins?.name}: ${formatDate(selectedEvent.start_date)} – ${formatDate(selectedEvent.end_date)}${selectedEvent.guests ? ` — ${selectedEvent.guests}` : ''}`, 'Booking copied')} className="inline-flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors">
-                <Share2 className="h-3 w-3" /> Share
-              </button>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setSelectedEvent(null)}>Close</Button>
-                <Button variant="danger" onClick={() => { handleDelete(selectedEvent.id); setSelectedEvent(null) }}>Cancel Booking</Button>
-              </div>
-            </div>
+            {!editing ? (
+              <>
+                <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">{selectedEvent.cabins?.name}</h2>
+                <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
+                  {formatDate(selectedEvent.start_date)} – {formatDate(selectedEvent.end_date)}
+                  {selectedEvent.guests && <> · {selectedEvent.guests}</>}
+                </p>
+                {selectedEvent.notes && <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">{selectedEvent.notes}</p>}
+                <div className="flex gap-2 justify-between items-center">
+                  <button onClick={() => copy(`${selectedEvent.cabins?.name}: ${formatDate(selectedEvent.start_date)} – ${formatDate(selectedEvent.end_date)}${selectedEvent.guests ? ` — ${selectedEvent.guests}` : ''}`, 'Booking copied')} className="inline-flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors">
+                    <Share2 className="h-3 w-3" /> Share
+                  </button>
+                  <div className="flex gap-2">
+                    {(selectedEvent.user_id === user?.id || isAdmin) && (
+                      <Button variant="secondary" onClick={() => { setEditData({ end_date: selectedEvent.end_date, guests: selectedEvent.guests || '', notes: selectedEvent.notes || '' }); setEditing(true) }}>Edit</Button>
+                    )}
+                    <Button variant="secondary" onClick={() => { setSelectedEvent(null); setEditing(false) }}>Close</Button>
+                    <Button variant="danger" onClick={() => { handleDelete(selectedEvent.id); setSelectedEvent(null); setEditing(false) }}>Cancel Booking</Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={async (e) => { e.preventDefault(); try { await updateBooking(selectedEvent.id, editData); setEditing(false); setSelectedEvent(null) } catch {} }} className="space-y-4">
+                <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">Edit Booking</h2>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">To</label>
+                  <input type="date" value={editData.end_date} onChange={(e) => setEditData({ ...editData, end_date: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Guests</label>
+                  <input type="text" value={editData.guests} onChange={(e) => setEditData({ ...editData, guests: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Notes (optional)</label>
+                  <textarea value={editData.notes} onChange={(e) => setEditData({ ...editData, notes: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" rows={2} />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
+                  <Button type="submit">Save</Button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

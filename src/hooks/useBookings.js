@@ -42,5 +42,17 @@ export function useBookings() {
     catch { setBookings(prev); toast.error('Failed to cancel booking') }
   }
 
-  return { bookings, loading, createBooking, deleteBooking, refetch: fetchBookings }
+  async function updateBooking(id, updates) {
+    const { error } = await supabase.from('bookings').update(updates).eq('id', id)
+    if (error) throw error
+    const { data: full } = await supabase
+      .from('bookings')
+      .select('*, cabins(name, color)')
+      .eq('id', id)
+      .single()
+    if (full) { setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full); toast.success('Booking updated') }
+    return full
+  }
+
+  return { bookings, loading, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
 }
