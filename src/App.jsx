@@ -15,6 +15,8 @@ const RecordsPage = lazy(() => import('./pages/RecordsPage'))
 const PhotosPage = lazy(() => import('./pages/PhotosPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'))
+const EmergencyPage = lazy(() => import('./pages/EmergencyPage'))
+const BoatSchedulePage = lazy(() => import('./pages/BoatSchedulePage'))
 
 function PageFallback() {
   return (
@@ -53,6 +55,8 @@ export default function App() {
         <Route path="/map" element={<Navigate to="/" replace />} />
         <Route path="/photos" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><PhotosPage /></Suspense></ErrorBoundary>} />
         <Route path="/users" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><UsersPage /></Suspense></ErrorBoundary>} />
+        <Route path="/emergency" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><EmergencyPage /></Suspense></ErrorBoundary>} />
+        <Route path="/boat-schedule" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><BoatSchedulePage /></Suspense></ErrorBoundary>} />
       </Route>
     </Routes>
   )

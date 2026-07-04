@@ -20,6 +20,7 @@ export async function refreshAll() {
     syncTable('photo_albums', supabase.from('photo_albums').select('*').order('name')),
     syncTable('officers', supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order')),
     syncTable('profiles', supabase.from('profiles').select('*').order('display_name')),
+    syncTable('boat_trips', supabase.from('boat_trips').select('*, profiles:created_by(display_name)').order('trip_date').order('departure_time')),
   ])
 }
 

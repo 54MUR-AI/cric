@@ -1,6 +1,46 @@
-import { BookOpen, Phone, Zap, Droplets, Flame, Ship, AlertTriangle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { BookOpen, Phone, Zap, Droplets, Flame, Ship, AlertTriangle, ClipboardCheck, RotateCcw } from 'lucide-react'
 
 const BASE = import.meta.env.BASE_URL
+
+function Checklist({ id, items }) {
+  const storageKey = `guide-checklist-${id}`
+  const [checked, setChecked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey)) || {} } catch { return {} }
+  })
+
+  useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(checked)) }, [checked, storageKey])
+
+  const done = Object.values(checked).filter(Boolean).length
+
+  function toggle(i) { setChecked(p => ({ ...p, [i]: !p[i] })) }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 mb-1">
+        <span>{done} of {items.length} completed</span>
+        <button onClick={() => setChecked({})} className="flex items-center gap-1 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors">
+          <RotateCcw className="h-3 w-3" />Reset
+        </button>
+      </div>
+      <div className="h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+        <div className="h-full rounded-full bg-emerald-500 transition-all duration-300" style={{ width: `${(done / items.length) * 100}%` }} />
+      </div>
+      <ol className="list-none space-y-1">
+        {items.map((item, i) => (
+          <li key={i}>
+            <label className={`flex items-start gap-2 cursor-pointer rounded px-2 py-1.5 transition-colors text-sm ${
+              checked[i] ? 'bg-emerald-50 dark:bg-emerald-900/20 text-stone-500 dark:text-stone-400 line-through' : 'text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+            }`}>
+              <input type="checkbox" checked={!!checked[i]} onChange={() => toggle(i)} className="mt-0.5 rounded border-stone-300 dark:border-stone-600 text-emerald-600 focus:ring-emerald-500" />
+              <span>{item}</span>
+            </label>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
 
 function Img({ name, alt, className = '' }) {
   return (
@@ -23,6 +63,66 @@ const sections = [
     content: (
       <div className="prose prose-sm max-w-none text-stone-700 dark:text-stone-300">
         <p className="font-bold text-red-700 dark:text-red-400">Generator Breakers and Solar Breakers must NEVER power the same loads at the same time.</p>
+      </div>
+    ),
+  },
+  {
+    id: 'checklists',
+    icon: ClipboardCheck,
+    title: 'Seasonal Checklists',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-900/30',
+    content: (
+      <div className="space-y-5 text-sm">
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Open — Solar Power</h4>
+          <Checklist id="solar-start" items={[
+            'Inspect battery box for critters; close box.',
+            'Confirm Charge Controller LEDs are lit.',
+            'Turn ALL Generator Load Panel breakers OFF (down).',
+            'Connect red monitor wire if disconnected.',
+            'Rotate Charge Controller Battery Switch counter-clockwise two notches → Main Bank.',
+            'Switch Inverter Battery Switch to Main Bank.',
+            'Close Inverter Breaker (lever horizontal).',
+            'Turn inverter ON (power-save off); wait for "Inverter Power On Line" LED.',
+            'Turn on Water Pump breaker in Solar Load Panel.',
+            'Turn on desired cabin breakers in Solar Load Panel.',
+          ]} />
+        </div>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Close — Solar Power</h4>
+          <Checklist id="solar-close" items={[
+            'All Solar Load Panel breakers OFF (down).',
+            'All Generator breakers OFF (down).',
+            'Inverter OFF (middle position — all lights must be out).',
+            'Open Inverter Breaker (yellow button → lever vertical).',
+            'Rotate Charge Controller switch clockwise two notches → Aux Bank.',
+            'Inverter switch to Aux Bank.',
+            'Disconnect red monitor wire.',
+            'If maintainer works: Connect to generator battery and close its breaker.',
+          ]} />
+        </div>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Generator (Propane)</h4>
+          <Checklist id="generator" items={[
+            'Propane on, regulator green. Open primary tank first.',
+            'Battery cables secure inside generator.',
+            'Charger plugged under desk (SLI / 10A).',
+            'Solar "pump" breaker OFF → Generator "pump" breaker ON.',
+            'Generator switch: MANUAL or AUTOMATIC.',
+            'Run ~10 minutes at least once every two weeks.',
+            'If won\'t start: tighten battery terminals, charge via solar charger for 90+ min.',
+          ]} />
+        </div>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Battery Reset (Battleborn BMS)</h4>
+          <Checklist id="battery-reset" items={[
+            'Call Battleborn first: 775-622-3448 (Pacific).',
+            'Turn Inverter OFF.',
+            'Jumper Aux + to Main + and Aux – to Main –.',
+            'Turn both switches to 1&2 (up).',
+          ]} />
+        </div>
       </div>
     ),
   },
