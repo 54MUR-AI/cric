@@ -265,7 +265,7 @@ export default function MapPage({ compact } = {}) {
   const [savingPin, setSavingPin] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTypes, setActiveTypes] = useState(Object.keys(PIN_COLORS))
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [trackingEnabled, setTrackingEnabled] = useState(false)
   const [userLocation, setUserLocation] = useState(null)
@@ -403,10 +403,8 @@ export default function MapPage({ compact } = {}) {
             <Popup><strong>Cranberry Lake</strong><br/>St. Lawrence County, NY</Popup>
           </Marker>
           {trackingEnabled && <UserLocationMarker position={userLocation} accuracy={locationAccuracy} />}
+          {trackingEnabled && <LocateButton position={userLocation} />}
         </MapContainer>
-
-        {/* Locate button */}
-        {trackingEnabled && <LocateButton position={userLocation} />}
 
         {/* Fullscreen button */}
         <div className="absolute top-2 right-2 z-[1000] pointer-events-none">
