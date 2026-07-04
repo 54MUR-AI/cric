@@ -36,7 +36,7 @@ export default function SchedulePage() {
 
   function handleSelectSlot({ start, end }) {
     setSelectedSlot({ start, end: new Date(new Date(end).getTime() - 86400000) })
-    setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '' })
+    setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', end_date: '' })
     setError('')
     setShowForm(true)
   }
@@ -49,7 +49,7 @@ export default function SchedulePage() {
         cabin_id: formData.cabin_id,
         user_id: user.id,
         start_date: selectedSlot.start.toISOString().split('T')[0],
-        end_date: selectedSlot.end.toISOString().split('T')[0],
+        end_date: formData.end_date || selectedSlot.end.toISOString().split('T')[0],
         guests: formData.guests || null,
         notes: formData.notes || null,
       })
@@ -136,7 +136,7 @@ export default function SchedulePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">To</label>
-                  <input type="date" value={selectedSlot.end.toISOString().split('T')[0]} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm bg-stone-50 dark:bg-stone-950" disabled />
+                  <input type="date" value={formData.end_date || selectedSlot.end.toISOString().split('T')[0]} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" />
                 </div>
               </div>
               <div>
