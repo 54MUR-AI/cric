@@ -21,10 +21,20 @@ function WeatherWidget() {
           fetch(points.properties.observationStations, { headers: { 'User-Agent': UA } }).then(r => r.json()),
         ]).then(([fc, st]) => {
           setForecast(fc.properties.periods.slice(0, 7))
-          const sid = st.features[0].properties.stationIdentifier
-          fetch(`https://api.weather.gov/stations/${sid}/observations/latest`, { headers: { 'User-Agent': UA } })
-            .then(r => r.json())
-            .then(o => setCurrent(o.properties))
+          const ids = st.features.map(f => f.properties.stationIdentifier)
+          ;async function findObs() {
+            for (const sid of ids) {
+              try {
+                const r = await fetch(`https://api.weather.gov/stations/${sid}/observations/latest`, { headers: { 'User-Agent': UA } })
+                const o = await r.json()
+                if (o.properties?.temperature?.value != null) {
+                  setCurrent(o.properties)
+                  return
+                }
+              } catch {}
+            }
+          }
+          findObs()
         })
       })
   }, [])
