@@ -39,7 +39,7 @@ export default function Sidebar({ open, onClose }) {
     <>
       <div className="flex items-center justify-between gap-2 px-4 py-5 border-b border-emerald-800">
         <div className="flex items-center gap-2">
-          <img src="/icons/icon-32x32.png" alt="CRIC" className="h-6 w-6" />
+          <img src={`${import.meta.env.BASE_URL}icons/icon-32x32.png`} alt="CRIC" className="h-6 w-6" />
           <span className="font-semibold text-sm">CRIC Manager</span>
         </div>
         <button onClick={onClose} className="md:hidden p-1 text-stone-400 hover:text-white">
