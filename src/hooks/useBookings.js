@@ -13,7 +13,7 @@ export function useBookings() {
     if (cached.length) setBookings(cached)
     const { data } = await supabase
       .from('bookings')
-      .select('*, cabins(name, color), profiles:user_id(display_name)')
+      .select('*, cabins(name, color)')
       .order('start_date')
     if (data) { setBookings(data); db.bookings.bulkPut(data) }
     setLoading(false)
@@ -27,7 +27,7 @@ export function useBookings() {
     if (data) {
       const { data: full } = await supabase
         .from('bookings')
-        .select('*, cabins(name, color), profiles:user_id(display_name)')
+        .select('*, cabins(name, color)')
         .eq('id', data.id)
         .single()
       if (full) { setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking created') }

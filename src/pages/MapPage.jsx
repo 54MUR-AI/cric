@@ -116,7 +116,7 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
         <>
           <Link to={`/cabins`} className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
           <Link to={`/schedule`} className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
-          {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.profiles?.display_name || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
+          {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.guests || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
         </>
       )}
 

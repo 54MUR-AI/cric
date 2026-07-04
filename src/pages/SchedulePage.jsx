@@ -22,12 +22,12 @@ export default function SchedulePage() {
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
-  const [formData, setFormData] = useState({ cabin_id: '', notes: '' })
+  const [formData, setFormData] = useState({ cabin_id: '', guests: '', notes: '' })
   const [error, setError] = useState('')
 
   const events = bookings.map((b) => ({
     id: b.id,
-    title: `${b.cabins?.name} - ${b.profiles?.display_name || 'Unknown'}`,
+    title: `${b.cabins?.name}${b.guests ? ` — ${b.guests}` : ''}`,
     start: new Date(b.start_date),
     end: new Date(new Date(b.end_date).setHours(23, 59)),
     resource: b,
@@ -36,7 +36,7 @@ export default function SchedulePage() {
 
   function handleSelectSlot({ start, end }) {
     setSelectedSlot({ start, end: new Date(new Date(end).getTime() - 86400000) })
-    setFormData({ cabin_id: cabins[0]?.id || '', notes: '' })
+    setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '' })
     setError('')
     setShowForm(true)
   }
@@ -50,6 +50,7 @@ export default function SchedulePage() {
         user_id: user.id,
         start_date: selectedSlot.start.toISOString().split('T')[0],
         end_date: selectedSlot.end.toISOString().split('T')[0],
+        guests: formData.guests || null,
         notes: formData.notes || null,
       })
       setShowForm(false)
@@ -83,7 +84,7 @@ export default function SchedulePage() {
         ))}
       </div>
 
-      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 overflow-hidden">
+      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
         <Calendar
           localizer={localizer}
           events={events}
@@ -92,6 +93,7 @@ export default function SchedulePage() {
           defaultView={Views.MONTH}
           views={[Views.MONTH, Views.WEEK]}
           selectable
+          popup
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           eventPropGetter={(event) => ({
@@ -135,6 +137,16 @@ export default function SchedulePage() {
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Guests</label>
+                <input
+                  type="text"
+                  value={formData.guests}
+                  onChange={(e) => setFormData({ ...formData, guests: e.target.value })}
+                  className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm"
+                  placeholder="e.g. Debbie &amp; Dick"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Notes (optional)</label>
                 <textarea
                   value={formData.notes}
@@ -159,11 +171,11 @@ export default function SchedulePage() {
             <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">{selectedEvent.cabins?.name}</h2>
             <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
               {formatDate(selectedEvent.start_date)} – {formatDate(selectedEvent.end_date)}
-              {selectedEvent.profiles?.display_name && <> · Booked by {selectedEvent.profiles.display_name}</>}
+              {selectedEvent.guests && <> · {selectedEvent.guests}</>}
             </p>
             {selectedEvent.notes && <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">{selectedEvent.notes}</p>}
             <div className="flex gap-2 justify-between items-center">
-              <button onClick={() => copy(`${selectedEvent.cabins?.name}: ${formatDate(selectedEvent.start_date)} – ${formatDate(selectedEvent.end_date)}${selectedEvent.notes ? ` — ${selectedEvent.notes}` : ''}`, 'Booking copied')} className="inline-flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors">
+              <button onClick={() => copy(`${selectedEvent.cabins?.name}: ${formatDate(selectedEvent.start_date)} – ${formatDate(selectedEvent.end_date)}${selectedEvent.guests ? ` — ${selectedEvent.guests}` : ''}`, 'Booking copied')} className="inline-flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors">
                 <Share2 className="h-3 w-3" /> Share
               </button>
               <div className="flex gap-2">
