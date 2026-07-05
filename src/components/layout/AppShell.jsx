@@ -73,6 +73,13 @@ export default function AppShell() {
       return
     }
     
+    // Check if Brave browser
+    const isBrave = navigator.brave && typeof navigator.brave.isBrave === 'function'
+    if (isBrave) {
+      toast.warning('Brave blocks push notifications by default. Use Chrome or enable in brave://settings/content/notifications')
+      return
+    }
+    
     toast.info('Updating notification settings...')
     
     try {
