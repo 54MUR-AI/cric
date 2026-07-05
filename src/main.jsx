@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import { ToastProvider } from './components/ui/Toast'
 import { NotificationProvider } from './hooks/useNotifications'
+import { WeatherAlertsProvider } from './hooks/useWeatherAlerts'
 import App from './App'
 import './index.css'
 
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <ToastProvider>
           <NotificationProvider>
-            <App />
+            <WeatherAlertsProvider>
+              <App />
+            </WeatherAlertsProvider>
           </NotificationProvider>
         </ToastProvider>
       </AuthProvider>

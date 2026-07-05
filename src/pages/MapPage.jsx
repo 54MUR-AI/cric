@@ -450,7 +450,6 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
 
   const toast = useToast()
   const lastLightningAlertRef = useRef(0)
-  const seenAlertIdsRef = useRef(new Set())
 
   useEffect(() => {
     if (notifyPerm !== 'granted' && Notification.permission === 'default') Notification.requestPermission().then(p => setNotifyPerm(p))
@@ -461,32 +460,6 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
       try { new Notification(title, { body, icon: '/images/icon-192.png' }) } catch { /* ignore */ }
     }
   }
-
-  useEffect(() => {
-    let cancelled = false
-    const checkAlerts = async () => {
-      try {
-        const r = await fetch('https://api.weather.gov/alerts/active?point=44.14722,-74.81194')
-        const data = await r.json()
-        if (cancelled) return
-        const warnings = (data.features || []).filter(f => {
-          const e = f.properties.event || ''
-          return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm' || e.includes('Small Craft') || e.includes('Marine')
-        })
-        for (const w of warnings) {
-          const id = w.properties.id
-          if (!seenAlertIdsRef.current.has(id)) {
-            seenAlertIdsRef.current.add(id)
-            toast.warning(`${w.properties.event}: ${(w.properties.headline || w.properties.description || '').slice(0, 120)}`, 10000)
-            sendSystemNotification(w.properties.event, (w.properties.headline || w.properties.description || '').slice(0, 120))
-          }
-        }
-      } catch { /* ignore */ }
-    }
-    checkAlerts()
-    const interval = setInterval(checkAlerts, 300000)
-    return () => { cancelled = true; clearInterval(interval) }
-  }, [toast])
 
   useEffect(() => {
     let cancelled = false

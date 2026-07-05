@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
-import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, AlertOctagon, X } from 'lucide-react'
+import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, X } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
-import { sendPushToAll } from '../hooks/usePushNotifications'
+import { useWeatherAlerts } from '../hooks/useWeatherAlerts'
 import MapPage from './MapPage'
 
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
@@ -104,73 +104,17 @@ function WeatherWidget() {
 export default function DashboardPage() {
   const { profile, isAdmin } = useAuth()
   const toast = useToast()
+  const { activeAlerts, lightningAlert, dismissAlert, dismissLightning, handleLightningStrike } = useWeatherAlerts()
   const [upcomingBookings, setUpcomingBookings] = useState([])
   const [openTasks, setOpenTasks] = useState([])
   const [nextMeeting, setNextMeeting] = useState(null)
-  const [alerts, setAlerts] = useState([])
-  const [dismissedAlerts, setDismissedAlerts] = useState(new Set())
-  const [lightningAlert, setLightningAlert] = useState(null)
-  const pushedAlertsRef = useRef(new Set())
-
-  useEffect(() => {
-    let cancelled = false
-    const checkAlerts = async () => {
-      try {
-        const r = await fetch('https://api.weather.gov/alerts/active?point=44.14722,-74.81194')
-        const data = await r.json()
-        if (cancelled) return
-        const warnings = (data.features || []).filter(f => {
-          const e = f.properties.event || ''
-          return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm' || e.includes('Small Craft') || e.includes('Marine')
-        })
-        const mapped = warnings.map(w => ({
-          id: w.properties.id,
-          event: w.properties.event,
-          headline: (w.properties.headline || w.properties.description || '').slice(0, 150),
-          severity: w.properties.severity || 'Unknown',
-          urgency: w.properties.urgency || 'Unknown',
-        }))
-        setAlerts(mapped)
-
-        const newAlerts = mapped.filter(a => !pushedAlertsRef.current.has(a.id))
-        if (newAlerts.length) {
-          newAlerts.forEach(a => pushedAlertsRef.current.add(a.id))
-          sendPushToAll({
-            title: newAlerts[0].event,
-            body: newAlerts[0].headline.slice(0, 120),
-            tag: `nws-${newAlerts[0].id}`,
-            data: { url: '/' },
-          })
-        }
-      } catch { /* ignore */ }
-    }
-    checkAlerts()
-    const interval = setInterval(checkAlerts, 300000)
-    return () => { cancelled = true; clearInterval(interval) }
-  }, [])
-
-  const dismissAlert = (id) => setDismissedAlerts(prev => new Set([...prev, id]))
-  const dismissLightning = () => setLightningAlert(null)
 
   const triggerTestAlert = () => {
-    const testWarnings = [
-      { id: `test-warn-${Date.now()}`, event: 'Severe Thunderstorm Warning', headline: 'Severe Thunderstorm Warning issued for St. Lawrence County until 8:45 PM EDT. Damaging winds and heavy rain expected.', severity: 'Severe', urgency: 'Immediate' },
-    ]
-    setAlerts(prev => [...prev, ...testWarnings])
-    setLightningAlert('Lightning 4.2km NW of Chair Rock Island! Take cover.')
     toast.warning('TEST: Severe Thunderstorm Warning for St. Lawrence County', 8000)
     if (Notification.permission === 'granted') {
       try { new Notification('TEST: Severe Thunderstorm Warning', { body: 'Test notification - you should see this as a system notification.', icon: '/images/icon-192.png' }) } catch { /* ignore */ }
     }
-    sendPushToAll({
-      title: 'TEST: Severe Thunderstorm Warning',
-      body: 'This is a test push notification. All CRIC Manager subscribers will receive this.',
-      tag: 'test-push',
-      data: { url: '/' },
-    })
   }
-
-  const activeAlerts = alerts.filter(a => !dismissedAlerts.has(a.id))
 
   useEffect(() => {
     supabase.from('bookings').select('*, cabins(name)').gte('start_date', new Date().toISOString().split('T')[0]).order('start_date').limit(5).then(({ data }) => setUpcomingBookings(data || []))
@@ -234,10 +178,7 @@ export default function DashboardPage() {
 
       <div>
         <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
-        <MapPage compact onLightningStrike={(msg) => {
-          setLightningAlert(msg)
-          sendPushToAll({ title: 'Lightning Nearby', body: msg, tag: 'lightning', data: { url: '/' } })
-        }} />
+        <MapPage compact onLightningStrike={handleLightningStrike} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
