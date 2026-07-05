@@ -31,6 +31,7 @@ export default defineConfig({
       filename: 'sw.js',
       workbox: {
         globPatterns: ['**/*.{js,css,svg,png,ico}'],
+        navigateFallback: null,
         navigationPreload: true,
       },
     }),

@@ -1,65 +1,17 @@
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-sw.js')
+// Simple service worker for push notifications
+self.addEventListener('install', () => {
+  self.skipWaiting()
+})
 
-workbox.setConfig({ debug: false })
-
-workbox.precaching.precacheAndRoute(self.__WB_MANIFEST)
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim())
+})
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
 })
-
-workbox.routing.registerRoute(
-  ({ request }) => request.mode === 'navigate',
-  new workbox.strategies.NetworkFirst({
-    cacheName: 'pages',
-    plugins: [
-      new workbox.expiration.ExpirationPlugin({ maxEntries: 5, maxAgeSeconds: 86400 }),
-      new workbox.precache.PrecacheFallbackPlugin({ fallbackURL: '/index.html' }),
-    ],
-  })
-)
-
-workbox.routing.registerRoute(
-  /^https?:\/\/.*\/rest\/v1\/.*/i,
-  new workbox.strategies.StaleWhileRevalidate({
-    cacheName: 'supabase-api',
-    plugins: [new workbox.expiration.ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 86400 })],
-  })
-)
-
-workbox.routing.registerRoute(
-  /^https?:\/\/api\.weather\.gov\/.*/i,
-  new workbox.strategies.StaleWhileRevalidate({
-    cacheName: 'weather-api',
-    plugins: [new workbox.expiration.ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 3600 })],
-  })
-)
-
-workbox.routing.registerRoute(
-  /^https?:\/\/server\.arcgisonline\.com\/.*/i,
-  new workbox.strategies.CacheFirst({
-    cacheName: 'esri-tiles',
-    plugins: [new workbox.expiration.ExpirationPlugin({ maxEntries: 2000, maxAgeSeconds: 2592000 })],
-  })
-)
-
-workbox.routing.registerRoute(
-  /^https?:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
-  new workbox.strategies.CacheFirst({
-    cacheName: 'osm-tiles',
-    plugins: [new workbox.expiration.ExpirationPlugin({ maxEntries: 2000, maxAgeSeconds: 2592000 })],
-  })
-)
-
-workbox.routing.registerRoute(
-  /^https?:\/\/tile\.waymarkedtrails\.org\/.*/i,
-  new workbox.strategies.CacheFirst({
-    cacheName: 'trails-tiles',
-    plugins: [new workbox.expiration.ExpirationPlugin({ maxEntries: 1000, maxAgeSeconds: 2592000 })],
-  })
-)
 
 self.addEventListener('push', (event) => {
   let data
