@@ -1,27 +1,43 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 export function useSWUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [registration, setRegistration] = useState(null)
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'SW_UPDATED') {
-          setUpdateAvailable(true)
-        }
+    if (!('serviceWorker' in navigator)) return
+
+    navigator.serviceWorker.ready.then(reg => {
+      setRegistration(reg)
+
+      if (reg.waiting) {
+        setUpdateAvailable(true)
+        return
+      }
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing
+        if (!newWorker) return
+
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            setUpdateAvailable(true)
+          }
+        })
       })
-    }
+    })
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload()
+    })
   }, [])
 
-  const activateUpdate = () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
-      })
+  const activateUpdate = useCallback(() => {
+    if (registration?.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' })
     }
     setUpdateAvailable(false)
-    window.location.reload()
-  }
+  }, [registration])
 
   return { updateAvailable, activateUpdate }
 }

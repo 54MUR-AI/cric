@@ -4,6 +4,12 @@ workbox.setConfig({ debug: false })
 
 workbox.precaching.precacheAndRoute(self.__WB_MANIFEST)
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 workbox.routing.registerRoute(
   ({ request }) => request.mode === 'navigate',
   new workbox.strategies.NetworkFirst({
