@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '../components/ui/Toast'
+import { useAuth } from './useAuth'
 import { sendPushToAll } from './usePushNotifications'
 
 const WeatherAlertsContext = createContext(null)
@@ -13,7 +14,7 @@ export function WeatherAlertsProvider({ children }) {
   const [lightningAlert, setLightningAlert] = useState(null)
   const [dismissedAlerts, setDismissedAlerts] = useState(new Set())
   const toast = useToast()
-  const pushedAlertsRef = useRef(new Set())
+  const { isAdmin } = useAuth()
 
   useEffect(() => {
     let cancelled = false
@@ -39,18 +40,6 @@ export function WeatherAlertsProvider({ children }) {
         }))
 
         setAlerts(mapped)
-
-        // Push new alerts
-        const newAlerts = mapped.filter(a => !pushedAlertsRef.current.has(a.id))
-        if (newAlerts.length) {
-          newAlerts.forEach(a => pushedAlertsRef.current.add(a.id))
-          sendPushToAll({
-            title: newAlerts[0].event,
-            body: newAlerts[0].headline.slice(0, 120),
-            tag: `nws-${newAlerts[0].id}`,
-            data: { url: '/' },
-          })
-        }
       } catch { /* ignore */ }
     }
 
@@ -69,8 +58,10 @@ export function WeatherAlertsProvider({ children }) {
 
   const handleLightningStrike = useCallback((msg) => {
     setLightningAlert(msg)
-    sendPushToAll({ title: 'Lightning Nearby', body: msg, tag: 'lightning', data: { url: '/' } })
-  }, [])
+    if (isAdmin) {
+      sendPushToAll({ title: 'Lightning Nearby', body: msg, tag: 'lightning', data: { url: '/' } })
+    }
+  }, [isAdmin])
 
   const activeAlerts = alerts.filter(a => !dismissedAlerts.has(a.id))
 

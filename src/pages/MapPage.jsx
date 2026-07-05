@@ -98,6 +98,7 @@ function LightningLayer({ onStrikeNearby }) {
   const map = useMap()
   const markersRef = useRef([])
   const wsRef = useRef(null)
+  const pruneIntervalRef = useRef(null)
   const onStrikeNearbyRef = useRef(onStrikeNearby)
   onStrikeNearbyRef.current = onStrikeNearby
 
@@ -118,6 +119,9 @@ function LightningLayer({ onStrikeNearby }) {
 
     function connect() {
       if (cancelled) return
+      // Clear old interval before creating new one
+      if (pruneIntervalRef.current) clearInterval(pruneIntervalRef.current)
+      pruneIntervalRef.current = null
       try {
         const ws = new WebSocket('wss://live.lightningmaps.org')
         wsRef.current = ws
@@ -159,13 +163,12 @@ function LightningLayer({ onStrikeNearby }) {
         }
 
         ws.onclose = () => {
-          if (!cancelled) setTimeout(connect, 10000) // Reconnect after 10s
+          if (!cancelled) setTimeout(connect, 10000)
         }
 
         ws.onerror = () => { ws.close() }
 
-        const pruneInterval = setInterval(pruneStrikes, 30000)
-        ws._pruneInterval = pruneInterval
+        pruneIntervalRef.current = setInterval(pruneStrikes, 30000)
       } catch { /* connection failed */ }
     }
 
@@ -173,8 +176,11 @@ function LightningLayer({ onStrikeNearby }) {
 
     return () => {
       cancelled = true
+      if (pruneIntervalRef.current) {
+        clearInterval(pruneIntervalRef.current)
+        pruneIntervalRef.current = null
+      }
       if (wsRef.current) {
-        clearInterval(wsRef.current._pruneInterval)
         wsRef.current.close()
         wsRef.current = null
       }

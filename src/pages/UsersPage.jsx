@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { supabaseAdmin } from '../lib/supabaseAdmin'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ui/Toast'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -63,10 +62,27 @@ export default function UsersPage() {
     fetchAll()
   }
 
+  async function callAdmin(action, payload) {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const functionUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
+      || 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1'
+    const r = await fetch(`${functionUrl}/admin-operations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionData.session?.access_token}`,
+      },
+      body: JSON.stringify({ action, ...payload }),
+    })
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: r.statusText }))
+      throw new Error(err.error || 'Admin operation failed')
+    }
+    return r.json()
+  }
+
   async function setAdmin(profileId, grant) {
-    if (!supabaseAdmin) return
-    await supabase.from('profiles').update({ is_admin: grant, role: grant ? 'super_admin' : 'member' }).eq('id', profileId)
-    await supabaseAdmin.auth.admin.updateUserById(profileId, { app_metadata: { role: grant ? 'super_admin' : 'member' } })
+    await callAdmin('setAdmin', { profile_id: profileId, grant })
   }
 
   async function addOfficer() {
@@ -91,23 +107,20 @@ export default function UsersPage() {
   async function createUser() {
     if (!newUser.email || !newUser.password) return
     setCreating(true)
-    if (!supabaseAdmin) {
-      toast.error('Service role key not configured — add VITE_SUPABASE_SERVICE_KEY to .env')
-      setCreating(false)
-      return
+    try {
+      await callAdmin('createUser', {
+        email: newUser.email,
+        password: newUser.password,
+        display_name: newUser.display_name,
+      })
+      toast.success(`User ${newUser.email} created`)
+      setShowAddUser(false)
+      setNewUser({ email: '', password: '', display_name: '' })
+      fetchAll()
+    } catch (err) {
+      toast.error(err.message)
     }
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: newUser.email,
-      password: newUser.password,
-      email_confirm: true,
-      user_metadata: { display_name: newUser.display_name || newUser.email.split('@')[0] },
-    })
     setCreating(false)
-    if (error) { toast.error(error.message); return }
-    toast.success(`User ${newUser.email} created`)
-    setShowAddUser(false)
-    setNewUser({ email: '', password: '', display_name: '' })
-    fetchAll()
   }
 
   async function updateDisplayName(userId, name) {

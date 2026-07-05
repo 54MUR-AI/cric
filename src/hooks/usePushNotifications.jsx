@@ -108,29 +108,20 @@ export function usePushNotifications() {
 
 export async function sendPushToAll(payload) {
   try {
-    const { data: subs } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh_key, auth_key')
-
-    if (!subs?.length) return
-
-    const subscriptions = subs.map(s => ({
-      endpoint: s.endpoint,
-      keys: { p256dh: s.p256dh_key, auth: s.auth_key },
-    }))
-
     const functionUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
       || 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1'
 
     const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    if (!token) return
 
-    await fetch(`${functionUrl}/send-push`, {
+    await fetch(`${functionUrl}/trigger-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionData.session?.access_token}`,
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ subscriptions, payload }),
+      body: JSON.stringify(payload),
     })
   } catch {}
 }

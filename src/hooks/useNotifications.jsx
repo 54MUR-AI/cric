@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef, useCallback } f
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 import { useToast } from '../components/ui/Toast'
-import { usePushNotifications, sendPushToAll } from './usePushNotifications'
+import { usePushNotifications } from './usePushNotifications'
 
 const NotificationContext = createContext(null)
 
@@ -44,34 +44,21 @@ export function NotificationProvider({ children }) {
         const newTrips = (trips.data || []).filter(t => t.created_by !== user.id && !seenIds.has(`tr-${t.id}`))
 
         const ids = []
-        const pushItems = []
 
         newBookings.forEach(b => {
           ids.push(`b-${b.id}`)
           toast.info(`${b.cabins?.name || 'Cabin'} booked ${b.start_date?.slice(5)}–${b.end_date?.slice(5)}`)
-          pushItems.push(`${b.cabins?.name || 'Cabin'} booked`)
         })
         newTasks.forEach(t => {
           ids.push(`t-${t.id}`)
           toast.info(`New task: ${t.title}`)
-          pushItems.push(`Task: ${t.title}`)
         })
         newTrips.forEach(t => {
           ids.push(`tr-${t.id}`)
           toast.info(`New boat trip: ${t.destination} on ${t.trip_date?.slice(5)}`)
-          pushItems.push(`Boat trip: ${t.destination}`)
         })
 
         if (ids.length) markSeen(ids)
-
-        if (pushItems.length) {
-          sendPushToAll({
-            title: 'CRIC Manager',
-            body: pushItems.slice(0, 3).join('\n') + (pushItems.length > 3 ? `\n+${pushItems.length - 3} more` : ''),
-            tag: 'cric-activity',
-            data: { url: '/' },
-          })
-        }
       } catch {}
     }
 

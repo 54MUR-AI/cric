@@ -1,21 +1,35 @@
-// Simple service worker for push notifications
-self.addEventListener('install', () => {
-  self.skipWaiting()
+const CACHE = 'cric-v1'
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.add('/index.html')).then(() => self.skipWaiting())
+  )
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-// Inject manifest for workbox
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
 })
 
-// Precache manifest placeholder
+// Inject manifest placeholder
 const ignored = self.__WB_MANIFEST
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    )
+    return
+  }
+  event.respondWith(
+    caches.match(event.request).then(cached => cached || fetch(event.request))
+  )
+})
 
 self.addEventListener('push', (event) => {
   let data
