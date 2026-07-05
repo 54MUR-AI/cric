@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, Thermometer, Navigation, MapPin, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair, Pencil, Ruler } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair, Pencil, Ruler, Wifi, Droplets, Flame } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
@@ -23,7 +23,7 @@ const ESRI_ATTR = '&copy; <a href="https://www.esri.com/">Esri</a>'
 
 const PIN_COLORS = {
   cabin: '#10b981', boathouse: '#3b82f6', dock: '#06b6d4',
-  'lean-to': '#d97706', firepit: '#ef4444', other: '#6b7280',
+  'lean-to': '#d97706', firepit: '#ef4444', cell: '#8b5cf6', other: '#6b7280',
 }
 
 const PIN_SVG = {
@@ -32,6 +32,7 @@ const PIN_SVG = {
   dock: '<path d="M4 10h8v2H4zM6 12v3h1v-3M9 12v3h1v-3"/>',
   'lean-to': '<path d="M3 12L8 4l5 8H3zM2 12h12v2H2z"/>',
   firepit: '<path d="M8 4C6 6 5 8 5 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0-2-1-4-3-6zM3 13h10v1H3z"/>',
+  cell: '<path d="M4 12h1l2-3 2 4 2-2 1 1h4"/>',
   other: '<path d="M8 3C5.6 3 3.5 5.1 3.5 7.5c0 2.8 4.5 6.5 4.5 6.5s4.5-3.7 4.5-6.5C12.5 5.1 10.4 3 8 3zm0 3.5c.8 0 1.5.7 1.5 1.5S8.8 9.5 8 9.5 6.5 8.8 6.5 8 7.2 6.5 8 6.5z"/>',
 }
 
@@ -43,7 +44,7 @@ const GUIDE_SECTIONS = {
 
 const PIN_TYPE_LABELS = {
   cabin: 'Cabins', boathouse: 'Boathouse', dock: 'Docks',
-  'lean-to': 'Lean-tos', firepit: 'Firepits', other: 'Other',
+  'lean-to': 'Lean-tos', firepit: 'Firepits', cell: 'Cell Service', other: 'Other',
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -392,6 +393,11 @@ export default function MapPage({ compact } = {}) {
   const [showLightning, setShowLightning] = useState(true)
   const [showPhotos, setShowPhotos] = useState(false)
   const [showForecast, setShowForecast] = useState(false)
+  const [showBathymetry, setShowBathymetry] = useState(false)
+  const [showFireDanger, setShowFireDanger] = useState(false)
+  const [showCellCoverage, setShowCellCoverage] = useState(false)
+  const [fireDanger, setFireDanger] = useState(null)
+  const [notifyPerm, setNotifyPerm] = useState(Notification.permission)
   const [baseLayer, setBaseLayer] = useState('satellite')
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [editingPin, setEditingPin] = useState(null)
@@ -442,6 +448,16 @@ export default function MapPage({ compact } = {}) {
   const seenAlertIdsRef = useRef(new Set())
 
   useEffect(() => {
+    if (notifyPerm !== 'granted' && Notification.permission === 'default') Notification.requestPermission().then(p => setNotifyPerm(p))
+  }, [notifyPerm])
+
+  function sendSystemNotification(title, body) {
+    if (Notification.permission === 'granted') {
+      try { new Notification(title, { body, icon: '/images/icon-192.png' }) } catch { /* ignore */ }
+    }
+  }
+
+  useEffect(() => {
     let cancelled = false
     const checkAlerts = async () => {
       try {
@@ -457,6 +473,7 @@ export default function MapPage({ compact } = {}) {
           if (!seenAlertIdsRef.current.has(id)) {
             seenAlertIdsRef.current.add(id)
             toast.warning(`${w.properties.event}: ${(w.properties.headline || w.properties.description || '').slice(0, 120)}`, 10000)
+            sendSystemNotification(w.properties.event, (w.properties.headline || w.properties.description || '').slice(0, 120))
           }
         }
       } catch { /* ignore */ }
@@ -466,12 +483,30 @@ export default function MapPage({ compact } = {}) {
     return () => { cancelled = true; clearInterval(interval) }
   }, [toast])
 
+  useEffect(() => {
+    let cancelled = false
+    const fetchFireDanger = async () => {
+      try {
+        const r = await fetch('https://api.weather.gov/firewx/forecast?point=44.14722,-74.81194')
+        const data = await r.json()
+        if (cancelled || !data?.properties?.periods?.length) return
+        const today = data.properties.periods[0]
+        setFireDanger({ rating: today.name, color: today.color || (today.name?.includes('High') ? '#ef4444' : today.name?.includes('Moderate') ? '#f59e0b' : '#22c55e'), description: today.detailedForecast?.slice(0, 100) })
+      } catch { /* ignore */ }
+    }
+    fetchFireDanger()
+    const interval = setInterval(fetchFireDanger, 1800000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
   const handleStrikeNearby = useCallback((strike, distKm) => {
     const now = Date.now()
     if (now - lastLightningAlertRef.current > 300000) {
       lastLightningAlertRef.current = now
       const dir = bearing(CHAIR_ROCK_ISLAND[0], CHAIR_ROCK_ISLAND[1], strike.lat, strike.lon)
-      toast.warning(`Lightning ${distKm.toFixed(1)}km ${dir} of Chair Rock Island! Take cover.`, 8000)
+      const msg = `Lightning ${distKm.toFixed(1)}km ${dir} of Chair Rock Island! Take cover.`
+      toast.warning(msg, 8000)
+      sendSystemNotification('Lightning Alert', msg)
     }
   }, [toast])
 
@@ -564,9 +599,12 @@ export default function MapPage({ compact } = {}) {
     { key: 'showLightning', label: 'Lightning', icon: Zap, activeColor: 'text-amber-500', pulsingDot: '#f59e0b' },
     { key: 'showForecast', label: 'Forecast on Click', icon: Thermometer, activeColor: 'text-sky-500' },
     { key: 'showPhotos', label: 'Geotagged Photos', icon: MapPin, activeColor: 'text-pink-500' },
+    { key: 'showBathymetry', label: 'Bathymetry', icon: Droplets, activeColor: 'text-cyan-500' },
+    { key: 'showFireDanger', label: 'Fire Danger', icon: Flame, activeColor: 'text-orange-500' },
+    { key: 'showCellCoverage', label: 'Cell Coverage', icon: Wifi, activeColor: 'text-violet-500' },
   ]
-  const valMap = { showRadar, showStations, showTrails, showPins, showLightning, showForecast, showPhotos }
-  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning, showForecast: setShowForecast, showPhotos: setShowPhotos }
+  const valMap = { showRadar, showStations, showTrails, showPins, showLightning, showForecast, showPhotos, showBathymetry, showFireDanger, showCellCoverage }
+  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning, showForecast: setShowForecast, showPhotos: setShowPhotos, showBathymetry: setShowBathymetry, showFireDanger: setShowFireDanger, showCellCoverage: setShowCellCoverage }
 
   const mapHeight = compact ? 'min-h-[250px] h-[250px] md:min-h-[400px] md:h-[400px]' : 'min-h-[450px]'
   const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
@@ -597,6 +635,15 @@ export default function MapPage({ compact } = {}) {
           {measuring && <MeasureLayer points={measurePoints} onAddPoint={(latlng) => setMeasurePoints(prev => [...prev, latlng])} />}
           {showForecast && <ForecastPopup latlng={forecastLatLng} data={forecastData} loading={forecastLoading} onClose={() => { setForecastLatLng(null); setForecastData(null) }} />}
           {showPhotos && <PhotosLayer photos={photos} />}
+          {showBathymetry && <TileLayer attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>' url="https://tile.opentopomap.org/{z}/{x}/{y}.png" opacity={0.45} />}
+          {showFireDanger && fireDanger && (
+            <Marker position={[44.14722, -74.81194]} icon={L.divIcon({ className: '', html: '', iconSize: [0, 0] })}>
+              <Popup><div className="text-xs space-y-1"><div className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" style={{ color: fireDanger.color }} /><strong className="text-stone-800 dark:text-stone-200">{fireDanger.rating}</strong></div><div className="text-stone-500 dark:text-stone-400">{fireDanger.description}</div></div></Popup>
+            </Marker>
+          )}
+          {showCellCoverage && pins.filter(p => p.type === 'cell').map(pin => (
+            <Circle key={`cell-${pin.id}`} center={[pin.latitude, pin.longitude]} radius={500} pathOptions={{ color: '#8b5cf6', weight: 1, fillColor: '#8b5cf6', fillOpacity: 0.08, dashArray: '4' }} />
+          ))}
 
           {showStations && stations.map((s) => (
             <WindArrow key={s.stationIdentifier} name={s.name} lat={s.latitude} lon={s.longitude} speed={s.observation?.windSpeed?.value} direction={s.observation?.windDirection?.value} temp={s.observation?.temperature?.value} />
@@ -683,6 +730,12 @@ export default function MapPage({ compact } = {}) {
                     {measuring && measurePoints.length > 0 && (
                       <button onClick={() => setMeasurePoints([])} className="text-[10px] text-rose-500 dark:text-rose-400 hover:text-rose-700 pl-6">Clear points</button>
                     )}
+                    {showFireDanger && fireDanger && (
+                      <div className="flex items-center gap-1.5 pl-6 py-1 text-[10px]">
+                        <span className="inline-block w-2 h-2 rounded-full" style={{ background: fireDanger.color }} />
+                        <span className="text-stone-500 dark:text-stone-400">{fireDanger.rating}</span>
+                      </div>
+                    )}
                     {locationError && <div className="text-[10px] text-rose-500 dark:text-rose-400 mt-1">{locationError}</div>}
                   </div>
                 </div>
@@ -716,6 +769,8 @@ export default function MapPage({ compact } = {}) {
                   <div>Stations: Weather.gov</div>
                   <div>Lightning: Blitzortung.org</div>
                   <div>Marine Warnings: NWS</div>
+                  <div>Bathymetry: OpenTopoMap</div>
+                  <div>Fire Danger: NWS</div>
                   <div className="mt-1">{stationsLoading ? 'Loading stations...' : `${stations.length} stations`} &middot; {pins.length} pins</div>
                 </div>
               </div>
