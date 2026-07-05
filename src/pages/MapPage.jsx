@@ -3,10 +3,11 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, Thermometer, Navigation, MapPin, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair, Pencil, Ruler } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
+import { usePhotos } from '../hooks/usePhotos'
 import { useCabins } from '../hooks/useCabins'
 import { useBookings } from '../hooks/useBookings'
 import { useAuth } from '../hooks/useAuth'
@@ -181,8 +182,116 @@ function LightningLayer({ onStrikeNearby }) {
   return null
 }
 
-function MapClickHandler({ active, onMapClick }) {
-  useMapEvents({ click(e) { if (active) onMapClick(e.latlng) } })
+function MeasureLayer({ points, onAddPoint, onClear }) {
+  const map = useMap()
+  const polylineRef = useRef(null)
+  const markersRef = useRef([])
+
+  useMapEvents({
+    click(e) {
+      if (onAddPoint) onAddPoint(e.latlng)
+    },
+  })
+
+  useEffect(() => {
+    markersRef.current.forEach(m => map.removeLayer(m))
+    markersRef.current = []
+    points.forEach((p, i) => {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="background:#3b82f6;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${i + 1}</div>`,
+        iconSize: [20, 20], iconAnchor: [10, 10],
+      })
+      const m = L.marker([p.lat, p.lng], { icon }).addTo(map)
+      markersRef.current.push(m)
+    })
+    return () => { markersRef.current.forEach(m => map.removeLayer(m)); markersRef.current = [] }
+  }, [points, map])
+
+  useEffect(() => {
+    if (polylineRef.current) map.removeLayer(polylineRef.current)
+    if (points.length < 2) { polylineRef.current = null; return }
+    polylineRef.current = L.polyline(points.map(p => [p.lat, p.lng]), { color: '#3b82f6', weight: 2, dashArray: '6,4' }).addTo(map)
+    return () => { if (polylineRef.current) map.removeLayer(polylineRef.current) }
+  }, [points, map])
+
+  useEffect(() => {
+    if (points.length >= 2) {
+      let total = 0
+      for (let i = 1; i < points.length; i++) {
+        total += haversineKm(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng)
+      }
+      map.eachLayer((layer) => {
+        if (layer._measureLabel) map.removeLayer(layer)
+      })
+      const last = points[points.length - 1]
+      const label = L.divIcon({
+        className: '',
+        html: `<div style="background:#1c1917;color:white;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${total.toFixed(2)} km</div>`,
+        iconSize: [0, 0], iconAnchor: [0, 0],
+      })
+      const labelMarker = L.marker([last.lat, last.lng], { icon: label, interactive: false })
+      labelMarker._measureLabel = true
+      labelMarker.addTo(map)
+    }
+  }, [points, map])
+
+  return null
+}
+
+function ForecastPopup({ latlng, data, loading, onClose }) {
+  const map = useMap()
+  useEffect(() => {
+    if (latlng) map.flyTo([latlng.lat, latlng.lng], Math.max(map.getZoom(), 10), { duration: 0.5 })
+  }, [latlng])
+  if (!latlng || (!loading && !data)) return null
+  const icon = L.divIcon({ className: '', html: '<div style="background:#0284c7;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>', iconSize: [12, 12], iconAnchor: [6, 6] })
+  return (
+    <Marker position={[latlng.lat, latlng.lng]} icon={icon}>
+      <Popup maxWidth={280} minWidth={200}>
+        <div className="text-xs space-y-1 max-w-[260px]">
+          {loading ? (
+            <div className="flex items-center gap-2 text-stone-500"><span className="animate-spin h-3 w-3 border-2 border-stone-400 border-t-transparent rounded-full" /> Loading forecast...</div>
+          ) : (
+            <>
+              <div className="font-bold text-stone-800 dark:text-stone-200 text-sm">{data?.location}</div>
+              {data?.periods?.slice(0, 7).map((p, i) => (
+                <div key={i} className={`flex items-start gap-2 py-1 ${i > 0 ? 'border-t border-stone-100 dark:border-stone-800' : ''}`}>
+                  <span className="font-semibold text-stone-600 dark:text-stone-400 min-w-[60px]">{p.name}</span>
+                  <span className="text-stone-700 dark:text-stone-300">{p.temp}°F {p.shortForecast}</span>
+                </div>
+              ))}
+              <button onClick={onClose} className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800">Close</button>
+            </>
+          )}
+        </div>
+      </Popup>
+    </Marker>
+  )
+}
+
+function PhotosLayer({ photos }) {
+  const geotagged = useMemo(() => photos.filter(p => p.latitude != null && p.longitude != null), [photos])
+  if (geotagged.length === 0) return null
+  return geotagged.map(photo => (
+    <Marker key={photo.id} position={[photo.latitude, photo.longitude]} icon={L.divIcon({
+      className: '',
+      html: `<div style="width:32px;height:32px;border-radius:4px;overflow:hidden;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:pointer;"><img src="${photo.url}" alt="" style="width:100%;height:100%;object-fit:cover;" /></div>`,
+      iconSize: [32, 32], iconAnchor: [16, 16],
+    })}>
+      <Popup>
+        <div className="text-xs max-w-[200px]">
+          <img src={photo.url} alt="" className="w-full h-24 object-cover rounded mb-1" />
+          {photo.caption && <div className="text-stone-700 dark:text-stone-300 font-medium">{photo.caption}</div>}
+          {photo.taken_at && <div className="text-stone-400 dark:text-stone-500">{new Date(photo.taken_at).toLocaleDateString()}</div>}
+        </div>
+      </Popup>
+    </Marker>
+  ))
+}
+
+function MapClickHandler({ active, onMapClick, onMapClickGeneral }) {
+  useMapEvents({ click(e) { if (active) onMapClick(e.latlng); else if (onMapClickGeneral) onMapClickGeneral(e.latlng) } })
   return null
 }
 
@@ -214,7 +323,7 @@ function LocateButton({ position }) {
   )
 }
 
-function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUpload }) {
+function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onEdit, onPhotoUpload }) {
   const dist = haversineKm(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
   const dir = bearing(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
   const pinColor = cabin?.color || PIN_COLORS[pin.type] || '#6b7280'
@@ -259,6 +368,7 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
 
       {admin && (
         <div className="flex gap-2 pt-1 border-t border-stone-200 dark:border-stone-700 mt-2">
+          <button onClick={() => onEdit(pin)} className="inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 text-xs"><Pencil className="h-3 w-3" /> Edit</button>
           <label className="text-blue-600 dark:text-blue-400 hover:text-blue-800 cursor-pointer text-xs">Add Photo<input type="file" accept="image/*" className="hidden" onChange={(e) => onPhotoUpload(pin, e.target.files?.[0])} /></label>
           <button onClick={() => { if (confirm('Delete this pin?')) onDelete(pin.id) }} className="text-rose-600 dark:text-rose-400 hover:text-rose-800 text-xs">Delete</button>
         </div>
@@ -270,7 +380,8 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
 export default function MapPage({ compact } = {}) {
   const { isAdmin } = useAuth()
   const { stations, loading: stationsLoading } = useWeatherStations()
-  const { pins, loading: pinsLoading, addPin, deletePin, refresh: refreshPins } = useMapPins()
+  const { pins, loading: pinsLoading, addPin, updatePin, deletePin, refresh: refreshPins } = useMapPins()
+  const { photos } = usePhotos()
   const { cabins } = useCabins()
   const { bookings } = useBookings()
 
@@ -279,12 +390,20 @@ export default function MapPage({ compact } = {}) {
   const [showTrails, setShowTrails] = useState(true)
   const [showPins, setShowPins] = useState(true)
   const [showLightning, setShowLightning] = useState(true)
+  const [showPhotos, setShowPhotos] = useState(false)
+  const [showForecast, setShowForecast] = useState(false)
   const [baseLayer, setBaseLayer] = useState('satellite')
   const [isAddingPin, setIsAddingPin] = useState(false)
+  const [editingPin, setEditingPin] = useState(null)
   const [newPinLatLng, setNewPinLatLng] = useState(null)
   const [pinForm, setPinForm] = useState({ label: '', type: 'cabin', description: '', cabin_id: '' })
   const [pinError, setPinError] = useState('')
   const [savingPin, setSavingPin] = useState(false)
+  const [measuring, setMeasuring] = useState(false)
+  const [measurePoints, setMeasurePoints] = useState([])
+  const [forecastLatLng, setForecastLatLng] = useState(null)
+  const [forecastData, setForecastData] = useState(null)
+  const [forecastLoading, setForecastLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTypes, setActiveTypes] = useState(Object.keys(PIN_COLORS))
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -331,7 +450,7 @@ export default function MapPage({ compact } = {}) {
         if (cancelled) return
         const warnings = (data.features || []).filter(f => {
           const e = f.properties.event || ''
-          return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm'
+          return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm' || e.includes('Small Craft') || e.includes('Marine')
         })
         for (const w of warnings) {
           const id = w.properties.id
@@ -378,17 +497,45 @@ export default function MapPage({ compact } = {}) {
 
   const handleMapClick = useCallback((latlng) => { setNewPinLatLng(latlng) }, [])
 
+  const handleMapClickGeneral = useCallback(async (latlng) => {
+    if (showForecast && !measuring) {
+      setForecastLatLng(latlng); setForecastLoading(true); setForecastData(null)
+      try {
+        const ptRes = await fetch(`https://api.weather.gov/points/${latlng.lat.toFixed(4)},${latlng.lng.toFixed(4)}`)
+        const pt = await ptRes.json()
+        if (pt?.properties?.forecast) {
+          const fxRes = await fetch(pt.properties.forecast)
+          const fx = await fxRes.json()
+          setForecastData({
+            location: pt.properties.relativeLocation?.properties?.city || 'Selected point',
+            periods: (fx.properties?.periods || []).map(p => ({ name: p.name, temp: p.temperature, shortForecast: p.shortForecast })),
+          })
+        }
+      } catch { /* ignore */ } finally { setForecastLoading(false) }
+    }
+  }, [showForecast, measuring])
+
   const handleSavePin = async () => {
     if (!pinForm.label.trim()) { setPinError('Label is required'); return }
-    if (!newPinLatLng) return
     setSavingPin(true); setPinError('')
     try {
-      await addPin({ label: pinForm.label.trim(), type: pinForm.type, latitude: newPinLatLng.lat, longitude: newPinLatLng.lng, description: pinForm.description.trim() || null, cabin_id: pinForm.cabin_id || null })
-      setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setIsAddingPin(false)
-    } catch (err) { setPinError(err.message || 'Failed to add pin') } finally { setSavingPin(false) }
+      if (editingPin) {
+        const updates = { label: pinForm.label.trim(), type: pinForm.type, description: pinForm.description.trim() || null, cabin_id: pinForm.cabin_id || null }
+        if (newPinLatLng) { updates.latitude = newPinLatLng.lat; updates.longitude = newPinLatLng.lng }
+        await updatePin(editingPin.id, updates)
+      } else if (newPinLatLng) {
+        await addPin({ label: pinForm.label.trim(), type: pinForm.type, latitude: newPinLatLng.lat, longitude: newPinLatLng.lng, description: pinForm.description.trim() || null, cabin_id: pinForm.cabin_id || null })
+      } else { return }
+      setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setIsAddingPin(false)
+    } catch (err) { setPinError(err.message || 'Failed to save pin') } finally { setSavingPin(false) }
   }
 
-  const handleCancelPin = () => { setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setIsAddingPin(false); setPinError('') }
+  const handleCancelPin = () => { setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setIsAddingPin(false); setPinError('') }
+
+  const handleEditPin = useCallback((pin) => {
+    setEditingPin(pin); setIsAddingPin(true); setNewPinLatLng({ lat: pin.latitude, lng: pin.longitude })
+    setPinForm({ label: pin.label, type: pin.type, description: pin.description || '', cabin_id: pin.cabin_id || '' })
+  }, [])
 
   const handlePhotoUpload = async (pin, file) => {
     if (!file) return
@@ -415,9 +562,11 @@ export default function MapPage({ compact } = {}) {
     { key: 'showTrails', label: 'Trails', icon: Navigation, activeColor: 'text-emerald-500' },
     { key: 'showPins', label: 'Pins', icon: MapPin, activeColor: 'text-sky-500' },
     { key: 'showLightning', label: 'Lightning', icon: Zap, activeColor: 'text-amber-500', pulsingDot: '#f59e0b' },
+    { key: 'showForecast', label: 'Forecast on Click', icon: Thermometer, activeColor: 'text-sky-500' },
+    { key: 'showPhotos', label: 'Geotagged Photos', icon: MapPin, activeColor: 'text-pink-500' },
   ]
-  const valMap = { showRadar, showStations, showTrails, showPins, showLightning }
-  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning }
+  const valMap = { showRadar, showStations, showTrails, showPins, showLightning, showForecast, showPhotos }
+  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning, showForecast: setShowForecast, showPhotos: setShowPhotos }
 
   const mapHeight = compact ? 'min-h-[250px] h-[250px] md:min-h-[400px] md:h-[400px]' : 'min-h-[450px]'
   const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
@@ -431,7 +580,7 @@ export default function MapPage({ compact } = {}) {
             <p className="text-sm text-stone-400 dark:text-stone-500">Interactive map with weather, trails, and radar</p>
           </div>
           {isAdmin && (
-            <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors text-xs ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white dark:bg-stone-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-600'}`}>
+            <button onClick={() => { setIsAddingPin(!isAddingPin); setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors text-xs ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white dark:bg-stone-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-600'}`}>
               <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
           )}
@@ -439,12 +588,15 @@ export default function MapPage({ compact } = {}) {
       )}
 
       <div ref={mapRef} className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative z-0 ${mapHeight}`} style={mapStyle}>
-        <MapContainer center={CHAIR_ROCK_ISLAND} zoom={14} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
-          <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
+        <MapContainer center={CHAIR_ROCK_ISLAND} zoom={14} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : measuring ? { cursor: 'crosshair' } : {}}>
+          <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} onMapClickGeneral={handleMapClickGeneral} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
           {showLightning && <LightningLayer onStrikeNearby={handleStrikeNearby} />}
+          {measuring && <MeasureLayer points={measurePoints} onAddPoint={(latlng) => setMeasurePoints(prev => [...prev, latlng])} />}
+          {showForecast && <ForecastPopup latlng={forecastLatLng} data={forecastData} loading={forecastLoading} onClose={() => { setForecastLatLng(null); setForecastData(null) }} />}
+          {showPhotos && <PhotosLayer photos={photos} />}
 
           {showStations && stations.map((s) => (
             <WindArrow key={s.stationIdentifier} name={s.name} lat={s.latitude} lon={s.longitude} speed={s.observation?.windSpeed?.value} direction={s.observation?.windDirection?.value} temp={s.observation?.temperature?.value} />
@@ -453,7 +605,7 @@ export default function MapPage({ compact } = {}) {
           {showPins && filteredPins.map((pin) => (
             <Marker key={pin.id} position={[pin.latitude, pin.longitude]} icon={pinIcon(pin.type, pin.label, pin.cabin_id ? cabinMap[pin.cabin_id]?.color : null)}>
               <Popup>
-                <PinPopupContent pin={pin} cabin={pin.cabin_id ? cabinMap[pin.cabin_id] : null} nextBooking={getNextBooking(pin.cabin_id)} admin={isAdmin} onDelete={deletePin} onPhotoUpload={handlePhotoUpload} />
+                <PinPopupContent pin={pin} cabin={pin.cabin_id ? cabinMap[pin.cabin_id] : null} nextBooking={getNextBooking(pin.cabin_id)} admin={isAdmin} onEdit={handleEditPin} onDelete={deletePin} onPhotoUpload={handlePhotoUpload} />
               </Popup>
             </Marker>
           ))}
@@ -522,6 +674,15 @@ export default function MapPage({ compact } = {}) {
                       GPS Track
                       {trackingEnabled && <span className="ml-auto flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span></span>}
                     </label>
+                    <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                      <input type="checkbox" checked={measuring} onChange={() => { setMeasuring(!measuring); if (!measuring) setMeasurePoints([]) }} className="accent-stone-800 dark:accent-stone-200" />
+                      <Ruler className={`h-3.5 w-3.5 ${measuring ? 'text-blue-500' : 'text-stone-400'}`} />
+                      Measure
+                      {measuring && <span className="ml-auto text-blue-500 text-[10px]">{measurePoints.length} pts</span>}
+                    </label>
+                    {measuring && measurePoints.length > 0 && (
+                      <button onClick={() => setMeasurePoints([])} className="text-[10px] text-rose-500 dark:text-rose-400 hover:text-rose-700 pl-6">Clear points</button>
+                    )}
                     {locationError && <div className="text-[10px] text-rose-500 dark:text-rose-400 mt-1">{locationError}</div>}
                   </div>
                 </div>
@@ -554,6 +715,7 @@ export default function MapPage({ compact } = {}) {
                   <div>Trails: Waymarked Trails</div>
                   <div>Stations: Weather.gov</div>
                   <div>Lightning: Blitzortung.org</div>
+                  <div>Marine Warnings: NWS</div>
                   <div className="mt-1">{stationsLoading ? 'Loading stations...' : `${stations.length} stations`} &middot; {pins.length} pins</div>
                 </div>
               </div>
@@ -563,15 +725,15 @@ export default function MapPage({ compact } = {}) {
 
         {compact && isAdmin && (
           <div className="absolute top-2 left-2 z-[800]">
-            <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 border transition-colors text-xs shadow-sm ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm text-rose-600 dark:text-rose-400 border-stone-300 dark:border-stone-600'}`}>
+            <button onClick={() => { setIsAddingPin(!isAddingPin); setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 border transition-colors text-xs shadow-sm ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm text-rose-600 dark:text-rose-400 border-stone-300 dark:border-stone-600'}`}>
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
           </div>
         )}
 
-        {newPinLatLng && (
+        {(newPinLatLng || editingPin) && (
           <div className="absolute bottom-4 left-4 right-4 z-[800] bg-white dark:bg-stone-900 rounded-lg shadow-xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 p-4 max-w-sm mx-auto">
-            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 mb-3">Add Pin</h3>
+            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 mb-3">{editingPin ? 'Edit Pin' : 'Add Pin'}</h3>
             <div className="space-y-2">
               <input type="text" placeholder="Label *" value={pinForm.label} autoFocus onChange={e => setPinForm(f => ({ ...f, label: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" />
               <select value={pinForm.type} onChange={e => setPinForm(f => ({ ...f, type: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500">

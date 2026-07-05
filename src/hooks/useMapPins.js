@@ -43,6 +43,17 @@ export function useMapPins() {
     return data
   }, [toast])
 
+  const updatePin = useCallback(async (id, updates) => {
+    const prev = pins
+    setPins(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
+    const { data, error } = await supabase.from('map_pins').update(updates).eq('id', id).select('*, cabin:cabins(name)').single()
+    if (error) { setPins(prev); toast.error('Failed to update pin'); return }
+    setPins(prev => prev.map(p => p.id === id ? data : p))
+    db.map_pins.put(data)
+    toast.success('Pin updated')
+    return data
+  }, [pins, toast])
+
   const deletePin = useCallback(async (id) => {
     const prev = pins
     setPins(prev => prev.filter(p => p.id !== id))
@@ -52,5 +63,5 @@ export function useMapPins() {
     toast.info('Pin deleted')
   }, [pins, toast])
 
-  return { pins, loading, addPin, deletePin, refresh: fetchPins }
+  return { pins, loading, addPin, updatePin, deletePin, refresh: fetchPins }
 }

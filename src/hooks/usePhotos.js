@@ -25,10 +25,13 @@ export function usePhotos() {
   useEffect(() => { fetchAll() }, [fetchAll])
 
   const uploadPhoto = useCallback(async (file, { caption, album_id } = {}) => {
-    let takenAt = null
+    let takenAt = null; let latitude = null; let longitude = null
     try {
-      const exif = await exifr.parse(file, ['DateTimeOriginal'])
+      const exif = await exifr.parse(file, ['DateTimeOriginal', 'latitude', 'longitude'])
       if (exif?.DateTimeOriginal) takenAt = exif.DateTimeOriginal.toISOString()
+      if (Number.isFinite(exif?.latitude) && Number.isFinite(exif?.longitude)) {
+        latitude = exif.latitude; longitude = exif.longitude
+      }
     } catch {}
 
     const ext = file.name.split('.').pop()
@@ -49,6 +52,7 @@ export function usePhotos() {
         url: publicUrl,
         caption: caption || null,
         taken_at: takenAt,
+        latitude, longitude,
         album_id: album_id || null,
         uploaded_by: user?.id,
       })
