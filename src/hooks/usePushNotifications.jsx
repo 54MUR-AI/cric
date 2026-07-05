@@ -25,23 +25,27 @@ export function usePushNotifications() {
   const [enabled, setEnabled] = useState(false)
   const [isBraveBrowser, setIsBraveBrowser] = useState(false)
 
+  // Check subscription status on mount and when user changes
   useEffect(() => {
     const hasAPI = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
     setSupported(hasAPI)
     setIsBraveBrowser(isBrave())
     
     if (hasAPI && user) {
-      // Check actual subscription state
-      navigator.serviceWorker.ready.then(async reg => {
-        const sub = await reg.pushManager.getSubscription()
-        const perm = Notification.permission
-        setEnabled(perm === 'granted' && !!sub)
-      }).catch(() => {
-        // If SW fails, just check permission
-        setEnabled(Notification.permission === 'granted')
-      })
+      checkSubscriptionStatus()
     }
   }, [user])
+
+  const checkSubscriptionStatus = async () => {
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      const perm = Notification.permission
+      setEnabled(perm === 'granted' && !!sub)
+    } catch {
+      setEnabled(Notification.permission === 'granted')
+    }
+  }
 
   const subscribe = useCallback(async () => {
     if (!user || !supported) return { ok: false, reason: 'unsupported' }
