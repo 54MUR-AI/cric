@@ -7,11 +7,15 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
+// Inject manifest for workbox
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
 })
+
+// Precache manifest placeholder
+const ignored = self.__WB_MANIFEST
 
 self.addEventListener('push', (event) => {
   let data
