@@ -92,7 +92,7 @@ export default function AppShell() {
           <button onClick={() => setSidebarOpen(true)} className="p-1">
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold text-sm">CRIC Island Manager</span>
+          <span className="font-semibold text-sm">CRIC Manager</span>
           <div className="w-7" />
         </header>
         <main id="main-content" className="flex-1 overflow-y-auto bg-stone-50 dark:bg-stone-950 pb-16 md:pb-0" key={refreshKey}>

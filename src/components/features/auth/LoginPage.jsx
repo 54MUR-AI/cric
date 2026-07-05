@@ -101,7 +101,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-stone-50 dark:bg-stone-950">
       <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-md dark:bg-stone-900 dark:shadow-stone-900/30">
         <img src={`${import.meta.env.BASE_URL}icons/icon-512x512.png`} alt="CRIC" className="mx-auto h-64 w-64 mb-3" />
-        <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 mb-1">CRIC Island Manager</h1>
+        <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 mb-1">CRIC Manager</h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Sign in to continue</p>
 
         <div className="flex mb-6 rounded-md bg-stone-100 dark:bg-stone-800 p-1">

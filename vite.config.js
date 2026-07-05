@@ -12,7 +12,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
-        name: 'CRIC Island Manager',
+        name: 'CRIC Manager',
         short_name: 'CRIC',
         description: 'Manage bookings, maintenance, and meetings for Chair Rock Island Corporation',
         theme_color: '#1a3c2e',
