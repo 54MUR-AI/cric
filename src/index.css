@@ -108,7 +108,7 @@ html { scroll-behavior: smooth; }
     @apply bg-stone-900;
   }
   .dark .leaflet-popup-close-button {
-    @apply text-stone-400 !important;
+    color: #a8a29e;
   }
 
   input:where(:not([type="checkbox"]):not([type="radio"]):not([type="color"])),
