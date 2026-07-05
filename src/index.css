@@ -131,6 +131,17 @@ html { scroll-behavior: smooth; }
 .dark .leaflet-popup-tip { background: #1c1917; }
 .dark .leaflet-popup-close-button { color: #a8a29e !important; }
 
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #e7e5e4; }
+::-webkit-scrollbar-thumb { background: #a8a29e; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #78716c; }
+.dark ::-webkit-scrollbar-track { background: #292524; }
+.dark ::-webkit-scrollbar-thumb { background: #57534e; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #78716c; }
+
+* { scrollbar-width: thin; scrollbar-color: #a8a29e #e7e5e4; }
+.dark * { scrollbar-color: #57534e #292524; }
+
 @keyframes slide-in-from-left {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
