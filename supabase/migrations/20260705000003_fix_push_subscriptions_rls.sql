@@ -12,8 +12,9 @@ CREATE POLICY "Hide sensitive auth_key"
   ON push_subscriptions FOR SELECT
   USING (true);
 
--- Create a view for API access that excludes sensitive data (SECURITY INVOKER by default)
-CREATE VIEW push_subscriptions_api AS
+-- Create a view for API access that excludes sensitive data
+-- Uses security_invoker to respect caller's permissions
+CREATE VIEW push_subscriptions_api WITH (security_invoker = true) AS
 SELECT
   id,
   user_id,
@@ -32,5 +33,6 @@ ALTER TABLE sent_nws_alerts ENABLE ROW LEVEL SECURITY;
 -- Policy: Only service role can access sent_nws_alerts
 CREATE POLICY "Service role can manage sent_nws_alerts"
   ON sent_nws_alerts FOR ALL
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
