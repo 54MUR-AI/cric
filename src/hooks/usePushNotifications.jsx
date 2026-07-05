@@ -81,7 +81,7 @@ export function usePushNotifications() {
     return () => window.removeEventListener('online', handleOnline)
   }, [user])
 
-  return { subscribe, unsubscribe, getSubscription }
+  return { subscribe, unsubscribe, getSubscription, sendPushToAll }
 }
 
 export async function sendPushToAll(payload) {

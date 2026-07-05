@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, RotateCcw, RefreshCw } from 'lucide-react'
+import { Menu, RotateCcw, RefreshCw, Bell, BellOff } from 'lucide-react'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 import OfflineIndicator from '../ui/OfflineIndicator'
@@ -9,6 +9,7 @@ import { useSync } from '../../lib/useSync'
 import { useSWUpdate } from '../../lib/useSWUpdate'
 import { useKeyBindings } from '../../lib/useKeyBindings'
 import { useInstallPrompt } from '../../lib/useInstallPrompt'
+import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { Download, X } from 'lucide-react'
 
 function PullToRefresh({ onRefresh }) {
@@ -60,6 +61,7 @@ export default function AppShell() {
   const { updateAvailable, activateUpdate } = useSWUpdate()
   useKeyBindings()
   const { showInstall, install, dismiss } = useInstallPrompt()
+  const { subscribe } = usePushNotifications()
 
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
 
@@ -94,6 +96,41 @@ export default function AppShell() {
           </button>
           <span className="font-semibold text-sm">CRIC Manager</span>
           <div className="w-7" />
+        </header>
+        <header className="hidden md:flex items-center justify-between bg-emerald-900 text-stone-100 px-6 py-3">
+          <span className="font-semibold text-sm">CRIC Manager</span>
+          <div className="flex items-center gap-4">
+            {updateAvailable && (
+              <button onClick={activateUpdate} className="inline-flex items-center gap-1 bg-white text-emerald-800 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-emerald-50 transition-colors">
+                <RotateCcw className="h-3 w-3" /> Update
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (Notification.permission === 'granted') {
+                  Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                      subscribe()
+                    }
+                  })
+                } else {
+                  Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                      subscribe()
+                    }
+                  })
+                }
+              }}
+              className="p-2 text-stone-300 hover:text-white transition-colors"
+              title="Toggle notifications"
+            >
+              {Notification.permission === 'granted' ? (
+                <Bell className="h-5 w-5" />
+              ) : (
+                <BellOff className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </header>
         <main id="main-content" className="flex-1 overflow-y-auto pb-16 md:pb-0" key={refreshKey}>
           <PullToRefresh onRefresh={triggerRefresh} />
