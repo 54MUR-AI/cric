@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay, differenceInCalendarDays } from 'date-fns'
+import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
 import { Share2, Plus } from 'lucide-react'
 import { formatDate } from '../lib/utils'
+import { useShare } from '../lib/share'
 import { useBookings } from '../hooks/useBookings'
 import { useCabins } from '../hooks/useCabins'
 import { useAuth } from '../hooks/useAuth'
-import { useShare } from '../lib/share'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -15,32 +15,51 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 const locales = { 'en-US': enUS }
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales })
 
+function toLocalDate(str) {
+  const [y, m, d] = str.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function fmtInput(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export default function SchedulePage() {
   const { bookings, loading: loadingB, createBooking, updateBooking, deleteBooking } = useBookings()
   const { cabins, loading: loadingC } = useCabins()
   const { user, isAdmin } = useAuth()
+  const { copy } = useShare()
   const { copy } = useShare()
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState({})
-  const [formData, setFormData] = useState({ cabin_id: '', guests: '', notes: '' })
+  const [formData, setFormData] = useState({ cabin_id: '', guests: '', notes: '', start_date: '', end_date: '' })
   const [error, setError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
 
-  const events = bookings.map((b) => ({
-    id: b.id,
-    title: `${b.cabins?.name}${b.guests ? ` — ${b.guests}` : ''}`,
-    start: new Date(b.start_date),
-    end: new Date(new Date(b.end_date).setHours(23, 59)),
-    resource: b,
-    allDay: true,
-  }))
+  const events = bookings.map((b) => {
+    const s = toLocalDate(b.start_date)
+    const e = toLocalDate(b.end_date)
+    e.setHours(23, 59)
+    return {
+      id: b.id,
+      title: `${b.cabins?.name}${b.guests ? ` — ${b.guests}` : ''}`,
+      start: s,
+      end: e,
+      resource: b,
+      allDay: true,
+    }
+  })
 
   function handleSelectSlot({ start, end }) {
-    setSelectedSlot({ start, end: new Date(new Date(end).getTime() - 86400000) })
-    setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', end_date: '' })
+    const endDay = new Date(new Date(end).getTime() - 86400000)
+    setSelectedSlot({ start, end: endDay })
+    setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', start_date: fmtInput(start), end_date: fmtInput(endDay) })
     setError('')
     setShowForm(true)
   }
@@ -48,8 +67,8 @@ export default function SchedulePage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    const start = selectedSlot.start.toISOString().split('T')[0]
-    const end = formData.end_date || selectedSlot.end.toISOString().split('T')[0]
+    const start = formData.start_date
+    const end = formData.end_date
     if (end < start) {
       setError('End date must be on or after the start date')
       return
@@ -101,8 +120,9 @@ export default function SchedulePage() {
       <button
         onClick={() => {
           const today = new Date()
+          const ds = fmtInput(today)
           setSelectedSlot({ start: today, end: today })
-          setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', end_date: '' })
+          setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', start_date: ds, end_date: ds })
           setError('')
           setShowForm(true)
         }}
@@ -157,11 +177,11 @@ export default function SchedulePage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">From</label>
-                  <input type="date" value={selectedSlot.start.toISOString().split('T')[0]} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm bg-stone-50 dark:bg-stone-950" disabled />
+                  <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">To</label>
-                  <input type="date" value={formData.end_date || selectedSlot.end.toISOString().split('T')[0]} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" />
+                  <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" />
                 </div>
               </div>
               <div>
