@@ -101,6 +101,7 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
   )
 }
 
+export { TripModal }
 export default function BoatSchedulePage() {
   const { user } = useAuth()
   const [trips, setTrips] = useState([])
