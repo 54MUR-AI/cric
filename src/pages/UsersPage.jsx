@@ -7,7 +7,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { Trash2, Mail, Plus, X, UserPlus, Check, PencilLine, Search } from 'lucide-react'
 import Button from '../components/ui/Button'
 
-const OFFICER_TITLES = ['Chair', 'Vice Chair', 'Treasurer', 'Secretary', 'Trustee']
+const OFFICER_TITLES = ['President', 'Vice President', 'Treasurer', 'Secretary', 'Director']
 
 export default function UsersPage() {
   const { isAdmin } = useAuth()
@@ -51,11 +51,18 @@ export default function UsersPage() {
     toast.success('Password reset email sent')
   }
 
-  async function removeOfficer(id) {
-    const { error } = await supabase.from('officers').delete().eq('id', id)
+  async function removeOfficer(officer) {
+    const { error } = await supabase.from('officers').delete().eq('id', officer.id)
     if (error) { toast.error(error.message); return }
-    toast.info('Officer removed')
+    if (officer.title === 'Secretary') setAdmin(officer.profile_id, false)
+    toast.info('Director removed')
     fetchAll()
+  }
+
+  async function setAdmin(profileId, grant) {
+    if (!supabaseAdmin) return
+    await supabase.from('profiles').update({ is_admin: grant, role: grant ? 'super_admin' : 'member' }).eq('id', profileId)
+    await supabaseAdmin.auth.admin.updateUserById(profileId, { app_metadata: { role: grant ? 'super_admin' : 'member' } })
   }
 
   async function addOfficer() {
@@ -66,6 +73,11 @@ export default function UsersPage() {
       sort_order: officers.length,
     })
     if (error) { toast.error(error.message); return }
+    if (newOfficer.title === 'Secretary') {
+      setAdmin(newOfficer.profile_id, true)
+      const { data: prev } = await supabase.from('officers').select('profile_id').eq('title', 'Secretary').neq('profile_id', newOfficer.profile_id)
+      for (const p of (prev || [])) setAdmin(p.profile_id, false)
+    }
     toast.success(`${newOfficer.title} assigned`)
     setShowAddOfficer(false)
     setNewOfficer({ profile_id: '', title: OFFICER_TITLES[0] })
@@ -124,12 +136,12 @@ export default function UsersPage() {
 
       <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-stone-700 dark:text-stone-300">Officers</h2>
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300">Board of Directors</h2>
           <Button size="sm" onClick={() => setShowAddOfficer(true)}>
-            <Plus className="h-3 w-3 mr-1" /> Assign Officer
+            <Plus className="h-3 w-3 mr-1" /> Assign Director
           </Button>
         </div>
-        {officers.length === 0 && <p className="text-sm text-stone-400 dark:text-stone-500">No officers assigned</p>}
+        {officers.length === 0 && <p className="text-sm text-stone-400 dark:text-stone-500">No directors assigned</p>}
         <div className="space-y-1.5">
           {officers.map((o) => (
             <div key={o.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-stone-50 dark:hover:bg-stone-800">
@@ -150,7 +162,7 @@ export default function UsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAddOfficer(false)}>
           <div className="w-full max-w-sm rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Assign Officer</h3>
+              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Assign Director</h3>
               <button onClick={() => setShowAddOfficer(false)}><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
             </div>
             <div className="space-y-3">
@@ -267,9 +279,9 @@ export default function UsersPage() {
 
       <ConfirmDialog
         open={!!confirmRemoveOfficer}
-        title="Remove officer?"
-        message={`Remove ${confirmRemoveOfficer?.profile?.display_name || 'this officer'} from their position?`}
-        onConfirm={() => { if (confirmRemoveOfficer) removeOfficer(confirmRemoveOfficer.id); setConfirmRemoveOfficer(null) }}
+        title="Remove director?"
+        message={`Remove ${confirmRemoveOfficer?.profile?.display_name || 'this director'} from the board?`}
+        onConfirm={() => { if (confirmRemoveOfficer) removeOfficer(confirmRemoveOfficer); setConfirmRemoveOfficer(null) }}
         onCancel={() => setConfirmRemoveOfficer(null)}
       />
       <ConfirmDialog

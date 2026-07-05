@@ -109,7 +109,7 @@ export default function Sidebar({ open, onClose }) {
           <div className="mb-2 pt-2 border-t border-emerald-800">
             <button onClick={() => setOfficersOpen(o => !o)} className="flex w-full items-center gap-1 px-2 mb-1 text-xs text-emerald-400 font-medium hover:text-emerald-300 transition-colors">
               <ChevronDown className={`h-3 w-3 transition-transform ${officersOpen ? '' : '-rotate-90'}`} />
-              Officers
+              Board of Directors
             </button>
             {officersOpen && officers.map(o => (
               <div key={o.id} className="flex items-center gap-2 px-2 py-0.5 text-xs text-stone-400">
