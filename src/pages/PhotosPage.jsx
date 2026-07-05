@@ -7,6 +7,7 @@ import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { resizeImage } from '../lib/resizeImage'
 import { vibrate } from '../lib/haptics'
 import { supabase } from '../lib/supabase'
+import LightboxDialog from '../components/ui/LightboxDialog'
 
 function groupByDate(photos) {
   const groups = {}
