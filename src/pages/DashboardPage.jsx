@@ -75,7 +75,7 @@ function WeatherWidget() {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth()
+  const { profile, isAdmin } = useAuth()
   const toast = useToast()
   const [upcomingBookings, setUpcomingBookings] = useState([])
   const [openTasks, setOpenTasks] = useState([])
@@ -181,7 +181,7 @@ export default function DashboardPage() {
       )}
 
       <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}
-        <button onClick={triggerTestAlert} className="ml-3 align-middle text-[10px] font-normal text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 border border-stone-300 dark:border-stone-600 rounded px-2 py-0.5" title="Trigger test notification alerts">Test Alerts</button>
+        {isAdmin && <button onClick={triggerTestAlert} className="ml-3 align-middle text-[10px] font-normal text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 border border-stone-300 dark:border-stone-600 rounded px-2 py-0.5" title="Trigger test notification alerts">Test Alerts</button>}
       </h1>
 
       <WeatherWidget />
