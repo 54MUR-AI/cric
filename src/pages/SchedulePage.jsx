@@ -31,7 +31,7 @@ function fmtInput(d) {
 }
 
 export default function SchedulePage() {
-  const { bookings, loading: loadingB, createBooking, updateBooking, deleteBooking } = useBookings()
+  const { bookings, loading: loadingB, createBooking, updateBooking, deleteBooking, refetch } = useBookings()
   const { cabins, loading: loadingC } = useCabins()
   const { user, isAdmin } = useAuth()
   const { copy } = useShare()
@@ -40,7 +40,8 @@ export default function SchedulePage() {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState({})
-  const [formData, setFormData] = useState({ cabin_id: '', guests: '', notes: '', start_date: '', end_date: '' })
+  const [formData, setFormData] = useState({ cabin_id: '', guests: '', notes: '', start_date: '', end_date: '', rooms: [] })
+  const BAT_MANOR_ROOMS = ["Master", "Guest", "Anna's", "Sarah's", "Bobby's", "Walter's"]
   const [error, setError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
   const [trips, setTrips] = useState([])
@@ -51,9 +52,12 @@ export default function SchedulePage() {
     const s = toLocalDate(b.start_date)
     const e = toLocalDate(b.end_date)
     e.setHours(23, 59)
+    const title = b.room
+      ? `${b.cabins?.name} — ${b.room}${b.guests ? ` (${b.guests})` : ''}`
+      : `${b.cabins?.name}${b.guests ? ` — ${b.guests}` : ''}`
     return {
       id: b.id,
-      title: `${b.cabins?.name}${b.guests ? ` — ${b.guests}` : ''}`,
+      title,
       start: s,
       end: e,
       resource: b,
@@ -64,7 +68,7 @@ export default function SchedulePage() {
   function handleSelectSlot({ start, end }) {
     const endDay = new Date(new Date(end).getTime() - 86400000)
     setSelectedSlot({ start, end: endDay })
-    setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', start_date: fmtInput(start), end_date: fmtInput(endDay) })
+    setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', start_date: fmtInput(start), end_date: fmtInput(endDay), rooms: [] })
     setError('')
     setShowForm(true)
   }
@@ -78,18 +82,43 @@ export default function SchedulePage() {
       setError('End date must be on or after the start date')
       return
     }
-    try {
-      await createBooking({
-        cabin_id: formData.cabin_id,
-        user_id: user.id,
-        start_date: start,
-        end_date: end,
-        guests: formData.guests || null,
-        notes: formData.notes || null,
-      })
-      setShowForm(false)
-    } catch (err) {
-      setError(err.message.includes('conflict') ? 'This cabin is already booked for those dates' : err.message)
+    const selectedCabin = cabins.find(c => c.id === formData.cabin_id)
+    if (selectedCabin?.has_rooms) {
+      if (formData.rooms.length === 0) {
+        setError('Select at least one room')
+        return
+      }
+      try {
+        const rows = formData.rooms.map(room => ({
+          cabin_id: formData.cabin_id,
+          user_id: user.id,
+          start_date: start,
+          end_date: end,
+          room,
+          guests: formData.guests || null,
+          notes: formData.notes || null,
+        }))
+        const { error } = await supabase.from('bookings').insert(rows).select()
+        if (error) throw error
+        refetch()
+        setShowForm(false)
+      } catch (err) {
+        setError(err.message.includes('conflict') ? 'One or more rooms are already booked for those dates' : err.message)
+      }
+    } else {
+      try {
+        await createBooking({
+          cabin_id: formData.cabin_id,
+          user_id: user.id,
+          start_date: start,
+          end_date: end,
+          guests: formData.guests || null,
+          notes: formData.notes || null,
+        })
+        setShowForm(false)
+      } catch (err) {
+        setError(err.message.includes('conflict') ? 'This cabin is already booked for those dates' : err.message)
+      }
     }
   }
 
@@ -134,7 +163,7 @@ export default function SchedulePage() {
           const today = new Date()
           const ds = fmtInput(today)
           setSelectedSlot({ start: today, end: today })
-          setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', start_date: ds, end_date: ds })
+          setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', start_date: ds, end_date: ds, rooms: [] })
           setError('')
           setShowForm(true)
         }}
@@ -229,6 +258,31 @@ export default function SchedulePage() {
                   ))}
                 </select>
               </div>
+              {cabins.find(c => c.id === formData.cabin_id)?.has_rooms && (
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">Rooms</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {BAT_MANOR_ROOMS.map(room => (
+                      <label key={room} className="flex items-center gap-2 rounded-md border border-stone-200 dark:border-stone-700 px-3 py-2 text-sm cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50 dark:has-[:checked]:bg-emerald-900/20 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={formData.rooms.includes(room)}
+                          onChange={(e) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              rooms: e.target.checked
+                                ? [...prev.rooms, room]
+                                : prev.rooms.filter(r => r !== room)
+                            }))
+                          }}
+                          className="accent-emerald-600"
+                        />
+                        {room}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">From</label>
@@ -273,10 +327,11 @@ export default function SchedulePage() {
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
             {!editing ? (
               <>
-                <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">{selectedEvent.cabins?.name}</h2>
+                <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">{selectedEvent.cabins?.name}{selectedEvent.room ? ` — ${selectedEvent.room}` : ''}</h2>
                 <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
                   {formatDate(selectedEvent.start_date)} – {formatDate(selectedEvent.end_date)}
                   {selectedEvent.guests && <> · {selectedEvent.guests}</>}
+                  {selectedEvent.room && <> · {selectedEvent.room}</>}
                 </p>
                 {selectedEvent.notes && <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">{selectedEvent.notes}</p>}
                 <div className="flex gap-2 justify-between items-center">
