@@ -201,7 +201,7 @@ function UserLocationMarker({ position, accuracy }) {
 function LocateButton({ position }) {
   const map = useMap()
   return (
-    <div className="absolute top-2 left-2 z-10 pointer-events-none">
+    <div className="absolute top-2 left-2 z-[800] pointer-events-none">
       <button onClick={() => { if (position) map.flyTo(position, Math.max(map.getZoom(), 13), { duration: 0.5 }) }} disabled={!position} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors disabled:opacity-40" title="Center on my location">
         <Crosshair className="h-4 w-4" />
       </button>
@@ -212,6 +212,8 @@ function LocateButton({ position }) {
 function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUpload }) {
   const dist = haversineKm(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
   const dir = bearing(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
+  const pinColor = cabin?.color || PIN_COLORS[pin.type] || '#6b7280'
+  const svg = PIN_SVG[pin.type] || PIN_SVG.other
 
   const guideKey = Object.keys(GUIDE_SECTIONS).find(k => pin.label.toLowerCase().includes(k) || pin.type === k)
 
@@ -224,19 +226,24 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
   return (
     <div className="text-xs space-y-1.5 min-w-[180px]">
       <div className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-full" style={{ background: PIN_COLORS[pin.type] || '#6b7280' }} />
-        <strong className="text-sm">{pin.label}</strong>
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: pinColor }}>
+          <svg viewBox="0 0 16 16" fill="white" width="10" height="10">{svg}</svg>
+        </span>
+        <strong className="text-sm text-stone-800 dark:text-stone-200">{pin.label}</strong>
       </div>
-      <div><span className="capitalize text-stone-400 dark:text-stone-500">{pin.type}</span>{cabin && <span className="text-stone-400 dark:text-stone-500"> &middot; {cabin.color && <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: cabin.color }} />}{cabin.name || 'Linked cabin'}</span>}</div>
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="capitalize text-stone-400 dark:text-stone-500">{pin.type}</span>
+        {cabin && <><span className="text-stone-300 dark:text-stone-600">&middot;</span><span className="inline-flex items-center gap-0.5 text-stone-500 dark:text-stone-400"><span className="inline-block w-2 h-2 rounded-full" style={{ background: cabin.color }} />{cabin.name}</span></>}
+      </div>
       {pin.description && <div className="text-stone-500 dark:text-stone-400">{pin.description}</div>}
       <div className="text-stone-400 dark:text-stone-500">{dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`} {dir} of landing</div>
 
       {cabin && (
-        <>
-          <Link to={`/cabins`} className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
-          <Link to={`/schedule`} className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
+        <div className="space-y-1">
+          <Link to="/cabins" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
+          <Link to="/schedule" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
           {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.guests || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
-        </>
+        </div>
       )}
 
       {guideKey && <a href={GUIDE_SECTIONS[guideKey]} className="block text-amber-600 dark:text-amber-400 hover:text-amber-800 font-medium">View Guide &rarr;</a>}
@@ -247,7 +254,7 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onPhotoUplo
 
       {admin && (
         <div className="flex gap-2 pt-1 border-t border-stone-200 dark:border-stone-700 mt-2">
-          <label className="text-blue-600 dark:text-blue-400 hover:text-blue-800 cursor-pointer text-xs">📷 Add Photo<input type="file" accept="image/*" className="hidden" onChange={(e) => onPhotoUpload(pin, e.target.files?.[0])} /></label>
+          <label className="text-blue-600 dark:text-blue-400 hover:text-blue-800 cursor-pointer text-xs">Add Photo<input type="file" accept="image/*" className="hidden" onChange={(e) => onPhotoUpload(pin, e.target.files?.[0])} /></label>
           <button onClick={() => { if (confirm('Delete this pin?')) onDelete(pin.id) }} className="text-rose-600 dark:text-rose-400 hover:text-rose-800 text-xs">Delete</button>
         </div>
       )}
@@ -417,14 +424,14 @@ export default function MapPage({ compact } = {}) {
         </MapContainer>
 
         {/* Fullscreen button */}
-        <div className="absolute top-2 right-2 z-10 pointer-events-none">
+        <div className="absolute top-2 right-2 z-[800] pointer-events-none">
           <button onClick={toggleFullscreen} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </button>
         </div>
 
         {/* Collapsible right sidebar */}
-        <div className="absolute right-0 top-0 bottom-0 z-10 flex pointer-events-none">
+        <div className="absolute right-0 top-0 bottom-0 z-[800] flex pointer-events-none">
           <div className="pointer-events-auto self-center -ml-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="bg-white dark:bg-stone-900 rounded-l-md shadow-md border border-r-0 border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}>
               <ChevronLeft className={`h-4 w-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
@@ -511,7 +518,7 @@ export default function MapPage({ compact } = {}) {
         </div>
 
         {compact && isAdmin && (
-          <div className="absolute top-2 left-2 z-10">
+          <div className="absolute top-2 left-2 z-[800]">
             <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 border transition-colors text-xs shadow-sm ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm text-rose-600 dark:text-rose-400 border-stone-300 dark:border-stone-600'}`}>
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
@@ -519,7 +526,7 @@ export default function MapPage({ compact } = {}) {
         )}
 
         {newPinLatLng && (
-          <div className="absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-stone-900 rounded-lg shadow-xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 p-4 max-w-sm mx-auto">
+          <div className="absolute bottom-4 left-4 right-4 z-[800] bg-white dark:bg-stone-900 rounded-lg shadow-xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 p-4 max-w-sm mx-auto">
             <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 mb-3">Add Pin</h3>
             <div className="space-y-2">
               <input type="text" placeholder="Label *" value={pinForm.label} autoFocus onChange={e => setPinForm(f => ({ ...f, label: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" />

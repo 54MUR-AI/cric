@@ -101,6 +101,16 @@ html { scroll-behavior: smooth; }
     @apply text-emerald-400;
   }
 
+  .dark .leaflet-popup-content-wrapper {
+    @apply bg-stone-900 text-stone-200 border-stone-700;
+  }
+  .dark .leaflet-popup-tip {
+    @apply bg-stone-900;
+  }
+  .dark .leaflet-popup-close-button {
+    @apply text-stone-400 !important;
+  }
+
   input:where(:not([type="checkbox"]):not([type="radio"]):not([type="color"])),
   select,
   textarea {
