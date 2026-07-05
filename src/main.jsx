@@ -7,6 +7,12 @@ import { NotificationProvider } from './hooks/useNotifications'
 import App from './App'
 import './index.css'
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload()
+  })
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
