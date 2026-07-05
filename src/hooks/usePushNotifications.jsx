@@ -47,6 +47,18 @@ export function usePushNotifications() {
     try {
       const reg = await navigator.serviceWorker.ready
       
+      // Wait for service worker to be fully activated
+      if (reg.active?.state !== 'activated') {
+        await new Promise(resolve => {
+          reg.active?.addEventListener('statechange', function handler() {
+            if (this.state === 'activated') {
+              this.removeEventListener('statechange', handler)
+              resolve()
+            }
+          })
+        })
+      }
+      
       // Always clear any existing subscription first to avoid stale key conflicts
       const existing = await reg.pushManager.getSubscription()
       if (existing) {
@@ -64,7 +76,8 @@ export function usePushNotifications() {
       setEnabled(true)
       return { ok: true }
     } catch (err) {
-      return { ok: false, reason: err.message }
+      console.error('Push subscription error:', err)
+      return { ok: false, reason: `${err.name}: ${err.message}` }
     }
   }, [user, supported])
 
