@@ -4,6 +4,7 @@ import { usePhotos } from '../hooks/usePhotos'
 import { useShare } from '../lib/share'
 import { useConfirm } from '../components/ui/useConfirm'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
+import { resizeImage } from '../lib/resizeImage'
 import { vibrate } from '../lib/haptics'
 import { supabase } from '../lib/supabase'
 
@@ -53,7 +54,9 @@ export default function PhotosPage() {
     setUploadProgress(10)
     const prog = setInterval(() => setUploadProgress(p => Math.min(p + 15, 85)), 400)
     try {
-      await uploadPhoto(uploadFile, { caption: uploadCaption || undefined, album_id: uploadAlbumId || undefined })
+      const optimized = await resizeImage(uploadFile)
+      setUploadProgress(30)
+      await uploadPhoto(optimized, { caption: uploadCaption || undefined, album_id: uploadAlbumId || undefined })
       clearInterval(prog)
       setUploadProgress(100)
       vibrate([10, 20, 10])
@@ -184,21 +187,13 @@ export default function PhotosPage() {
       </div>
 
       {lightbox && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)} role="dialog" aria-label="Photo lightbox">
-          <div className="relative max-w-4xl max-h-full" onClick={e => e.stopPropagation()}>
-            <img src={lightbox.url} alt={lightbox.caption || ''} className="max-w-full max-h-[85vh] rounded-lg shadow-2xl" />
-            {lightbox.caption && <p className="text-white text-sm mt-2 text-center">{lightbox.caption}</p>}
-            <div className="flex justify-center gap-3 mt-2">
-              <button onClick={() => share({ title: 'CRIC Photo', text: lightbox.caption || 'Camp memory', url: lightbox.url })} className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors">
-                <Share2 className="h-3 w-3" /> Share
-              </button>
-              <button onClick={() => { navigator.clipboard.writeText(lightbox.url); vibrate(8) }} className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors">
-                Copy Link
-              </button>
-            </div>
-            <button onClick={() => setLightbox(null)} className="absolute top-2 right-2 bg-white/20 hover:bg-white/40 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg" aria-label="Close lightbox">✕</button>
-          </div>
-        </div>
+        <LightboxDialog
+          photo={lightbox}
+          photos={filtered}
+          onClose={() => setLightbox(null)}
+          onNavigate={setLightbox}
+          onShare={share}
+        />
       )}
 
       {showUpload && (

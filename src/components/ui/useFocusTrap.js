@@ -2,34 +2,12 @@ import { useEffect, useRef } from 'react'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function useEscapeKey(onEscape, enabled = true) {
-  useEffect(() => {
-    if (!enabled) return
-    const handler = (e) => {
-      if (e.key === 'Escape') onEscape?.()
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onEscape, enabled])
-}
+export function useFocusTrap(enabled = true) {
+  const ref = useRef(null)
 
-export function useModalBehavior(onClose, enabled = true) {
-  const containerRef = useRef(null)
-
-  // Escape key
   useEffect(() => {
-    if (!enabled) return
-    const handler = (e) => {
-      if (e.key === 'Escape') onClose?.()
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onClose, enabled])
-
-  // Focus trap
-  useEffect(() => {
-    if (!enabled || !containerRef.current) return
-    const el = containerRef.current
+    if (!enabled || !ref.current) return
+    const el = ref.current
 
     const focusableEls = el.querySelectorAll(FOCUSABLE)
     if (focusableEls.length === 0) return
@@ -38,10 +16,11 @@ export function useModalBehavior(onClose, enabled = true) {
     const lastEl = focusableEls[focusableEls.length - 1]
 
     // Auto-focus first element
-    setTimeout(() => firstEl.focus(), 50)
+    firstEl.focus()
 
     function handleKeyDown(e) {
       if (e.key !== 'Tab') return
+
       if (e.shiftKey) {
         if (document.activeElement === firstEl) {
           e.preventDefault()
@@ -59,5 +38,5 @@ export function useModalBehavior(onClose, enabled = true) {
     return () => el.removeEventListener('keydown', handleKeyDown)
   }, [enabled])
 
-  return containerRef
+  return ref
 }

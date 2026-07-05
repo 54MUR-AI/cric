@@ -45,9 +45,33 @@ export default function SchedulePage() {
   const BAT_MANOR_ROOMS = ["Master", "Guest", "Anna's", "Sarah's", "Bobby's", "Walter's"]
   const [error, setError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
+  const [conflicts, setConflicts] = useState(null)
 
   useEscapeKey(() => setShowForm(false), showForm)
   useEscapeKey(() => { setSelectedEvent(null); setEditing(false) }, !!selectedEvent)
+
+  function detectConflicts(cabinId, startDate, endDate, rooms = []) {
+    const cabinBookings = bookings.filter(b => b.cabin_id === cabinId)
+    const conflicts = []
+
+    for (const b of cabinBookings) {
+      const bStart = b.start_date
+      const bEnd = b.end_date
+      // Check date overlap
+      if (startDate <= bEnd && endDate >= bStart) {
+        // If cabin has rooms, check room-level conflicts
+        if (rooms.length > 0 && b.room) {
+          if (rooms.includes(b.room)) {
+            conflicts.push({ ...b, conflictType: 'room' })
+          }
+        } else if (!b.room) {
+          // Whole-cabin conflict
+          conflicts.push({ ...b, conflictType: 'cabin' })
+        }
+      }
+    }
+    return conflicts
+  }
   const [trips, setTrips] = useState([])
   const [showTripModal, setShowTripModal] = useState(false)
   const [editTrip, setEditTrip] = useState(null)
@@ -86,6 +110,23 @@ export default function SchedulePage() {
       setError('End date must be on or after the start date')
       return
     }
+
+    // Client-side conflict detection (skip if user already confirmed)
+    if (!conflicts) {
+      const found = detectConflicts(formData.cabin_id, start, end, formData.rooms)
+      if (found.length > 0) {
+        const cabin = cabins.find(c => c.id === formData.cabin_id)
+        const conflictNames = found.map(b => {
+          const who = b.guests || 'Someone'
+          const room = b.room ? ` (${b.room})` : ''
+          return `${who}${room}: ${b.start_date} to ${b.end_date}`
+        }).join('\n')
+        setConflicts({ cabin: cabin?.name, conflicts: found, message: conflictNames })
+        return
+      }
+    }
+
+    setConflicts(null)
     const selectedCabin = cabins.find(c => c.id === formData.cabin_id)
     if (selectedCabin?.has_rooms) {
       if (formData.rooms.length === 0) {
@@ -316,11 +357,23 @@ export default function SchedulePage() {
                   rows={2}
                 />
               </div>
+              {conflicts && (
+                <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-3">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">Booking conflict detected</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 whitespace-pre-line">{conflicts.message}</p>
+                  <div className="flex gap-2 mt-2">
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setConflicts(null)}>Choose different dates</Button>
+                    <Button type="submit" size="sm">Book anyway</Button>
+                  </div>
+                </div>
+              )}
               {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button type="submit">Book</Button>
-              </div>
+              {!conflicts && (
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
+                  <Button type="submit">Book</Button>
+                </div>
+              )}
             </form>
           </div>
         </div>
