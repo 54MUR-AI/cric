@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, AlertOctagon, X } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
+import { sendPushToAll } from '../hooks/usePushNotifications'
 import MapPage from './MapPage'
 
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
@@ -83,6 +84,7 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState([])
   const [dismissedAlerts, setDismissedAlerts] = useState(new Set())
   const [lightningAlert, setLightningAlert] = useState(null)
+  const pushedAlertsRef = useRef(new Set())
 
   useEffect(() => {
     let cancelled = false
@@ -95,13 +97,25 @@ export default function DashboardPage() {
           const e = f.properties.event || ''
           return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm' || e.includes('Small Craft') || e.includes('Marine')
         })
-        setAlerts(warnings.map(w => ({
+        const mapped = warnings.map(w => ({
           id: w.properties.id,
           event: w.properties.event,
           headline: (w.properties.headline || w.properties.description || '').slice(0, 150),
           severity: w.properties.severity || 'Unknown',
           urgency: w.properties.urgency || 'Unknown',
-        })))
+        }))
+        setAlerts(mapped)
+
+        const newAlerts = mapped.filter(a => !pushedAlertsRef.current.has(a.id))
+        if (newAlerts.length) {
+          newAlerts.forEach(a => pushedAlertsRef.current.add(a.id))
+          sendPushToAll({
+            title: newAlerts[0].event,
+            body: newAlerts[0].headline.slice(0, 120),
+            tag: `nws-${newAlerts[0].id}`,
+            data: { url: '/' },
+          })
+        }
       } catch { /* ignore */ }
     }
     checkAlerts()
@@ -122,6 +136,12 @@ export default function DashboardPage() {
     if (Notification.permission === 'granted') {
       try { new Notification('TEST: Severe Thunderstorm Warning', { body: 'Test notification - you should see this as a system notification.', icon: '/images/icon-192.png' }) } catch { /* ignore */ }
     }
+    sendPushToAll({
+      title: 'TEST: Severe Thunderstorm Warning',
+      body: 'This is a test push notification. All CRIC Manager subscribers will receive this.',
+      tag: 'test-push',
+      data: { url: '/' },
+    })
   }
 
   const activeAlerts = alerts.filter(a => !dismissedAlerts.has(a.id))
@@ -188,7 +208,10 @@ export default function DashboardPage() {
 
       <div>
         <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
-        <MapPage compact onLightningStrike={(msg) => setLightningAlert(msg)} />
+        <MapPage compact onLightningStrike={(msg) => {
+          setLightningAlert(msg)
+          sendPushToAll({ title: 'Lightning Nearby', body: msg, tag: 'lightning', data: { url: '/' } })
+        }} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

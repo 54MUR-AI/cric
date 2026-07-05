@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef, useCallback } f
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 import { useToast } from '../components/ui/Toast'
+import { usePushNotifications, sendPushToAll } from './usePushNotifications'
 
 const NotificationContext = createContext(null)
 
@@ -10,6 +11,7 @@ const RECENT_WINDOW = 5
 export function NotificationProvider({ children }) {
   const { user } = useAuth()
   const toast = useToast()
+  const { subscribe } = usePushNotifications()
   const [seenIds, setSeenIds] = useState(() => {
     try { return new Set(JSON.parse(sessionStorage.getItem('notif-seen') || '[]')) } catch { return new Set() }
   })
@@ -26,6 +28,9 @@ export function NotificationProvider({ children }) {
 
   useEffect(() => {
     if (!user) return
+
+    subscribe()
+
     const cutoff = new Date(Date.now() - RECENT_WINDOW * 60 * 1000).toISOString()
 
     async function check() {
@@ -41,26 +46,41 @@ export function NotificationProvider({ children }) {
         const newTrips = (trips.data || []).filter(t => t.created_by !== user.id && !seenIds.has(`tr-${t.id}`))
 
         const ids = []
+        const pushItems = []
+
         newBookings.forEach(b => {
           ids.push(`b-${b.id}`)
           toast.info(`${b.cabins?.name || 'Cabin'} booked ${b.start_date?.slice(5)}–${b.end_date?.slice(5)}`)
+          pushItems.push(`${b.cabins?.name || 'Cabin'} booked`)
         })
         newTasks.forEach(t => {
           ids.push(`t-${t.id}`)
           toast.info(`New task: ${t.title}`)
+          pushItems.push(`Task: ${t.title}`)
         })
         newTrips.forEach(t => {
           ids.push(`tr-${t.id}`)
           toast.info(`New boat trip: ${t.destination} on ${t.trip_date?.slice(5)}`)
+          pushItems.push(`Boat trip: ${t.destination}`)
         })
+
         if (ids.length) markSeen(ids)
+
+        if (pushItems.length) {
+          sendPushToAll({
+            title: 'CRIC Manager',
+            body: pushItems.slice(0, 3).join('\n') + (pushItems.length > 3 ? `\n+${pushItems.length - 3} more` : ''),
+            tag: 'cric-activity',
+            data: { url: '/' },
+          })
+        }
       } catch {}
     }
 
     check()
     intervalRef.current = setInterval(check, 60000)
     return () => clearInterval(intervalRef.current)
-  }, [user, seenIds, markSeen, toast])
+  }, [user, seenIds, markSeen, toast, subscribe])
 
   return (
     <NotificationContext.Provider value={{}}>

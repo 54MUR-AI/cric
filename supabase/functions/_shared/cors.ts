@@ -1,5 +1,6 @@
 const allowedOrigins = [
   'https://54mur-ai.github.io',
+  'https://chairrock.app',
   'http://localhost:5173',
 ];
 
