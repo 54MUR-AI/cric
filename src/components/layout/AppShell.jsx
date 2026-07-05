@@ -72,13 +72,20 @@ export default function AppShell() {
       toast.error('Push notifications are not supported in this browser')
       return
     }
-    const result = await toggle()
-    if (result.ok) {
-      toast.success(enabled ? 'Notifications disabled' : 'Notifications enabled')
-    } else if (result.reason === 'denied') {
-      toast.error('Notification permission was denied. Please enable it in your browser settings.')
-    } else {
-      toast.error(`Could not update notifications: ${result.reason || 'unknown error'}`)
+    
+    toast.info('Updating notification settings...')
+    
+    try {
+      const result = await toggle()
+      if (result.ok) {
+        toast.success(enabled ? 'Notifications disabled' : 'Notifications enabled')
+      } else if (result.reason === 'denied') {
+        toast.error('Notification permission denied. Check browser settings.')
+      } else {
+        toast.error(`Error: ${result.reason || 'unknown'}`)
+      }
+    } catch (err) {
+      toast.error(`Failed: ${err.message}`)
     }
   }, [supported, enabled, toggle, toast])
 
