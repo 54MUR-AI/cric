@@ -24,6 +24,15 @@ const PIN_COLORS = {
   'lean-to': '#d97706', firepit: '#ef4444', other: '#6b7280',
 }
 
+const PIN_SVG = {
+  cabin: '<path d="M8 1L1 7h2v7h10V7h2L8 1zM6 10h4v4H6z"/>',
+  boathouse: '<path d="M8 1L1 7h1v5h12V7h1L8 1zM3 12h10v3H3z"/>',
+  dock: '<path d="M4 10h8v2H4zM6 12v3h1v-3M9 12v3h1v-3"/>',
+  'lean-to': '<path d="M3 12L8 4l5 8H3zM2 12h12v2H2z"/>',
+  firepit: '<path d="M8 4C6 6 5 8 5 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0-2-1-4-3-6zM3 13h10v1H3z"/>',
+  other: '<path d="M8 3C5.6 3 3.5 5.1 3.5 7.5c0 2.8 4.5 6.5 4.5 6.5s4.5-3.7 4.5-6.5C12.5 5.1 10.4 3 8 3zm0 3.5c.8 0 1.5.7 1.5 1.5S8.8 9.5 8 9.5 6.5 8.8 6.5 8 7.2 6.5 8 6.5z"/>',
+}
+
 const GUIDE_SECTIONS = {
   'solar': '/guide#solar-start', 'generator': '/guide#generator',
   'water': '/guide#water', 'boats': '/guide#boats',
@@ -50,11 +59,12 @@ function bearing(lat1, lon1, lat2, lon2) {
   return dirs[Math.round(brng / 45) % 8]
 }
 
-function pinIcon(type, label) {
-  const bg = PIN_COLORS[type] || '#6b7280'
+function pinIcon(type, label, cabinColor) {
+  const bg = cabinColor || PIN_COLORS[type] || '#6b7280'
+  const svg = PIN_SVG[type] || PIN_SVG.other
   return L.divIcon({
     className: '',
-    html: `<div style="background:${bg};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;cursor:pointer;" title="${label}">${label.charAt(0).toUpperCase()}</div>`,
+    html: `<div style="background:${bg};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;cursor:pointer;" title="${label}"><svg viewBox="0 0 16 16" fill="white" width="16" height="16">${svg}</svg></div>`,
     iconSize: [28, 28], iconAnchor: [14, 14],
   })
 }
@@ -390,7 +400,7 @@ export default function MapPage({ compact } = {}) {
           ))}
 
           {showPins && filteredPins.map((pin) => (
-            <Marker key={pin.id} position={[pin.latitude, pin.longitude]} icon={pinIcon(pin.type, pin.label)}>
+            <Marker key={pin.id} position={[pin.latitude, pin.longitude]} icon={pinIcon(pin.type, pin.label, pin.cabin_id ? cabinMap[pin.cabin_id]?.color : null)}>
               <Popup>
                 <PinPopupContent pin={pin} cabin={pin.cabin_id ? cabinMap[pin.cabin_id] : null} nextBooking={getNextBooking(pin.cabin_id)} admin={isAdmin} onDelete={deletePin} onPhotoUpload={handlePhotoUpload} />
               </Popup>
