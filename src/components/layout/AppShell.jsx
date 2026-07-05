@@ -62,7 +62,7 @@ export default function AppShell() {
   const { updateAvailable, activateUpdate } = useSWUpdate()
   useKeyBindings()
   const { showInstall, install, dismiss } = useInstallPrompt()
-  const { supported, enabled, browserNote, toggle } = usePushNotifications()
+  const { supported, enabled, toggle } = usePushNotifications()
   const toast = useToast()
 
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
@@ -70,10 +70,6 @@ export default function AppShell() {
   const handleBellClick = useCallback(async () => {
     if (!supported) {
       toast.error('Push notifications are not supported in this browser')
-      return
-    }
-    if (browserNote) {
-      toast.warning(browserNote)
       return
     }
     const result = await toggle()
@@ -84,7 +80,7 @@ export default function AppShell() {
     } else {
       toast.error(`Could not update notifications: ${result.reason || 'unknown error'}`)
     }
-  }, [supported, enabled, browserNote, toggle, toast])
+  }, [supported, enabled, toggle, toast])
 
   return (
     <div className="flex h-screen overflow-hidden">

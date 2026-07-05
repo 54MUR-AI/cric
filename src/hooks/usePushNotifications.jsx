@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
-const VAPID_PUBLIC_KEY = 'BORjaw6KOI9gqKpMa-AenEu7mSTmpjc6dUNlsFGb20YY53OC7MCqe1Ny1I0JCgXfXGdiu7ZMUTS5TFVYGUkU9ts'
+const VAPID_PUBLIC_KEY = 'BNVy6avXiwCH62TDZqHCi11KaFll6AGVXyyuzVmMx18eHsAyDgzG0_Kxck4M3ixkUxSngN9XvejDd6hb9yIvF7o'
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -23,15 +23,10 @@ export function usePushNotifications() {
   const { user } = useAuth()
   const [supported, setSupported] = useState(false)
   const [enabled, setEnabled] = useState(false)
-  const [browserNote, setBrowserNote] = useState('')
 
   useEffect(() => {
     const hasAPI = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
     setSupported(hasAPI)
-    
-    if (isBrave()) {
-      setBrowserNote('Brave blocks push notifications by default. Enable them in Settings → Privacy → Site and shield settings → Notifications.')
-    }
     
     if (hasAPI && user) {
       navigator.serviceWorker.ready.then(async reg => {
@@ -86,7 +81,7 @@ export function usePushNotifications() {
       setEnabled(true)
       return { ok: true }
     } catch (err) {
-      console.error('Push subscription error:', err)
+      console.error('Push subscription error:', err.name, err.message)
       return { ok: false, reason: `${err.name}: ${err.message}` }
     }
   }, [user, supported])
@@ -111,7 +106,7 @@ export function usePushNotifications() {
     return subscribe()
   }, [enabled, subscribe, unsubscribe])
 
-  return { supported, enabled, browserNote, subscribe, unsubscribe, toggle }
+  return { supported, enabled, subscribe, unsubscribe, toggle }
 }
 
 export async function sendPushToAll(payload) {
