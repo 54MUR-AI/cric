@@ -54,8 +54,8 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-stone-50 dark:bg-stone-950">
-        <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-md dark:bg-stone-900 dark:shadow-stone-900/30 text-center">
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-md dark:bg-stone-900/90 dark:shadow-stone-900/30 text-center">
           <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 mb-2">Check your email</h1>
           <p className="text-stone-600 dark:text-stone-400">A magic link has been sent to <strong>{email}</strong></p>
         </div>
@@ -65,8 +65,8 @@ export default function LoginPage() {
 
   if (resetSent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-stone-50 dark:bg-stone-950">
-        <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-md dark:bg-stone-900 dark:shadow-stone-900/30 text-center">
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-md dark:bg-stone-900/90 dark:shadow-stone-900/30 text-center">
           <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 mb-2">Check your email</h1>
           <p className="text-stone-600 dark:text-stone-400">A password reset link has been sent to <strong>{email}</strong></p>
           <button onClick={() => { setShowForgot(false); setResetSent(false) }} className="mt-4 text-sm text-emerald-700 hover:underline">Back to sign in</button>
@@ -77,8 +77,8 @@ export default function LoginPage() {
 
   if (showForgot) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-stone-50 dark:bg-stone-950">
-        <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-md dark:bg-stone-900 dark:shadow-stone-900/30">
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-md dark:bg-stone-900/90 dark:shadow-stone-900/30">
           <h1 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-1">Reset Password</h1>
           <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Enter your email and we'll send you a reset link.</p>
           <form onSubmit={handleForgot} className="space-y-4">
@@ -98,8 +98,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-50 dark:bg-stone-950">
-      <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-md dark:bg-stone-900 dark:shadow-stone-900/30">
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-sm rounded-lg bg-white/90 p-8 shadow-md dark:bg-stone-900/90 dark:shadow-stone-900/30">
         <img src={`${import.meta.env.BASE_URL}icons/icon-512x512.png`} alt="CRIC" className="mx-auto h-64 w-64 mb-3" />
         <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 mb-1">CRIC Manager</h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Sign in to continue</p>

@@ -13,8 +13,20 @@ html { scroll-behavior: smooth; }
   }
 
   body {
-    @apply bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
+    --bg-opacity: 0.92;
+    background: linear-gradient(rgba(250,250,249,var(--bg-opacity)),rgba(250,250,249,var(--bg-opacity))), url('/images/cranberry.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    @apply text-stone-900 antialiased dark:text-stone-100;
     font-family: system-ui, -apple-system, sans-serif;
+  }
+  .dark body {
+    --bg-opacity: 0.96;
+    background: linear-gradient(rgba(12,10,9,var(--bg-opacity)),rgba(12,10,9,var(--bg-opacity))), url('/images/cranberry.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
 
   .rbc-calendar {
@@ -53,6 +65,9 @@ html { scroll-behavior: smooth; }
   }
   .dark .rbc-off-range {
     @apply text-stone-500;
+  }
+  .rbc-today {
+    @apply bg-emerald-100;
   }
   .dark .rbc-today {
     @apply bg-emerald-900/20;

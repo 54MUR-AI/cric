@@ -27,7 +27,7 @@ function PageFallback() {
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
-  if (loading) return <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-stone-500"><div className="h-6 w-6 rounded-full border-2 border-emerald-700 border-t-transparent animate-spin" /><p>Connecting to server…</p></div>
+  if (loading) return <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-stone-500 px-4"><div className="h-6 w-6 rounded-full border-2 border-emerald-700 border-t-transparent animate-spin" /><p>Connecting to server…</p></div>
   if (!user) return <Navigate to="/login" replace />
   return children
 }
@@ -40,7 +40,7 @@ export default function App() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-stone-500">
         <div className="h-6 w-6 rounded-full border-2 border-emerald-700 border-t-transparent animate-spin" />
         <p>Connecting to server…</p>
-        <p className="text-xs">If this takes more than a few seconds, Supabase may be temporarily unavailable. Try again shortly.</p>
+        <p className="text-xs max-w-md text-center">If this takes more than a few seconds, Supabase may be temporarily unavailable. Try again shortly.</p>
       </div>
     )
   }
