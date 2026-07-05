@@ -4,6 +4,17 @@ import { useAuth } from './useAuth'
 
 const VAPID_PUBLIC_KEY = 'BORjaw6KOI9gqKpMa-AenEu7mSTmpjc6dUNlsFGb20YY53OC7MCqe1Ny1I0JCgXfXGdiu7ZMUTS5TFVYGUkU9ts'
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i)
+  return outputArray
+}
+
+const VAPID_KEY_BYTES = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+
 export function usePushNotifications() {
   const { user } = useAuth()
   const [supported, setSupported] = useState(false)
@@ -40,7 +51,7 @@ export function usePushNotifications() {
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: VAPID_PUBLIC_KEY,
+          applicationServerKey: VAPID_KEY_BYTES,
         })
       }
 
