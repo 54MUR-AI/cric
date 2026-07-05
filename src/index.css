@@ -20,6 +20,21 @@ html { scroll-behavior: smooth; }
   .rbc-calendar {
     @apply font-sans;
   }
+
+  input:where(:not([type="checkbox"]):not([type="radio"]):not([type="color"])),
+  select,
+  textarea {
+    @apply dark:bg-stone-800 dark:text-stone-200 dark:border-stone-600;
+  }
+
+  select option {
+    @apply dark:bg-stone-800 dark:text-stone-200;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    @apply dark:accent-emerald-500;
+  }
 }
 
 @keyframes slide-in-from-left {

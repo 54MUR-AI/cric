@@ -77,7 +77,7 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
           </div>
           {trip && (
             <label className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-300">
-              <input type="checkbox" checked={form.gas_fee_paid} onChange={e => setForm({ ...form, gas_fee_paid: e.target.checked })} className="rounded border-stone-300" />
+              <input type="checkbox" checked={form.gas_fee_paid} onChange={e => setForm({ ...form, gas_fee_paid: e.target.checked })} className="rounded border-stone-300 dark:border-stone-500" />
               Gas fee paid ($25)
             </label>
           )}
