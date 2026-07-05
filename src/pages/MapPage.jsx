@@ -191,7 +191,7 @@ function UserLocationMarker({ position, accuracy }) {
 function LocateButton({ position }) {
   const map = useMap()
   return (
-    <div className="absolute top-2 left-2 z-[1000] pointer-events-none">
+    <div className="absolute top-2 left-2 z-10 pointer-events-none">
       <button onClick={() => { if (position) map.flyTo(position, Math.max(map.getZoom(), 13), { duration: 0.5 }) }} disabled={!position} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors disabled:opacity-40" title="Center on my location">
         <Crosshair className="h-4 w-4" />
       </button>
@@ -358,7 +358,7 @@ export default function MapPage({ compact } = {}) {
   const valMap = { showRadar, showStations, showTrails, showPins }
   const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins }
 
-  const mapHeight = compact ? 'min-h-[400px] h-[400px]' : 'min-h-[450px]'
+  const mapHeight = compact ? 'min-h-[250px] h-[250px] md:min-h-[400px] md:h-[400px]' : 'min-h-[450px]'
   const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
 
   return (
@@ -377,7 +377,7 @@ export default function MapPage({ compact } = {}) {
         </div>
       )}
 
-      <div ref={mapRef} className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative ${mapHeight}`} style={mapStyle}>
+      <div ref={mapRef} className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative z-0 ${mapHeight}`} style={mapStyle}>
         <MapContainer center={CHAIR_ROCK_ISLAND} zoom={14} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
@@ -407,14 +407,14 @@ export default function MapPage({ compact } = {}) {
         </MapContainer>
 
         {/* Fullscreen button */}
-        <div className="absolute top-2 right-2 z-[1000] pointer-events-none">
+        <div className="absolute top-2 right-2 z-10 pointer-events-none">
           <button onClick={toggleFullscreen} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </button>
         </div>
 
         {/* Collapsible right sidebar */}
-        <div className="absolute right-0 top-0 bottom-0 z-[1000] flex pointer-events-none">
+        <div className="absolute right-0 top-0 bottom-0 z-10 flex pointer-events-none">
           <div className="pointer-events-auto self-center -ml-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="bg-white dark:bg-stone-900 rounded-l-md shadow-md border border-r-0 border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}>
               <ChevronLeft className={`h-4 w-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
@@ -501,7 +501,7 @@ export default function MapPage({ compact } = {}) {
         </div>
 
         {compact && isAdmin && (
-          <div className="absolute top-2 left-2 z-[1000]">
+          <div className="absolute top-2 left-2 z-10">
             <button onClick={() => { setIsAddingPin(!isAddingPin); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 border transition-colors text-xs shadow-sm ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm text-rose-600 dark:text-rose-400 border-stone-300 dark:border-stone-600'}`}>
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
@@ -509,7 +509,7 @@ export default function MapPage({ compact } = {}) {
         )}
 
         {newPinLatLng && (
-          <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white dark:bg-stone-900 rounded-lg shadow-xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 p-4 max-w-sm mx-auto">
+          <div className="absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-stone-900 rounded-lg shadow-xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 p-4 max-w-sm mx-auto">
             <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 mb-3">Add Pin</h3>
             <div className="space-y-2">
               <input type="text" placeholder="Label *" value={pinForm.label} autoFocus onChange={e => setPinForm(f => ({ ...f, label: e.target.value }))} className="w-full rounded border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" />
