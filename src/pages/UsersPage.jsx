@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 import { supabaseAdmin } from '../lib/supabaseAdmin'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ui/Toast'
-import { Trash2, Mail, Plus, X, UserPlus, Check, PencilLine } from 'lucide-react'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { Trash2, Mail, Plus, X, UserPlus, Check, PencilLine, Search } from 'lucide-react'
 import Button from '../components/ui/Button'
 
 const OFFICER_TITLES = ['Chair', 'Vice Chair', 'Treasurer', 'Secretary', 'Trustee']
@@ -22,6 +23,9 @@ export default function UsersPage() {
   const [creating, setCreating] = useState(false)
   const [editingName, setEditingName] = useState(null)
   const [editValue, setEditValue] = useState('')
+  const [search, setSearch] = useState('')
+  const [confirmRemove, setConfirmRemove] = useState(null)
+  const [confirmRemoveOfficer, setConfirmRemoveOfficer] = useState(null)
   const editRef = useRef(null)
 
   async function fetchAll() {
@@ -48,7 +52,6 @@ export default function UsersPage() {
   }
 
   async function removeOfficer(id) {
-    if (!confirm('Remove this officer?')) return
     const { error } = await supabase.from('officers').delete().eq('id', id)
     if (error) { toast.error(error.message); return }
     toast.info('Officer removed')
@@ -108,6 +111,9 @@ export default function UsersPage() {
   if (loading) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
 
   const assignedIds = new Set(officers.map(o => o.profile_id))
+  const filteredUsers = users.filter(u =>
+    !search || u.display_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className="space-y-6">
@@ -132,7 +138,7 @@ export default function UsersPage() {
                 <span className="text-stone-400 dark:text-stone-500">—</span>
                 <span className="text-stone-600 dark:text-stone-400">{o.title}</span>
               </div>
-              <button onClick={() => removeOfficer(o.id)} className="p-1 rounded text-stone-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+              <button onClick={() => setConfirmRemoveOfficer(o)} className="p-1 rounded text-stone-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -203,7 +209,14 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 overflow-x-auto">
+      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+        <div className="p-3 border-b border-stone-200 dark:border-stone-700">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+            <input type="text" placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 pl-9 pr-3 py-2 text-sm text-stone-800 dark:text-stone-200" />
+          </div>
+        </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-stone-50 dark:bg-stone-950 text-stone-600 dark:text-stone-400 text-left">
             <tr>
@@ -213,7 +226,7 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-200 dark:divide-stone-700">
-            {users.map((u) => {
+            {filteredUsers.map((u) => {
               const officer = officers.find(o => o.profile_id === u.id)
               return (
                 <tr key={u.id} className="hover:bg-stone-50 dark:hover:bg-stone-800">
@@ -238,7 +251,7 @@ export default function UsersPage() {
                         <Mail className="h-3 w-3 mr-1" />{sendingReset === u.email ? 'Sending...' : 'Reset'}
                       </Button>
                       {!officer && !u.is_admin && (
-                        <button onClick={() => { if (confirm('Remove this user?')) { supabase.from('profiles').delete().eq('id', u.id).then(() => fetchAll()) }}} className="p-1.5 rounded text-stone-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <button onClick={() => setConfirmRemove(u)} className="p-1.5 rounded text-stone-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
@@ -249,7 +262,29 @@ export default function UsersPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmRemoveOfficer}
+        title="Remove officer?"
+        message={`Remove ${confirmRemoveOfficer?.profile?.display_name || 'this officer'} from their position?`}
+        onConfirm={() => { if (confirmRemoveOfficer) removeOfficer(confirmRemoveOfficer.id); setConfirmRemoveOfficer(null) }}
+        onCancel={() => setConfirmRemoveOfficer(null)}
+      />
+      <ConfirmDialog
+        open={!!confirmRemove}
+        title="Remove user?"
+        message={`This will permanently delete ${confirmRemove?.display_name || 'this user'}'s profile and all their data.`}
+        onConfirm={async () => {
+          if (!confirmRemove) return
+          await supabase.from('profiles').delete().eq('id', confirmRemove.id)
+          toast.info('User removed')
+          setConfirmRemove(null)
+          fetchAll()
+        }}
+        onCancel={() => setConfirmRemove(null)}
+      />
     </div>
   )
 }

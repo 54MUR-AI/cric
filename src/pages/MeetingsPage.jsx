@@ -3,17 +3,25 @@ import { useMeetings } from '../hooks/useMeetings'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import EmptyState from '../components/ui/EmptyState'
 import { formatDate } from '../lib/utils'
-import { Plus, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, ChevronUp, ChevronDown, Search } from 'lucide-react'
 
 export default function MeetingsPage() {
-  const { meetings, loading, createMeeting, updateMeeting, deleteMeeting } = useMeetings()
+  const { meetings, loading, createMeeting, deleteMeeting } = useMeetings()
   const { user, isAdmin } = useAuth()
   const [selectedMeetingId, setSelectedMeetingId] = useState(null)
   const [meetingDetail, setMeetingDetail] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({ title: '', date: '', location: '' })
   const [agendaItems, setAgendaItems] = useState([{ title: '', description: '', proposer: '', seconder: '' }])
+  const [search, setSearch] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const filtered = meetings.filter(m =>
+    !search || m.title.toLowerCase().includes(search.toLowerCase())
+  )
 
   async function openMeeting(id) {
     setSelectedMeetingId(id)
@@ -44,6 +52,14 @@ export default function MeetingsPage() {
     setShowForm(false)
   }
 
+  async function handleDeleteMeeting() {
+    if (!confirmDelete) return
+    await deleteMeeting(confirmDelete.id)
+    setConfirmDelete(null)
+    setMeetingDetail(null)
+    setSelectedMeetingId(null)
+  }
+
   const outcomeColors = { passed: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20', failed: 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20', tabled: 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' }
 
   if (loading) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
@@ -57,8 +73,21 @@ export default function MeetingsPage() {
         </Button>
       </div>
 
+      {meetings.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+          <input
+            type="text"
+            placeholder="Search meetings..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 pl-9 pr-3 py-2 text-sm text-stone-800 dark:text-stone-200"
+          />
+        </div>
+      )}
+
       <div className="space-y-2">
-        {meetings.map((m) => (
+        {filtered.map((m) => (
           <div key={m.id} className={`rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border cursor-pointer transition-colors ${selectedMeetingId === m.id ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-stone-200 dark:border-stone-700 hover:border-emerald-300'}`} onClick={() => openMeeting(m.id)}>
             <div className="flex justify-between items-start">
               <div>
@@ -69,7 +98,9 @@ export default function MeetingsPage() {
             </div>
           </div>
         ))}
-        {meetings.length === 0 && <p className="text-sm text-stone-400 dark:text-stone-500 text-center py-8">No meetings recorded yet</p>}
+        {filtered.length === 0 && (
+          <EmptyState icon="fileText" title={search ? 'No matches' : 'No meetings yet'} description={search ? 'Try a different search term.' : 'Click "New Meeting" to record the first one.'} />
+        )}
       </div>
 
       {meetingDetail && (
@@ -81,7 +112,7 @@ export default function MeetingsPage() {
                 <p className="text-sm text-stone-400 dark:text-stone-500">{formatDate(meetingDetail.date)}{meetingDetail.location ? ` · ${meetingDetail.location}` : ''}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                {isAdmin && <Button variant="danger" size="sm" onClick={() => { if (confirm('Delete this meeting permanently?')) { deleteMeeting(meetingDetail.id); setMeetingDetail(null); setSelectedMeetingId(null) } }}>Delete</Button>}
+                {isAdmin && <Button variant="danger" size="sm" onClick={() => setConfirmDelete(meetingDetail)}>Delete</Button>}
                 <Button variant="ghost" size="sm" onClick={() => { setMeetingDetail(null); setSelectedMeetingId(null) }}>Close</Button>
               </div>
             </div>
@@ -171,6 +202,14 @@ export default function MeetingsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete meeting?"
+        message="This will permanently delete this meeting and all its agenda items."
+        onConfirm={handleDeleteMeeting}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

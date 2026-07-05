@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay } from 'date-fns'
+import { format, parse, startOfWeek, getDay, differenceInCalendarDays } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
 import { Share2 } from 'lucide-react'
 import { formatDate } from '../lib/utils'
@@ -9,6 +9,7 @@ import { useCabins } from '../hooks/useCabins'
 import { useAuth } from '../hooks/useAuth'
 import { useShare } from '../lib/share'
 import Button from '../components/ui/Button'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 const locales = { 'en-US': enUS }
@@ -26,6 +27,7 @@ export default function SchedulePage() {
   const [editData, setEditData] = useState({})
   const [formData, setFormData] = useState({ cabin_id: '', guests: '', notes: '' })
   const [error, setError] = useState('')
+  const [confirmCancel, setConfirmCancel] = useState(null)
 
   const events = bookings.map((b) => ({
     id: b.id,
@@ -46,12 +48,18 @@ export default function SchedulePage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    const start = selectedSlot.start.toISOString().split('T')[0]
+    const end = formData.end_date || selectedSlot.end.toISOString().split('T')[0]
+    if (end < start) {
+      setError('End date must be on or after the start date')
+      return
+    }
     try {
       await createBooking({
         cabin_id: formData.cabin_id,
         user_id: user.id,
-        start_date: selectedSlot.start.toISOString().split('T')[0],
-        end_date: formData.end_date || selectedSlot.end.toISOString().split('T')[0],
+        start_date: start,
+        end_date: end,
         guests: formData.guests || null,
         notes: formData.notes || null,
       })
@@ -66,7 +74,8 @@ export default function SchedulePage() {
   }
 
   async function handleDelete(id) {
-    if (confirm('Cancel this booking?')) await deleteBooking(id)
+    if (confirmCancel) await deleteBooking(id)
+    setConfirmCancel(null)
   }
 
   if (loadingB || loadingC) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
@@ -190,7 +199,7 @@ export default function SchedulePage() {
                       <Button variant="secondary" onClick={() => { setEditData({ end_date: selectedEvent.end_date, guests: selectedEvent.guests || '', notes: selectedEvent.notes || '' }); setEditing(true) }}>Edit</Button>
                     )}
                     <Button variant="secondary" onClick={() => { setSelectedEvent(null); setEditing(false) }}>Close</Button>
-                    <Button variant="danger" onClick={() => { handleDelete(selectedEvent.id); setSelectedEvent(null); setEditing(false) }}>Cancel Booking</Button>
+                    <Button variant="danger" onClick={() => setConfirmCancel(selectedEvent.id)}>Cancel Booking</Button>
                   </div>
                 </div>
               </>
@@ -218,6 +227,16 @@ export default function SchedulePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmCancel}
+        title="Cancel booking?"
+        message="This will permanently remove this reservation."
+        confirmLabel="Cancel Booking"
+        variant="danger"
+        onConfirm={() => handleDelete(confirmCancel)}
+        onCancel={() => setConfirmCancel(null)}
+      />
     </div>
   )
 }

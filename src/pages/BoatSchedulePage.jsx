@@ -3,6 +3,8 @@ import { Ship, Plus, X, ChevronLeft, ChevronRight, DollarSign, Users, Clock, Map
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import EmptyState from '../components/ui/EmptyState'
 import { useToast } from '../components/ui/Toast'
 
 const TRIP_DURATION = 45
@@ -12,6 +14,7 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
   const toast = useToast()
   const [form, setForm] = useState(trip || { trip_date: '', departure_time: '', return_time: '', destination: 'The Foot (Cranberry Lake)', passengers: 1, notes: '', gas_fee_paid: false })
   const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -35,10 +38,10 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this trip?')) return
     const { error } = await supabase.from('boat_trips').delete().eq('id', trip.id)
     if (error) toast.error(error.message)
     else { toast.success('Trip deleted'); onDelete() }
+    setConfirmDelete(false)
   }
 
   return (
@@ -83,10 +86,17 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
           )}
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={saving} className="flex-1">{saving ? 'Saving...' : trip ? 'Update' : 'Add Trip'}</Button>
-            {trip && <Button type="button" variant="danger" onClick={handleDelete}>Delete</Button>}
+            {trip && <Button type="button" variant="danger" onClick={() => setConfirmDelete(true)}>Delete</Button>}
           </div>
         </form>
       </div>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete trip?"
+        message="This will remove this boat trip from the schedule."
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }
@@ -132,7 +142,7 @@ export default function BoatSchedulePage() {
           Upcoming Trips ({upcoming.length})
         </h2>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-stone-400 dark:text-stone-500 italic">No trips scheduled yet.</p>
+          <EmptyState icon="ship" title="No trips scheduled yet" description="Click 'New Trip' to add a pontoon run." />
         ) : (
           <div className="space-y-2">
             {upcoming.map(trip => (
