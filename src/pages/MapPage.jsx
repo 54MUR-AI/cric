@@ -97,6 +97,8 @@ function LightningLayer({ onStrikeNearby }) {
   const map = useMap()
   const markersRef = useRef([])
   const wsRef = useRef(null)
+  const onStrikeNearbyRef = useRef(onStrikeNearby)
+  onStrikeNearbyRef.current = onStrikeNearby
 
   useEffect(() => {
     let cancelled = false
@@ -147,9 +149,9 @@ function LightningLayer({ onStrikeNearby }) {
               const marker = L.marker([s.lat, s.lon], { icon }).addTo(map)
               marker._strikeTime = s.time
               markers.push(marker)
-              if (onStrikeNearby) {
+              if (onStrikeNearbyRef.current) {
                 const dist = haversineKm(CHAIR_ROCK_ISLAND[0], CHAIR_ROCK_ISLAND[1], s.lat, s.lon)
-                if (dist < 15) onStrikeNearby(s, dist)
+                if (dist < 15) onStrikeNearbyRef.current(s, dist)
               }
             }
           } catch { /* skip unparseable */ }
@@ -178,7 +180,7 @@ function LightningLayer({ onStrikeNearby }) {
       markers.forEach(m => map.removeLayer(m))
       markers.length = 0
     }
-  }, [map, onStrikeNearby])
+  }, [map])
 
   return null
 }
@@ -511,6 +513,9 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
       if (onLightningStrike) onLightningStrike(msg)
     }
   }, [toast, onLightningStrike])
+
+  const handleStrikeNearbyRef = useRef(handleStrikeNearby)
+  handleStrikeNearbyRef.current = handleStrikeNearby
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) mapRef.current?.requestFullscreen()
