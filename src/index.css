@@ -66,20 +66,11 @@ html { scroll-behavior: smooth; }
   .dark .rbc-off-range {
     @apply text-stone-500;
   }
-  .rbc-today {
-    @apply bg-transparent;
+  .rbc-today.rbc-day-bg {
+    background: #ecfdf5;
   }
-  .rbc-today .rbc-date-cell {
-    @apply pt-1;
-  }
-  .rbc-today .rbc-date-cell a {
-    @apply inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-200 text-emerald-800 font-bold;
-  }
-  .dark .rbc-today {
-    @apply bg-transparent;
-  }
-  .dark .rbc-today .rbc-date-cell a {
-    @apply bg-emerald-800/40 text-emerald-200;
+  .dark .rbc-today.rbc-day-bg {
+    background: rgba(6, 95, 70, 0.15);
   }
   .dark .rbc-date-cell {
     @apply text-stone-300;
