@@ -10,6 +10,7 @@ import { useSWUpdate } from '../../lib/useSWUpdate'
 import { useKeyBindings } from '../../lib/useKeyBindings'
 import { useInstallPrompt } from '../../lib/useInstallPrompt'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
+import { useToast } from '../ui/Toast'
 import { Download, X } from 'lucide-react'
 
 function PullToRefresh({ onRefresh }) {
@@ -61,9 +62,27 @@ export default function AppShell() {
   const { updateAvailable, activateUpdate } = useSWUpdate()
   useKeyBindings()
   const { showInstall, install, dismiss } = useInstallPrompt()
-  const { subscribe } = usePushNotifications()
+  const { supported, enabled, toggle } = usePushNotifications()
+  const toast = useToast()
 
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
+
+  const handleBellClick = useCallback(async () => {
+    if (!supported) {
+      toast.error('Push notifications are not supported in this browser')
+      return
+    }
+    const result = await toggle()
+    if (result.ok) {
+      if (enabled) {
+        toast.success('Notifications disabled')
+      } else {
+        toast.success('Notifications enabled')
+      }
+    } else if (result.reason === 'denied') {
+      toast.error('Notification permission was denied. Please enable it in your browser settings.')
+    }
+  }, [supported, enabled, toggle, toast])
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -96,20 +115,12 @@ export default function AppShell() {
           </button>
           <span className="font-semibold text-sm">CRIC Manager</span>
           <button
-            onClick={() => {
-              if (Notification.permission === 'granted') {
-                subscribe()
-              } else {
-                Notification.requestPermission().then(permission => {
-                  if (permission === 'granted') subscribe()
-                })
-              }
-            }}
+            onClick={handleBellClick}
             className="p-1 text-stone-300 hover:text-white transition-colors"
-            title="Toggle notifications"
+            title={enabled ? 'Disable notifications' : 'Enable notifications'}
           >
-            {Notification.permission === 'granted' ? (
-              <Bell className="h-5 w-5" />
+            {enabled ? (
+              <Bell className="h-5 w-5 text-emerald-400" />
             ) : (
               <BellOff className="h-5 w-5" />
             )}
@@ -123,20 +134,12 @@ export default function AppShell() {
               </button>
             )}
             <button
-              onClick={() => {
-                if (Notification.permission === 'granted') {
-                  subscribe()
-                } else {
-                  Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') subscribe()
-                  })
-                }
-              }}
+              onClick={handleBellClick}
               className="p-2 text-stone-300 hover:text-white transition-colors"
-              title="Toggle notifications"
+              title={enabled ? 'Disable notifications' : 'Enable notifications'}
             >
-              {Notification.permission === 'granted' ? (
-                <Bell className="h-5 w-5" />
+              {enabled ? (
+                <Bell className="h-5 w-5 text-emerald-400" />
               ) : (
                 <BellOff className="h-5 w-5" />
               )}

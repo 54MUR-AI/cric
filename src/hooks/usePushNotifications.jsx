@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
@@ -6,24 +6,34 @@ const VAPID_PUBLIC_KEY = 'c9f8829a1866c6cd5bfa21222828192db89c01298ff648563318d7
 
 export function usePushNotifications() {
   const { user } = useAuth()
-  const subscribedRef = useRef(false)
+  const [supported, setSupported] = useState(false)
+  const [enabled, setEnabled] = useState(false)
 
-  const getSubscription = useCallback(async () => {
-    try {
-      const reg = await navigator.serviceWorker.ready
-      return reg.pushManager.getSubscription()
-    } catch { return null }
-  }, [])
+  useEffect(() => {
+    const ok = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
+    setSupported(ok)
+    if (ok) {
+      setEnabled(Notification.permission === 'granted')
+      const reg = navigator.serviceWorker?.controller
+      if (reg) {
+        navigator.serviceWorker.ready.then(r => {
+          r.pushManager.getSubscription().then(sub => {
+            if (sub) setEnabled(true)
+          })
+        })
+      }
+    }
+  }, [user])
 
   const subscribe = useCallback(async () => {
-    if (!user || !('Notification' in window) || !('serviceWorker' in navigator)) return
+    if (!user || !supported) return { ok: false, reason: 'unsupported' }
 
-    const permission = Notification.permission
-    if (permission === 'denied') return
+    if (Notification.permission === 'denied') return { ok: false, reason: 'denied' }
 
-    if (permission === 'default') {
-      const result = await Notification.requestPermission()
-      if (result !== 'granted') return
+    let perm = Notification.permission
+    if (perm === 'default') {
+      perm = await Notification.requestPermission()
+      if (perm !== 'granted') return { ok: false, reason: 'denied' }
     }
 
     try {
@@ -31,8 +41,8 @@ export function usePushNotifications() {
       const existing = await reg.pushManager.getSubscription()
       if (existing) {
         await saveSubscription(existing)
-        subscribedRef.current = true
-        return
+        setEnabled(true)
+        return { ok: true }
       }
 
       const sub = await reg.pushManager.subscribe({
@@ -41,47 +51,49 @@ export function usePushNotifications() {
       })
 
       await saveSubscription(sub)
-      subscribedRef.current = true
-    } catch {}
-  }, [user])
+      setEnabled(true)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, reason: err.message }
+    }
+  }, [user, supported])
 
   const unsubscribe = useCallback(async () => {
     try {
-      const sub = await getSubscription()
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
       if (sub) {
         await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
         await sub.unsubscribe()
       }
-      subscribedRef.current = false
-    } catch {}
-  }, [getSubscription])
+      setEnabled(false)
+      return { ok: true }
+    } catch {
+      return { ok: false }
+    }
+  }, [])
+
+  const toggle = useCallback(async () => {
+    if (enabled) return unsubscribe()
+    return subscribe()
+  }, [enabled, subscribe, unsubscribe])
 
   useEffect(() => {
-    if (!user) {
-      subscribedRef.current = false
-      return
-    }
+    if (!user || !supported) return
 
     const init = async () => {
       const reg = await navigator.serviceWorker.ready
       const existing = await reg.pushManager.getSubscription()
       if (existing) {
         await saveSubscription(existing)
-        subscribedRef.current = true
+        setEnabled(true)
       }
     }
 
     init()
+  }, [user, supported])
 
-    const handleOnline = () => {
-      if (!subscribedRef.current) init()
-    }
-
-    window.addEventListener('online', handleOnline)
-    return () => window.removeEventListener('online', handleOnline)
-  }, [user])
-
-  return { subscribe, unsubscribe, getSubscription, sendPushToAll }
+  return { supported, enabled, subscribe, unsubscribe, toggle }
 }
 
 export async function sendPushToAll(payload) {
