@@ -15,6 +15,13 @@ function urlBase64ToUint8Array(base64String) {
 
 const VAPID_KEY_BYTES = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 
+function timeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ])
+}
+
 export function usePushNotifications() {
   const { user } = useAuth()
   const [supported, setSupported] = useState(false)
@@ -25,7 +32,7 @@ export function usePushNotifications() {
     setSupported(hasAPI)
     
     if (hasAPI && user) {
-      navigator.serviceWorker.ready.then(async reg => {
+      timeout(navigator.serviceWorker.ready, 5000).then(async reg => {
         const sub = await reg.pushManager.getSubscription()
         setEnabled(Notification.permission === 'granted' && !!sub)
       }).catch(() => {
@@ -46,7 +53,7 @@ export function usePushNotifications() {
     }
 
     try {
-      const reg = await navigator.serviceWorker.ready
+      const reg = await timeout(navigator.serviceWorker.ready, 10000)
       
       // Clear any existing subscription
       const existing = await reg.pushManager.getSubscription()
@@ -70,7 +77,7 @@ export function usePushNotifications() {
 
   const unsubscribe = useCallback(async () => {
     try {
-      const reg = await navigator.serviceWorker.ready
+      const reg = await timeout(navigator.serviceWorker.ready, 10000)
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
         await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
