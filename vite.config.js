@@ -27,8 +27,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,svg,png,ico}'],
+        navigateFallback: null,
+        navigationPreload: true,
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages',
+              expiration: { maxEntries: 5, maxAgeSeconds: 86400 },
+            },
+          },
           {
             urlPattern: /^https?:\/\/.*\/rest\/v1\/.*/i,
             handler: 'StaleWhileRevalidate',
