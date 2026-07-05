@@ -3,7 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link } from 'react-router-dom'
-import { Radio, Zap, Thermometer, Navigation, MapPin, Layers, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair } from 'lucide-react'
+import { useToast } from '../components/ui/Toast'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { useCabins } from '../hooks/useCabins'
@@ -90,7 +91,7 @@ function RadarLayer() {
   return null
 }
 
-function LightningLayer() {
+function LightningLayer({ onStrikeNearby }) {
   const map = useMap()
   const markersRef = useRef([])
   const wsRef = useRef(null)
@@ -144,6 +145,10 @@ function LightningLayer() {
               const marker = L.marker([s.lat, s.lon], { icon }).addTo(map)
               marker._strikeTime = s.time
               markers.push(marker)
+              if (onStrikeNearby) {
+                const dist = haversineKm(CHAIR_ROCK_ISLAND[0], CHAIR_ROCK_ISLAND[1], s.lat, s.lon)
+                if (dist < 15) onStrikeNearby(s, dist)
+              }
             }
           } catch { /* skip unparseable */ }
         }
@@ -171,7 +176,7 @@ function LightningLayer() {
       markers.forEach(m => map.removeLayer(m))
       markers.length = 0
     }
-  }, [map])
+  }, [map, onStrikeNearby])
 
   return null
 }
@@ -273,7 +278,7 @@ export default function MapPage({ compact } = {}) {
   const [showStations, setShowStations] = useState(true)
   const [showTrails, setShowTrails] = useState(true)
   const [showPins, setShowPins] = useState(true)
-  const [showLightning, setShowLightning] = useState(false)
+  const [showLightning, setShowLightning] = useState(true)
   const [baseLayer, setBaseLayer] = useState('satellite')
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [newPinLatLng, setNewPinLatLng] = useState(null)
@@ -312,6 +317,44 @@ export default function MapPage({ compact } = {}) {
     }
     return () => { if (watchIdRef.current != null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null } }
   }, [trackingEnabled])
+
+  const toast = useToast()
+  const lastLightningAlertRef = useRef(0)
+  const seenAlertIdsRef = useRef(new Set())
+
+  useEffect(() => {
+    let cancelled = false
+    const checkAlerts = async () => {
+      try {
+        const r = await fetch('https://api.weather.gov/alerts/active?point=44.14722,-74.81194')
+        const data = await r.json()
+        if (cancelled) return
+        const warnings = (data.features || []).filter(f => {
+          const e = f.properties.event || ''
+          return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm'
+        })
+        for (const w of warnings) {
+          const id = w.properties.id
+          if (!seenAlertIdsRef.current.has(id)) {
+            seenAlertIdsRef.current.add(id)
+            toast.warning(`${w.properties.event}: ${(w.properties.headline || w.properties.description || '').slice(0, 120)}`, 10000)
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    checkAlerts()
+    const interval = setInterval(checkAlerts, 300000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [toast])
+
+  const handleStrikeNearby = useCallback((strike, distKm) => {
+    const now = Date.now()
+    if (now - lastLightningAlertRef.current > 300000) {
+      lastLightningAlertRef.current = now
+      const dir = bearing(CHAIR_ROCK_ISLAND[0], CHAIR_ROCK_ISLAND[1], strike.lat, strike.lon)
+      toast.warning(`Lightning ${distKm.toFixed(1)}km ${dir} of Chair Rock Island! Take cover.`, 8000)
+    }
+  }, [toast])
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) mapRef.current?.requestFullscreen()
@@ -367,13 +410,14 @@ export default function MapPage({ compact } = {}) {
   const baseLayerColors = { map: 'bg-stone-500', satellite: 'bg-purple-600', topo: 'bg-amber-700' }
 
   const overlayItems = [
-    { key: 'showRadar', label: 'Radar', icon: Radio },
-    { key: 'showStations', label: 'Weather Stations', icon: Thermometer },
-    { key: 'showTrails', label: 'Trails', icon: Navigation },
-    { key: 'showPins', label: 'Pins', icon: MapPin },
+    { key: 'showRadar', label: 'Radar', icon: Radio, activeColor: 'text-rose-500', pulsingDot: '#f43f5e' },
+    { key: 'showStations', label: 'Weather Stations', icon: Thermometer, activeColor: 'text-orange-500' },
+    { key: 'showTrails', label: 'Trails', icon: Navigation, activeColor: 'text-emerald-500' },
+    { key: 'showPins', label: 'Pins', icon: MapPin, activeColor: 'text-sky-500' },
+    { key: 'showLightning', label: 'Lightning', icon: Zap, activeColor: 'text-amber-500', pulsingDot: '#f59e0b' },
   ]
-  const valMap = { showRadar, showStations, showTrails, showPins }
-  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins }
+  const valMap = { showRadar, showStations, showTrails, showPins, showLightning }
+  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning }
 
   const mapHeight = compact ? 'min-h-[250px] h-[250px] md:min-h-[400px] md:h-[400px]' : 'min-h-[450px]'
   const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
@@ -400,7 +444,7 @@ export default function MapPage({ compact } = {}) {
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
-          {showLightning && <LightningLayer />}
+          {showLightning && <LightningLayer onStrikeNearby={handleStrikeNearby} />}
 
           {showStations && stations.map((s) => (
             <WindArrow key={s.stationIdentifier} name={s.name} lat={s.latitude} lon={s.longitude} speed={s.observation?.windSpeed?.value} direction={s.observation?.windDirection?.value} temp={s.observation?.temperature?.value} />
@@ -459,19 +503,19 @@ export default function MapPage({ compact } = {}) {
                 <div>
                   <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Overlays</h4>
                   <div className="space-y-1">
-                    {overlayItems.map(({ key, label, icon: Icon }) => (
+                    {overlayItems.map(({ key, label, icon: Icon, activeColor, pulsingDot }) => (
                       <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
                         <input type="checkbox" checked={valMap[key]} onChange={() => setterMap[key](!valMap[key])} className="accent-stone-800 dark:accent-stone-200" />
-                        <Icon className="h-3.5 w-3.5 text-stone-400" />
+                        <Icon className={`h-3.5 w-3.5 ${valMap[key] ? activeColor : 'text-stone-400'}`} />
                         {label}
+                        {pulsingDot && valMap[key] && (
+                          <span className="ml-auto flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: pulsingDot }}></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: pulsingDot }}></span>
+                          </span>
+                        )}
                       </label>
                     ))}
-                    <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-                      <input type="checkbox" checked={showLightning} onChange={() => setShowLightning(!showLightning)} className="accent-stone-800 dark:accent-stone-200" />
-                      <Zap className={`h-3.5 w-3.5 ${showLightning ? 'text-amber-500' : 'text-stone-400'}`} />
-                      Lightning
-                      {showLightning && <span className="ml-auto flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span>}
-                    </label>
                     <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
                       <input type="checkbox" checked={trackingEnabled} onChange={() => setTrackingEnabled(!trackingEnabled)} className="accent-stone-800 dark:accent-stone-200" />
                       <Crosshair className={`h-3.5 w-3.5 ${trackingEnabled ? 'text-blue-500' : 'text-stone-400'}`} />

@@ -104,16 +104,6 @@ html { scroll-behavior: smooth; }
     @apply text-emerald-400;
   }
 
-  .dark .leaflet-popup-content-wrapper {
-    @apply bg-stone-900 text-stone-200 border-stone-700;
-  }
-  .dark .leaflet-popup-tip {
-    @apply bg-stone-900;
-  }
-  .dark .leaflet-popup-close-button {
-    color: #a8a29e;
-  }
-
   input:where(:not([type="checkbox"]):not([type="radio"]):not([type="color"])),
   select,
   textarea {
@@ -136,6 +126,10 @@ html { scroll-behavior: smooth; }
 .rbc-off-range { color: #d6d3d1; }
 .dark .rbc-off-range-bg { background: #0c0a09; }
 .dark .rbc-off-range { color: #57534e; }
+
+.dark .leaflet-popup-content-wrapper { background: #1c1917; color: #e7e5e4; border-color: #44403c; }
+.dark .leaflet-popup-tip { background: #1c1917; }
+.dark .leaflet-popup-close-button { color: #a8a29e !important; }
 
 @keyframes slide-in-from-left {
   from { transform: translateX(-100%); }
