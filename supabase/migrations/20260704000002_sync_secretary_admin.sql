@@ -2,11 +2,10 @@
 -- When someone is assigned as Secretary, they become super admin
 -- When they lose the Secretary position, super admin is revoked
 
-create or replace function sync_secretary_admin()
+create or replace function public.sync_secretary_admin()
 returns trigger
 language plpgsql
-security definer
-set search_path = public
+security invoker
 as $$
 begin
   if tg_op in ('INSERT', 'UPDATE') then
@@ -35,4 +34,4 @@ $$;
 
 create trigger trg_sync_secretary_admin
   after insert or update or delete on officers
-  for each row execute function sync_secretary_admin();
+  for each row execute function public.sync_secretary_admin();

@@ -5,8 +5,11 @@ alter table profiles add column if not exists role text not null default 'member
 update profiles set role = 'super_admin' where is_admin = true;
 
 -- Update the trigger to set role from user metadata on signup
-create or replace function handle_new_user()
-returns trigger as $$
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security invoker
+as $$
 begin
   insert into public.profiles (id, display_name, role)
   values (
@@ -16,7 +19,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 -- Super admin can bypass 7-day lock on meetings
 create policy "Super admins can update any meeting"
