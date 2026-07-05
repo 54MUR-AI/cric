@@ -15,13 +15,6 @@ function urlBase64ToUint8Array(base64String) {
 
 const VAPID_KEY_BYTES = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 
-function timeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-  ])
-}
-
 export function usePushNotifications() {
   const { user } = useAuth()
   const [supported, setSupported] = useState(false)
@@ -32,7 +25,7 @@ export function usePushNotifications() {
     setSupported(hasAPI)
     
     if (hasAPI && user) {
-      timeout(navigator.serviceWorker.ready, 5000).then(async reg => {
+      navigator.serviceWorker.ready.then(async reg => {
         const sub = await reg.pushManager.getSubscription()
         setEnabled(Notification.permission === 'granted' && !!sub)
       }).catch(() => {
@@ -53,15 +46,18 @@ export function usePushNotifications() {
     }
 
     try {
-      const reg = await timeout(navigator.serviceWorker.ready, 10000)
+      const reg = await navigator.serviceWorker.ready
       
-      // Clear any existing subscription
+      // Check if already subscribed with same key
       const existing = await reg.pushManager.getSubscription()
       if (existing) {
-        try { await existing.unsubscribe() } catch { /* ignore */ }
+        // Already subscribed, just save to DB
+        await saveSubscription(existing)
+        setEnabled(true)
+        return { ok: true }
       }
 
-      // Subscribe fresh with current VAPID key
+      // Subscribe fresh
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: VAPID_KEY_BYTES,
@@ -77,7 +73,7 @@ export function usePushNotifications() {
 
   const unsubscribe = useCallback(async () => {
     try {
-      const reg = await timeout(navigator.serviceWorker.ready, 10000)
+      const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
         await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
