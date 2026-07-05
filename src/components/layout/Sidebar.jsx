@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, LogOut, X, Moon, Sun, Ship, AlertTriangle,
+  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, LogOut, X, Moon, Sun, Ship, AlertTriangle, ChevronDown,
 } from 'lucide-react'
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '../../lib/constants'
 import { useAuth } from '../../hooks/useAuth'
@@ -26,6 +26,7 @@ export default function Sidebar({ open, onClose }) {
   const { profile, isAdmin, signOut } = useAuth()
   const [officers, setOfficers] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
+  const [officersOpen, setOfficersOpen] = useState(true)
   useEffect(() => {
     supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order').then(({ data }) => setOfficers(data || []))
   }, [refreshKey])
@@ -106,8 +107,11 @@ export default function Sidebar({ open, onClose }) {
         </div>
         {officers.length > 0 && (
           <div className="mb-2 pt-2 border-t border-emerald-800">
-            <div className="text-xs text-emerald-400 font-medium px-2 mb-1">Officers</div>
-            {officers.map(o => (
+            <button onClick={() => setOfficersOpen(o => !o)} className="flex w-full items-center gap-1 px-2 mb-1 text-xs text-emerald-400 font-medium hover:text-emerald-300 transition-colors">
+              <ChevronDown className={`h-3 w-3 transition-transform ${officersOpen ? '' : '-rotate-90'}`} />
+              Officers
+            </button>
+            {officersOpen && officers.map(o => (
               <div key={o.id} className="flex items-center gap-2 px-2 py-0.5 text-xs text-stone-400">
                 <span className="font-medium text-stone-300">{o.profile?.display_name}</span>
                 <span>— {o.title}</span>
