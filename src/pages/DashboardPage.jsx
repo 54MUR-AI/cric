@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, AlertOctagon, X } from 'lucide-react'
+import { useToast } from '../components/ui/Toast'
 import MapPage from './MapPage'
 
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
@@ -75,6 +76,7 @@ function WeatherWidget() {
 
 export default function DashboardPage() {
   const { profile } = useAuth()
+  const toast = useToast()
   const [upcomingBookings, setUpcomingBookings] = useState([])
   const [openTasks, setOpenTasks] = useState([])
   const [nextMeeting, setNextMeeting] = useState(null)
@@ -109,6 +111,18 @@ export default function DashboardPage() {
 
   const dismissAlert = (id) => setDismissedAlerts(prev => new Set([...prev, id]))
   const dismissLightning = () => setLightningAlert(null)
+
+  const triggerTestAlert = () => {
+    const testWarnings = [
+      { id: `test-warn-${Date.now()}`, event: 'Severe Thunderstorm Warning', headline: 'Severe Thunderstorm Warning issued for St. Lawrence County until 8:45 PM EDT. Damaging winds and heavy rain expected.', severity: 'Severe', urgency: 'Immediate' },
+    ]
+    setAlerts(prev => [...prev, ...testWarnings])
+    setLightningAlert('Lightning 4.2km NW of Chair Rock Island! Take cover.')
+    toast.warning('TEST: Severe Thunderstorm Warning for St. Lawrence County', 8000)
+    if (Notification.permission === 'granted') {
+      try { new Notification('TEST: Severe Thunderstorm Warning', { body: 'Test notification - you should see this as a system notification.', icon: '/images/icon-192.png' }) } catch { /* ignore */ }
+    }
+  }
 
   const activeAlerts = alerts.filter(a => !dismissedAlerts.has(a.id))
 
@@ -166,7 +180,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</h1>
+      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}
+        <button onClick={triggerTestAlert} className="ml-3 align-middle text-[10px] font-normal text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 border border-stone-300 dark:border-stone-600 rounded px-2 py-0.5" title="Trigger test notification alerts">Test Alerts</button>
+      </h1>
 
       <WeatherWidget />
 
