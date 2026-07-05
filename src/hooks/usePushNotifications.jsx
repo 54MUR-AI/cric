@@ -46,14 +46,19 @@ export function usePushNotifications() {
 
     try {
       const reg = await navigator.serviceWorker.ready
-      let sub = await reg.pushManager.getSubscription()
-
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: VAPID_KEY_BYTES,
-        })
+      
+      // Always clear any existing subscription first to avoid stale key conflicts
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) {
+        await supabase.from('push_subscriptions').delete().eq('endpoint', existing.endpoint)
+        await existing.unsubscribe()
       }
+
+      // Subscribe fresh with current VAPID key
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: VAPID_KEY_BYTES,
+      })
 
       await saveSubscription(sub)
       setEnabled(true)
