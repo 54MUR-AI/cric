@@ -15,20 +15,29 @@ function urlBase64ToUint8Array(base64String) {
 
 const VAPID_KEY_BYTES = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 
+function isBrave() {
+  return navigator.brave && typeof navigator.brave.isBrave === 'function'
+}
+
 export function usePushNotifications() {
   const { user } = useAuth()
   const [supported, setSupported] = useState(false)
   const [enabled, setEnabled] = useState(false)
+  const [isBraveBrowser, setIsBraveBrowser] = useState(false)
 
   useEffect(() => {
     const hasAPI = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
     setSupported(hasAPI)
+    setIsBraveBrowser(isBrave())
     
     if (hasAPI && user) {
+      // Check actual subscription state
       navigator.serviceWorker.ready.then(async reg => {
         const sub = await reg.pushManager.getSubscription()
-        setEnabled(Notification.permission === 'granted' && !!sub)
+        const perm = Notification.permission
+        setEnabled(perm === 'granted' && !!sub)
       }).catch(() => {
+        // If SW fails, just check permission
         setEnabled(Notification.permission === 'granted')
       })
     }
@@ -48,10 +57,9 @@ export function usePushNotifications() {
     try {
       const reg = await navigator.serviceWorker.ready
       
-      // Check if already subscribed with same key
+      // Check if already subscribed
       const existing = await reg.pushManager.getSubscription()
       if (existing) {
-        // Already subscribed, just save to DB
         await saveSubscription(existing)
         setEnabled(true)
         return { ok: true }
@@ -91,7 +99,7 @@ export function usePushNotifications() {
     return subscribe()
   }, [enabled, subscribe, unsubscribe])
 
-  return { supported, enabled, subscribe, unsubscribe, toggle }
+  return { supported, enabled, isBraveBrowser, subscribe, unsubscribe, toggle }
 }
 
 export async function sendPushToAll(payload) {

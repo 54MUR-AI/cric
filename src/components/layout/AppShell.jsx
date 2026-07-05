@@ -62,7 +62,7 @@ export default function AppShell() {
   const { updateAvailable, activateUpdate } = useSWUpdate()
   useKeyBindings()
   const { showInstall, install, dismiss } = useInstallPrompt()
-  const { supported, enabled, toggle } = usePushNotifications()
+  const { supported, enabled, isBraveBrowser, toggle } = usePushNotifications()
   const toast = useToast()
 
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
@@ -73,14 +73,16 @@ export default function AppShell() {
       return
     }
     
-    // Check if Brave browser
-    const isBrave = navigator.brave && typeof navigator.brave.isBrave === 'function'
-    if (isBrave) {
-      toast.warning('Brave blocks push notifications by default. Use Chrome or enable in brave://settings/content/notifications')
-      return
+    // Brave-specific guidance
+    if (isBraveBrowser) {
+      if (Notification.permission === 'denied') {
+        toast.warning('Notifications blocked in Brave. Go to brave://settings/content/notifications to allow.')
+        return
+      }
+      if (Notification.permission === 'default') {
+        toast.info('Brave may block notifications. Check brave://settings/content/notifications if prompted.')
+      }
     }
-    
-    toast.info('Updating notification settings...')
     
     try {
       const result = await toggle()
@@ -94,7 +96,7 @@ export default function AppShell() {
     } catch (err) {
       toast.error(`Failed: ${err.message}`)
     }
-  }, [supported, enabled, toggle, toast])
+  }, [supported, enabled, isBraveBrowser, toggle, toast])
 
   return (
     <div className="flex h-screen overflow-hidden">
