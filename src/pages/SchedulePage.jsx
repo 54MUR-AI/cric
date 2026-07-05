@@ -119,7 +119,7 @@ export default function SchedulePage() {
           startAccessor="start"
           endAccessor="end"
           defaultView={Views.MONTH}
-          views={[Views.MONTH, Views.WEEK]}
+          views={[Views.MONTH]}
           selectable="ignoreEvents"
           popup
           onSelectSlot={handleSelectSlot}

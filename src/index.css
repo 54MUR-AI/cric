@@ -49,7 +49,7 @@ html { scroll-behavior: smooth; }
     @apply bg-stone-900;
   }
   .dark .rbc-off-range-bg {
-    @apply bg-stone-800;
+    @apply bg-stone-950;
   }
   .dark .rbc-off-range {
     @apply text-stone-500;
