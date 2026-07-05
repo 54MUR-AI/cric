@@ -60,12 +60,6 @@ html { scroll-behavior: smooth; }
   .dark .rbc-day-bg {
     @apply bg-stone-900;
   }
-  .dark .rbc-off-range-bg {
-    @apply bg-stone-950;
-  }
-  .dark .rbc-off-range {
-    @apply text-stone-500;
-  }
   .dark .rbc-date-cell {
     @apply text-stone-300;
   }
@@ -138,6 +132,10 @@ html { scroll-behavior: smooth; }
 
 .rbc-today.rbc-day-bg { background: #ecfdf5; }
 .dark .rbc-today.rbc-day-bg { background: rgba(6, 95, 70, 0.15); }
+.rbc-off-range-bg { background: #ecfdf5; }
+.rbc-off-range { color: #6ee7b7; }
+.dark .rbc-off-range-bg { background: #022c22; }
+.dark .rbc-off-range { color: #047857; }
 
 @keyframes slide-in-from-left {
   from { transform: translateX(-100%); }
