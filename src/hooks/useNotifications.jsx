@@ -29,8 +29,6 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     if (!user) return
 
-    subscribe()
-
     const cutoff = new Date(Date.now() - RECENT_WINDOW * 60 * 1000).toISOString()
 
     async function check() {

@@ -15,15 +15,25 @@ function urlBase64ToUint8Array(base64String) {
 
 const VAPID_KEY_BYTES = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 
+function isBrave() {
+  return navigator.brave && typeof navigator.brave.isBrave === 'function'
+}
+
 export function usePushNotifications() {
   const { user } = useAuth()
   const [supported, setSupported] = useState(false)
   const [enabled, setEnabled] = useState(false)
+  const [browserNote, setBrowserNote] = useState('')
 
   useEffect(() => {
-    const ok = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
-    setSupported(ok)
-    if (ok && user) {
+    const hasAPI = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
+    setSupported(hasAPI)
+    
+    if (isBrave()) {
+      setBrowserNote('Brave blocks push notifications by default. Enable them in Settings → Privacy → Site and shield settings → Notifications.')
+    }
+    
+    if (hasAPI && user) {
       navigator.serviceWorker.ready.then(async reg => {
         const sub = await reg.pushManager.getSubscription()
         setEnabled(Notification.permission === 'granted' && !!sub)
@@ -101,7 +111,7 @@ export function usePushNotifications() {
     return subscribe()
   }, [enabled, subscribe, unsubscribe])
 
-  return { supported, enabled, subscribe, unsubscribe, toggle }
+  return { supported, enabled, browserNote, subscribe, unsubscribe, toggle }
 }
 
 export async function sendPushToAll(payload) {
