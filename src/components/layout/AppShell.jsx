@@ -95,10 +95,27 @@ export default function AppShell() {
             <Menu className="h-5 w-5" />
           </button>
           <span className="font-semibold text-sm">CRIC Manager</span>
-          <div className="w-7" />
+          <button
+            onClick={() => {
+              if (Notification.permission === 'granted') {
+                subscribe()
+              } else {
+                Notification.requestPermission().then(permission => {
+                  if (permission === 'granted') subscribe()
+                })
+              }
+            }}
+            className="p-1 text-stone-300 hover:text-white transition-colors"
+            title="Toggle notifications"
+          >
+            {Notification.permission === 'granted' ? (
+              <Bell className="h-5 w-5" />
+            ) : (
+              <BellOff className="h-5 w-5" />
+            )}
+          </button>
         </header>
-        <header className="hidden md:flex items-center justify-between bg-emerald-900 text-stone-100 px-6 py-3">
-          <span className="font-semibold text-sm">CRIC Manager</span>
+        <header className="hidden md:flex items-center justify-end bg-emerald-900 text-stone-100 px-6 py-3">
           <div className="flex items-center gap-4">
             {updateAvailable && (
               <button onClick={activateUpdate} className="inline-flex items-center gap-1 bg-white text-emerald-800 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-emerald-50 transition-colors">
@@ -108,16 +125,10 @@ export default function AppShell() {
             <button
               onClick={() => {
                 if (Notification.permission === 'granted') {
-                  Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                      subscribe()
-                    }
-                  })
+                  subscribe()
                 } else {
                   Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                      subscribe()
-                    }
+                    if (permission === 'granted') subscribe()
                   })
                 }
               }}
