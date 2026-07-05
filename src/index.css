@@ -66,12 +66,6 @@ html { scroll-behavior: smooth; }
   .dark .rbc-off-range {
     @apply text-stone-500;
   }
-  .rbc-today.rbc-day-bg {
-    background: #ecfdf5;
-  }
-  .dark .rbc-today.rbc-day-bg {
-    background: rgba(6, 95, 70, 0.15);
-  }
   .dark .rbc-date-cell {
     @apply text-stone-300;
   }
@@ -141,6 +135,9 @@ html { scroll-behavior: smooth; }
     @apply dark:accent-emerald-500;
   }
 }
+
+.rbc-today.rbc-day-bg { background: #ecfdf5; }
+.dark .rbc-today.rbc-day-bg { background: rgba(6, 95, 70, 0.15); }
 
 @keyframes slide-in-from-left {
   from { transform: translateX(-100%); }
