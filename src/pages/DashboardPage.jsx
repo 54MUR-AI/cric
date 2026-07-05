@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
-import { CloudSun, Thermometer, Wind, Droplets } from 'lucide-react'
+import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, AlertOctagon, X } from 'lucide-react'
 import MapPage from './MapPage'
 
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
@@ -78,6 +78,39 @@ export default function DashboardPage() {
   const [upcomingBookings, setUpcomingBookings] = useState([])
   const [openTasks, setOpenTasks] = useState([])
   const [nextMeeting, setNextMeeting] = useState(null)
+  const [alerts, setAlerts] = useState([])
+  const [dismissedAlerts, setDismissedAlerts] = useState(new Set())
+  const [lightningAlert, setLightningAlert] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const checkAlerts = async () => {
+      try {
+        const r = await fetch('https://api.weather.gov/alerts/active?point=44.14722,-74.81194')
+        const data = await r.json()
+        if (cancelled) return
+        const warnings = (data.features || []).filter(f => {
+          const e = f.properties.event || ''
+          return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm' || e.includes('Small Craft') || e.includes('Marine')
+        })
+        setAlerts(warnings.map(w => ({
+          id: w.properties.id,
+          event: w.properties.event,
+          headline: (w.properties.headline || w.properties.description || '').slice(0, 150),
+          severity: w.properties.severity || 'Unknown',
+          urgency: w.properties.urgency || 'Unknown',
+        })))
+      } catch { /* ignore */ }
+    }
+    checkAlerts()
+    const interval = setInterval(checkAlerts, 300000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
+  const dismissAlert = (id) => setDismissedAlerts(prev => new Set([...prev, id]))
+  const dismissLightning = () => setLightningAlert(null)
+
+  const activeAlerts = alerts.filter(a => !dismissedAlerts.has(a.id))
 
   useEffect(() => {
     supabase.from('bookings').select('*, cabins(name)').gte('start_date', new Date().toISOString().split('T')[0]).order('start_date').limit(5).then(({ data }) => setUpcomingBookings(data || []))
@@ -87,13 +120,59 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Alert Banner */}
+      {(activeAlerts.length > 0 || lightningAlert) && (
+        <div className="space-y-2">
+          {lightningAlert && (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 p-3 flex items-start gap-3">
+              <Zap className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Lightning Nearby</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">{lightningAlert}</p>
+              </div>
+              <button onClick={dismissLightning} className="shrink-0 text-amber-500 hover:text-amber-700 dark:hover:text-amber-300"><X className="h-4 w-4" /></button>
+            </div>
+          )}
+          {activeAlerts.map(a => (
+            <div key={a.id} className={`rounded-lg border p-3 flex items-start gap-3 ${
+              a.event.includes('Warning') || a.urgency === 'Immediate'
+                ? 'bg-rose-50 dark:bg-rose-950 border-rose-300 dark:border-rose-800'
+                : 'bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800'
+            }`}>
+              <AlertTriangle className={`h-5 w-5 shrink-0 mt-0.5 ${
+                a.event.includes('Warning') || a.urgency === 'Immediate'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-amber-600 dark:text-amber-400'
+              }`} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold ${
+                  a.event.includes('Warning') || a.urgency === 'Immediate'
+                    ? 'text-rose-800 dark:text-rose-300'
+                    : 'text-amber-800 dark:text-amber-300'
+                }`}>{a.event}</p>
+                <p className={`text-xs ${
+                  a.event.includes('Warning') || a.urgency === 'Immediate'
+                    ? 'text-rose-700 dark:text-rose-400'
+                    : 'text-amber-700 dark:text-amber-400'
+                }`}>{a.headline}</p>
+              </div>
+              <button onClick={() => dismissAlert(a.id)} className={`shrink-0 ${
+                a.event.includes('Warning') || a.urgency === 'Immediate'
+                  ? 'text-rose-500 hover:text-rose-700 dark:hover:text-rose-300'
+                  : 'text-amber-500 hover:text-amber-700 dark:hover:text-amber-300'
+              }`}><X className="h-4 w-4" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</h1>
 
       <WeatherWidget />
 
       <div>
         <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
-        <MapPage compact />
+        <MapPage compact onLightningStrike={(msg) => setLightningAlert(msg)} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -378,7 +378,7 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onEdit, onP
   )
 }
 
-export default function MapPage({ compact } = {}) {
+export default function MapPage({ compact, onLightningStrike } = {}) {
   const { isAdmin } = useAuth()
   const { stations, loading: stationsLoading } = useWeatherStations()
   const { pins, loading: pinsLoading, addPin, updatePin, deletePin, refresh: refreshPins } = useMapPins()
@@ -507,8 +507,9 @@ export default function MapPage({ compact } = {}) {
       const msg = `Lightning ${distKm.toFixed(1)}km ${dir} of Chair Rock Island! Take cover.`
       toast.warning(msg, 8000)
       sendSystemNotification('Lightning Alert', msg)
+      if (onLightningStrike) onLightningStrike(msg)
     }
-  }, [toast])
+  }, [toast, onLightningStrike])
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) mapRef.current?.requestFullscreen()
