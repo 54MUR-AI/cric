@@ -1,1 +1,0 @@
-import{n as e}from"./index-CHUNgRTY.js";function t(){let t=e(),n=async(e,n=`Copied`)=>{try{await navigator.clipboard.writeText(e),t.success(`${n} to clipboard`)}catch{t.error(`Failed to copy`)}};return{copy:n,share:async e=>{if(navigator.share)try{await navigator.share(e)}catch{}else await n(e.text||e.url||e.title,`Shared`)}}}export{t};
