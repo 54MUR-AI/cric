@@ -67,16 +67,19 @@ html { scroll-behavior: smooth; }
     @apply text-stone-500;
   }
   .rbc-today {
-    @apply bg-emerald-100;
+    @apply bg-transparent;
+  }
+  .rbc-today .rbc-date-cell {
+    @apply pt-1;
   }
   .rbc-today .rbc-date-cell a {
-    @apply font-bold text-emerald-800;
+    @apply inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-200 text-emerald-800 font-bold;
   }
   .dark .rbc-today {
-    @apply bg-emerald-900/20;
+    @apply bg-transparent;
   }
   .dark .rbc-today .rbc-date-cell a {
-    @apply font-bold text-emerald-300;
+    @apply bg-emerald-800/40 text-emerald-200;
   }
   .dark .rbc-date-cell {
     @apply text-stone-300;
