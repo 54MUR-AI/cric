@@ -26,7 +26,7 @@ export default function Sidebar({ open, onClose }) {
   const { profile, isAdmin, signOut } = useAuth()
   const [officers, setOfficers] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
-  const [officersOpen, setOfficersOpen] = useState(true)
+  const [officersOpen, setOfficersOpen] = useState(false)
   useEffect(() => {
     supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order').then(({ data }) => setOfficers(data || []))
   }, [refreshKey])
