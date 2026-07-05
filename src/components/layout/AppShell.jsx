@@ -73,15 +73,10 @@ export default function AppShell() {
       return
     }
     
-    // Brave-specific guidance
+    // Brave doesn't support standard Web Push API
     if (isBraveBrowser) {
-      if (Notification.permission === 'denied') {
-        toast.warning('Notifications blocked in Brave. Go to brave://settings/content/notifications to allow.')
-        return
-      }
-      if (Notification.permission === 'default') {
-        toast.info('Brave may block notifications. Check brave://settings/content/notifications if prompted.')
-      }
+      toast.warning('Push notifications not supported in Brave. Use Chrome or Firefox instead.', 5000)
+      return
     }
     
     try {
