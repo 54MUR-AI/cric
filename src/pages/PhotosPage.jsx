@@ -35,10 +35,6 @@ export default function PhotosPage() {
   const fileRef = useRef()
   const dropRef = useRef()
 
-  useEscapeKey(() => setLightbox(null), !!lightbox)
-  useEscapeKey(() => { if (!uploading) { setShowUpload(false) } }, showUpload)
-  useEscapeKey(() => setShowAlbumForm(false), showAlbumForm)
-
   const filtered = albumFilter ? photos.filter(p => p.album_id === albumFilter) : photos
   useEffect(() => { setGroups(groupByDate(filtered)) }, [filtered])
 
@@ -48,6 +44,10 @@ export default function PhotosPage() {
   const [uploadAlbumId, setUploadAlbumId] = useState(albumFilter || '')
   const [uploadProgress, setUploadProgress] = useState(0)
   const uploadPreview = uploadFile ? URL.createObjectURL(uploadFile) : null
+
+  useEscapeKey(() => setLightbox(null), !!lightbox)
+  useEscapeKey(() => { if (!uploading) { setShowUpload(false) } }, showUpload)
+  useEscapeKey(() => setShowAlbumForm(false), showAlbumForm)
 
   const doUpload = useCallback(async () => {
     if (!uploadFile) return
