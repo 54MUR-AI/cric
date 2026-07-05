@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
@@ -12,16 +12,13 @@ export function usePushNotifications() {
   useEffect(() => {
     const ok = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
     setSupported(ok)
-    if (ok) {
-      setEnabled(Notification.permission === 'granted')
-      const reg = navigator.serviceWorker?.controller
-      if (reg) {
-        navigator.serviceWorker.ready.then(r => {
-          r.pushManager.getSubscription().then(sub => {
-            if (sub) setEnabled(true)
-          })
-        })
-      }
+    if (ok && user) {
+      navigator.serviceWorker.ready.then(async reg => {
+        const sub = await reg.pushManager.getSubscription()
+        setEnabled(Notification.permission === 'granted' && !!sub)
+      }).catch(() => {
+        setEnabled(Notification.permission === 'granted')
+      })
     }
   }, [user])
 
@@ -38,17 +35,14 @@ export function usePushNotifications() {
 
     try {
       const reg = await navigator.serviceWorker.ready
-      const existing = await reg.pushManager.getSubscription()
-      if (existing) {
-        await saveSubscription(existing)
-        setEnabled(true)
-        return { ok: true }
-      }
+      let sub = await reg.pushManager.getSubscription()
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: VAPID_PUBLIC_KEY,
-      })
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: VAPID_PUBLIC_KEY,
+        })
+      }
 
       await saveSubscription(sub)
       setEnabled(true)
@@ -77,21 +71,6 @@ export function usePushNotifications() {
     if (enabled) return unsubscribe()
     return subscribe()
   }, [enabled, subscribe, unsubscribe])
-
-  useEffect(() => {
-    if (!user || !supported) return
-
-    const init = async () => {
-      const reg = await navigator.serviceWorker.ready
-      const existing = await reg.pushManager.getSubscription()
-      if (existing) {
-        await saveSubscription(existing)
-        setEnabled(true)
-      }
-    }
-
-    init()
-  }, [user, supported])
 
   return { supported, enabled, subscribe, unsubscribe, toggle }
 }

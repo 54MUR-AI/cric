@@ -74,13 +74,11 @@ export default function AppShell() {
     }
     const result = await toggle()
     if (result.ok) {
-      if (enabled) {
-        toast.success('Notifications disabled')
-      } else {
-        toast.success('Notifications enabled')
-      }
+      toast.success(enabled ? 'Notifications disabled' : 'Notifications enabled')
     } else if (result.reason === 'denied') {
       toast.error('Notification permission was denied. Please enable it in your browser settings.')
+    } else {
+      toast.error(`Could not update notifications: ${result.reason || 'unknown error'}`)
     }
   }, [supported, enabled, toggle, toast])
 
