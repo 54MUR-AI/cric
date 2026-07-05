@@ -60,12 +60,12 @@ function bearing(lat1, lon1, lat2, lon2) {
 }
 
 function pinIcon(type, label, cabinColor) {
-  const bg = cabinColor || PIN_COLORS[type] || '#6b7280'
+  const color = cabinColor || PIN_COLORS[type] || '#6b7280'
   const svg = PIN_SVG[type] || PIN_SVG.other
   return L.divIcon({
     className: '',
-    html: `<div style="background:${bg};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;cursor:pointer;" title="${label}"><svg viewBox="0 0 16 16" fill="white" width="16" height="16">${svg}</svg></div>`,
-    iconSize: [28, 28], iconAnchor: [14, 14],
+    html: `<svg viewBox="0 0 16 16" fill="${color}" width="24" height="24" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;" title="${label}">${svg}</svg>`,
+    iconSize: [24, 24], iconAnchor: [12, 12],
   })
 }
 
