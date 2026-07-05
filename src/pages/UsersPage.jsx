@@ -44,7 +44,7 @@ export default function UsersPage() {
     if (!email) { toast.error('No email on file for this user'); return }
     setSendingReset(email)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://54mur-ai.github.io/cric/update-password',
+      redirectTo: 'https://chairrock.app/update-password',
     })
     setSendingReset(null)
     if (error) { toast.error(error.message); return }

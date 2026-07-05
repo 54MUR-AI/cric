@@ -45,7 +45,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://54mur-ai.github.io/cric/update-password',
+      redirectTo: 'https://chairrock.app/update-password',
     })
     setLoading(false)
     if (error) { setError(error.message); return }
