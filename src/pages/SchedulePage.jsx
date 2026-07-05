@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay, differenceInCalendarDays } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
-import { Share2 } from 'lucide-react'
+import { Share2, Plus } from 'lucide-react'
 import { formatDate } from '../lib/utils'
 import { useBookings } from '../hooks/useBookings'
 import { useCabins } from '../hooks/useCabins'
@@ -98,6 +98,20 @@ export default function SchedulePage() {
       </div>
 
       <style>{eventHeightStyle}</style>
+      <button
+        onClick={() => {
+          const today = new Date()
+          setSelectedSlot({ start: today, end: today })
+          setFormData({ cabin_id: cabins[0]?.id || '', guests: '', notes: '', end_date: '' })
+          setError('')
+          setShowForm(true)
+        }}
+        className="md:hidden fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full bg-emerald-600 text-white shadow-lg flex items-center justify-center hover:bg-emerald-700 transition-colors active:scale-95"
+        aria-label="New booking"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
       <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
         <Calendar
           localizer={localizer}
@@ -106,7 +120,7 @@ export default function SchedulePage() {
           endAccessor="end"
           defaultView={Views.MONTH}
           views={[Views.MONTH, Views.WEEK]}
-          selectable
+          selectable="ignoreEvents"
           popup
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
