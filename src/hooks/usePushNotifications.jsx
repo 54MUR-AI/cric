@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
@@ -15,15 +15,10 @@ function urlBase64ToUint8Array(base64String) {
 
 const VAPID_KEY_BYTES = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 
-function isBrave() {
-  return navigator.brave && typeof navigator.brave.isBrave === 'function'
-}
-
 export function usePushNotifications() {
   const { user } = useAuth()
   const [supported, setSupported] = useState(false)
   const [enabled, setEnabled] = useState(false)
-  const subscribingRef = useRef(false)
 
   useEffect(() => {
     const hasAPI = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
@@ -41,7 +36,6 @@ export function usePushNotifications() {
 
   const subscribe = useCallback(async () => {
     if (!user || !supported) return { ok: false, reason: 'unsupported' }
-    if (subscribingRef.current) return { ok: false, reason: 'already_subscribing' }
 
     if (Notification.permission === 'denied') return { ok: false, reason: 'denied' }
 
@@ -51,17 +45,13 @@ export function usePushNotifications() {
       if (perm !== 'granted') return { ok: false, reason: 'denied' }
     }
 
-    subscribingRef.current = true
     try {
       const reg = await navigator.serviceWorker.ready
       
-      // Always clear any existing subscription first to avoid stale key conflicts
+      // Clear any existing subscription
       const existing = await reg.pushManager.getSubscription()
       if (existing) {
-        try {
-          await supabase.from('push_subscriptions').delete().eq('endpoint', existing.endpoint)
-        } catch { /* ignore delete errors */ }
-        await existing.unsubscribe()
+        try { await existing.unsubscribe() } catch { /* ignore */ }
       }
 
       // Subscribe fresh with current VAPID key
@@ -74,10 +64,7 @@ export function usePushNotifications() {
       setEnabled(true)
       return { ok: true }
     } catch (err) {
-      console.error('Push subscription error:', err.name, err.message)
       return { ok: false, reason: `${err.name}: ${err.message}` }
-    } finally {
-      subscribingRef.current = false
     }
   }, [user, supported])
 
