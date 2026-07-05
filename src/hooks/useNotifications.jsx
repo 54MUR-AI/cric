@@ -34,12 +34,12 @@ export function NotificationProvider({ children }) {
     async function check() {
       try {
         const [bookings, tasks, trips] = await Promise.all([
-          supabase.from('bookings').select('id, created_by, start_date, end_date, cabins(name)').gt('created_at', cutoff).order('created_at', { ascending: false }),
+          supabase.from('bookings').select('id, user_id, start_date, end_date, cabins(name)').gt('created_at', cutoff).order('created_at', { ascending: false }),
           supabase.from('maintenance_tasks').select('id, created_by, title, due_date').gt('created_at', cutoff).order('created_at', { ascending: false }),
           supabase.from('boat_trips').select('id, created_by, trip_date, departure_time, destination').gt('created_at', cutoff).order('created_at', { ascending: false }),
         ])
 
-        const newBookings = (bookings.data || []).filter(b => b.created_by !== user.id && !seenIds.has(`b-${b.id}`))
+        const newBookings = (bookings.data || []).filter(b => b.user_id !== user.id && !seenIds.has(`b-${b.id}`))
         const newTasks = (tasks.data || []).filter(t => t.created_by !== user.id && !seenIds.has(`t-${t.id}`))
         const newTrips = (trips.data || []).filter(t => t.created_by !== user.id && !seenIds.has(`tr-${t.id}`))
 

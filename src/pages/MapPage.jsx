@@ -156,7 +156,7 @@ function LightningLayer({ onStrikeNearby }) {
         }
 
         ws.onclose = () => {
-          if (!cancelled) setTimeout(connect, 5000)
+          if (!cancelled) setTimeout(connect, 10000) // Reconnect after 10s
         }
 
         ws.onerror = () => { ws.close() }
@@ -488,6 +488,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     const fetchFireDanger = async () => {
       try {
         const r = await fetch('https://api.weather.gov/firewx/forecast?point=44.14722,-74.81194')
+        if (!r.ok) return // Fire weather not available for this location
         const data = await r.json()
         if (cancelled || !data?.properties?.periods?.length) return
         const today = data.properties.periods[0]
