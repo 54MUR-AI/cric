@@ -69,8 +69,14 @@ html { scroll-behavior: smooth; }
   .rbc-today {
     @apply bg-emerald-100;
   }
+  .rbc-today .rbc-date-cell a {
+    @apply font-bold text-emerald-800;
+  }
   .dark .rbc-today {
     @apply bg-emerald-900/20;
+  }
+  .dark .rbc-today .rbc-date-cell a {
+    @apply font-bold text-emerald-300;
   }
   .dark .rbc-date-cell {
     @apply text-stone-300;
