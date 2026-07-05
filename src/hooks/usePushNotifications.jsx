@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
-const VAPID_PUBLIC_KEY = 'c9f8829a1866c6cd5bfa21222828192db89c01298ff648563318d743f56b1616'
+const VAPID_PUBLIC_KEY = 'BD7NgMy5SQZV11dCpPY0qnFlEhdLENnfvSQwTFh_wAxANtovuxpNVcH8dYGr3qAznp6pgCF8RkpI6hGURAa7h0k'
 
 export function usePushNotifications() {
   const { user } = useAuth()
