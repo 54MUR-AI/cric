@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
+import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { formatDate } from '../lib/utils'
 import { Plus, ChevronUp, ChevronDown, Search } from 'lucide-react'
 
@@ -18,6 +19,9 @@ export default function MeetingsPage() {
   const [agendaItems, setAgendaItems] = useState([{ title: '', description: '', proposer: '', seconder: '' }])
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
+
+  useEscapeKey(() => { setMeetingDetail(null); setSelectedMeetingId(null) }, !!meetingDetail)
+  useEscapeKey(() => setShowForm(false), showForm)
 
   const filtered = meetings.filter(m =>
     !search || m.title.toLowerCase().includes(search.toLowerCase())

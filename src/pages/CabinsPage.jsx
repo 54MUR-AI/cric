@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
+import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { Pencil, Plus, History } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
@@ -43,6 +44,8 @@ export default function CabinsPage() {
   const [editing, setEditing] = useState(null)
   const [formData, setFormData] = useState({ name: '', description: '', color: '#3b82f6' })
   const [expandedCabin, setExpandedCabin] = useState(null)
+
+  useEscapeKey(() => setShowForm(false), showForm)
 
   async function fetchCabins() {
     const { data } = await supabase.from('cabins').select('*').order('sort_order').order('name')

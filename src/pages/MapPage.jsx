@@ -327,6 +327,7 @@ function LocateButton({ position }) {
 }
 
 function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onEdit, onPhotoUpload }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const dist = haversineKm(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
   const dir = bearing(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
   const pinColor = cabin?.color || PIN_COLORS[pin.type] || '#6b7280'
@@ -373,9 +374,10 @@ function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onEdit, onP
         <div className="flex gap-2 pt-1 border-t border-stone-200 dark:border-stone-700 mt-2">
           <button onClick={() => onEdit(pin)} className="inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 text-xs"><Pencil className="h-3 w-3" /> Edit</button>
           <label className="text-blue-600 dark:text-blue-400 hover:text-blue-800 cursor-pointer text-xs">Add Photo<input type="file" accept="image/*" className="hidden" onChange={(e) => onPhotoUpload(pin, e.target.files?.[0])} /></label>
-          <button onClick={() => { if (confirm('Delete this pin?')) onDelete(pin.id) }} className="text-rose-600 dark:text-rose-400 hover:text-rose-800 text-xs">Delete</button>
+          <button onClick={async () => { if (await confirm({ title: 'Delete Pin', message: 'Are you sure you want to delete this pin?' })) onDelete(pin.id) }} className="text-rose-600 dark:text-rose-400 hover:text-rose-800 text-xs">Delete</button>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

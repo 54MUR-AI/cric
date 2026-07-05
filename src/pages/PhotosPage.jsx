@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Share2, FolderOpen, Plus, X, Upload, Trash2 } from 'lucide-react'
 import { usePhotos } from '../hooks/usePhotos'
 import { useShare } from '../lib/share'
+import { useConfirm } from '../components/ui/useConfirm'
+import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { vibrate } from '../lib/haptics'
 import { supabase } from '../lib/supabase'
 
@@ -18,6 +20,7 @@ function groupByDate(photos) {
 
 export default function PhotosPage() {
   const { photos, albums, loading, uploadPhoto, deletePhoto, refresh } = usePhotos()
+  const { confirm, ConfirmDialog } = useConfirm()
   const { copy, share } = useShare()
   const [groups, setGroups] = useState([])
   const [lightbox, setLightbox] = useState(null)
@@ -29,6 +32,10 @@ export default function PhotosPage() {
   const [selected, setSelected] = useState(new Set())
   const fileRef = useRef()
   const dropRef = useRef()
+
+  useEscapeKey(() => setLightbox(null), !!lightbox)
+  useEscapeKey(() => { if (!uploading) { setShowUpload(false) } }, showUpload)
+  useEscapeKey(() => setShowAlbumForm(false), showAlbumForm)
 
   const filtered = albumFilter ? photos.filter(p => p.album_id === albumFilter) : photos
   useEffect(() => { setGroups(groupByDate(filtered)) }, [filtered])
@@ -60,7 +67,7 @@ export default function PhotosPage() {
   const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const clearSelection = () => setSelected(new Set())
   const deleteSelected = async () => {
-    if (!confirm(`Delete ${selected.size} photo${selected.size > 1 ? 's' : ''}?`)) return
+    if (!await confirm({ title: 'Delete Photos', message: `Delete ${selected.size} photo${selected.size > 1 ? 's' : ''}?` })) return
     for (const id of selected) {
       const photo = photos.find(p => p.id === id)
       if (photo) await deletePhoto(photo)
@@ -252,6 +259,7 @@ export default function PhotosPage() {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

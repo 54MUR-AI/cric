@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../lib/supabaseAdmin'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ui/Toast'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { Trash2, Mail, Plus, X, UserPlus, Check, PencilLine, Search } from 'lucide-react'
 import Button from '../components/ui/Button'
 
@@ -26,6 +27,9 @@ export default function UsersPage() {
   const [search, setSearch] = useState('')
   const [confirmRemove, setConfirmRemove] = useState(null)
   const [confirmRemoveOfficer, setConfirmRemoveOfficer] = useState(null)
+
+  useEscapeKey(() => setShowAddOfficer(false), showAddOfficer)
+  useEscapeKey(() => setShowAddUser(false), showAddUser)
   const editRef = useRef(null)
 
   async function fetchAll() {
@@ -44,7 +48,7 @@ export default function UsersPage() {
     if (!email) { toast.error('No email on file for this user'); return }
     setSendingReset(email)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://chairrock.app/update-password',
+      redirectTo: `${window.location.origin}/update-password`,
     })
     setSendingReset(null)
     if (error) { toast.error(error.message); return }

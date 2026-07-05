@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth'
 import AppShell from './components/layout/AppShell'
 import LoginPage from './components/features/auth/LoginPage'
 import ErrorBoundary from './components/ui/ErrorBoundary'
+import { SkeletonPage } from './components/ui/Skeleton'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const SchedulePage = lazy(() => import('./pages/SchedulePage'))
@@ -19,8 +20,8 @@ const EmergencyPage = lazy(() => import('./pages/EmergencyPage'))
 
 function PageFallback() {
   return (
-    <div className="flex items-center justify-center py-20">
-      <div className="h-6 w-6 rounded-full border-2 border-emerald-700 border-t-transparent animate-spin" />
+    <div className="p-4 md:p-6">
+      <SkeletonPage />
     </div>
   )
 }

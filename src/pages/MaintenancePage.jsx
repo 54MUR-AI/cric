@@ -3,20 +3,25 @@ import { useMaintenance } from '../hooks/useMaintenance'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
-import ConfirmDialog from '../components/ui/ConfirmDialog'
 import SwipeToDelete from '../components/ui/SwipeToDelete'
+import { useConfirm } from '../components/ui/useConfirm'
+import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { formatDate } from '../lib/utils'
 import { Plus, MessageCircle } from 'lucide-react'
 
 export default function MaintenancePage() {
   const { tasks, categories, loading, createTask, updateTask, deleteTask } = useMaintenance()
   const { user } = useAuth()
+  const { confirm, ConfirmDialog } = useConfirm()
   const [showForm, setShowForm] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [formData, setFormData] = useState({ category_id: '', title: '', description: '', due_date: '' })
 
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
+
+  useEscapeKey(() => setShowForm(false), showForm)
+  useEscapeKey(() => setSelectedTask(null), !!selectedTask)
 
   const statusColors = { todo: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', done: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' }
 
@@ -54,7 +59,7 @@ export default function MaintenancePage() {
 
       <div className="space-y-2">
         {tasks.map((task) => (
-          <SwipeToDelete key={task.id} onDelete={() => { if (confirm('Delete this task?')) { deleteTask(task.id); setSelectedTask(null) } }}>
+          <SwipeToDelete key={task.id} onDelete={async () => { if (await confirm({ title: 'Delete Task', message: 'Are you sure you want to delete this task?' })) { deleteTask(task.id); setSelectedTask(null) } }}>
             <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 flex items-center justify-between cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors" onClick={() => openTask(task)}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -123,7 +128,7 @@ export default function MaintenancePage() {
             <div className="flex gap-2 mb-4">
               {selectedTask.status !== 'done' && <Button onClick={() => { updateTask(selectedTask.id, { status: selectedTask.status === 'todo' ? 'in_progress' : 'done', completed_at: selectedTask.status === 'in_progress' ? new Date().toISOString() : null }) }}>Mark {selectedTask.status === 'todo' ? 'In Progress' : 'Done'}</Button>}
               {selectedTask.status === 'done' && <Button onClick={() => updateTask(selectedTask.id, { status: 'todo', completed_at: null })}>Reopen</Button>}
-              <Button variant="danger" onClick={() => { if (confirm('Delete this task?')) { deleteTask(selectedTask.id); setSelectedTask(null) } }}>Delete</Button>
+              <Button variant="danger" onClick={async () => { if (await confirm({ title: 'Delete Task', message: 'Are you sure you want to delete this task?' })) { deleteTask(selectedTask.id); setSelectedTask(null) } }}>Delete</Button>
             </div>
 
             <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
@@ -146,6 +151,7 @@ export default function MaintenancePage() {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

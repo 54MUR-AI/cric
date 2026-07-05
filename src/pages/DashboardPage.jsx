@@ -14,10 +14,12 @@ const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 function WeatherWidget() {
   const [current, setCurrent] = useState(null)
   const [forecast, setForecast] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     fetch(CRANBERRY_POINT, { headers: { 'User-Agent': UA } })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error('Weather service unavailable'); return r.json() })
       .then(points => {
         Promise.all([
           fetch(points.properties.forecast, { headers: { 'User-Agent': UA } }).then(r => r.json()),
@@ -38,9 +40,33 @@ function WeatherWidget() {
             }
           }
           findObs()
+          setLoading(false)
         })
       })
+      .catch(err => { setError(err.message); setLoading(false) })
   }, [])
+
+  if (loading) return (
+    <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm border border-stone-200 dark:border-stone-700 animate-pulse">
+      <div className="h-4 bg-stone-200 dark:bg-stone-700 rounded w-1/4 mb-4" />
+      <div className="flex gap-4">
+        <div className="h-12 w-12 bg-stone-200 dark:bg-stone-700 rounded" />
+        <div className="space-y-2 flex-1">
+          <div className="h-3 bg-stone-100 dark:bg-stone-800 rounded w-1/2" />
+          <div className="h-3 bg-stone-100 dark:bg-stone-800 rounded w-1/3" />
+        </div>
+      </div>
+    </div>
+  )
+
+  if (error) return (
+    <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm border border-stone-200 dark:border-stone-700">
+      <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-2 flex items-center gap-2">
+        <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
+      </h2>
+      <p className="text-sm text-stone-400 dark:text-stone-500">Weather unavailable. {error}</p>
+    </div>
+  )
 
   return (
     <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">

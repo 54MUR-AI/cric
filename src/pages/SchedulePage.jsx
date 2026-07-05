@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { TripModal } from './BoatSchedulePage'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
@@ -44,6 +45,9 @@ export default function SchedulePage() {
   const BAT_MANOR_ROOMS = ["Master", "Guest", "Anna's", "Sarah's", "Bobby's", "Walter's"]
   const [error, setError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
+
+  useEscapeKey(() => setShowForm(false), showForm)
+  useEscapeKey(() => { setSelectedEvent(null); setEditing(false) }, !!selectedEvent)
   const [trips, setTrips] = useState([])
   const [showTripModal, setShowTripModal] = useState(false)
   const [editTrip, setEditTrip] = useState(null)
@@ -193,7 +197,7 @@ export default function SchedulePage() {
               fontSize: '0.8rem',
             },
           })}
-          style={{ height: 600 }}
+          style={{ height: 'calc(100vh - 300px)', minHeight: 400, maxHeight: 800 }}
         />
       </div>
 
