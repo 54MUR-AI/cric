@@ -59,8 +59,24 @@ export default defineConfig({
             urlPattern: /^https?:\/\/server\.arcgisonline\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'map-tiles',
-              expiration: { maxEntries: 200, maxAgeSeconds: 604800 },
+              cacheName: 'esri-tiles',
+              expiration: { maxEntries: 2000, maxAgeSeconds: 2592000 },
+            },
+          },
+          {
+            urlPattern: /^https?:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'osm-tiles',
+              expiration: { maxEntries: 2000, maxAgeSeconds: 2592000 },
+            },
+          },
+          {
+            urlPattern: /^https?:\/\/tile\.waymarkedtrails\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'trails-tiles',
+              expiration: { maxEntries: 1000, maxAgeSeconds: 2592000 },
             },
           },
         ],
