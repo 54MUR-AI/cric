@@ -32,7 +32,6 @@ export default function SchedulePage() {
   const { cabins, loading: loadingC } = useCabins()
   const { user, isAdmin } = useAuth()
   const { copy } = useShare()
-  const { copy } = useShare()
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
