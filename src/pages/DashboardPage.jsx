@@ -10,6 +10,7 @@ import { useWeatherAlerts } from '../hooks/useWeatherAlerts'
 import MapPage from './MapPage'
 
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
+const AIRNOW_KEY = '043241C9-8A16-49B8-B754-AB9D7B84216C'
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
 function getWeatherTheme(desc, daytime) {
@@ -29,6 +30,7 @@ function WeatherWidget() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [sunData, setSunData] = useState(null)
+  const [aqi, setAqi] = useState(null)
 
   useEffect(() => {
     fetch(CRANBERRY_POINT, { headers: { 'User-Agent': UA } })
@@ -60,6 +62,15 @@ function WeatherWidget() {
 
     fetch('https://api.sunrise-sunset.org/json?lat=44.2228&lng=-74.8344&date=today&formatted=0')
       .then(r => r.json()).then(d => { if (d.status === 'OK') setSunData(d) }).catch(() => {})
+
+    fetch(`https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude=44.2228&longitude=-74.8344&distance=50&API_KEY=${AIRNOW_KEY}`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(d => {
+        if (Array.isArray(d) && d.length > 0) {
+          const worst = d.reduce((a, b) => (a.AQI || 0) > (b.AQI || 0) ? a : b)
+          setAqi({ value: worst.AQI, category: worst.Category, pollutant: worst.ParameterName })
+        }
+      }).catch(() => {})
   }, [])
 
   if (loading) return (
@@ -105,6 +116,13 @@ function WeatherWidget() {
                 <p className="text-white/90 font-medium">{current.textDescription || '--'}</p>
                 {current.windSpeed?.value != null && <p className="flex items-center gap-1"><Wind className="h-3 w-3" />{Math.round(current.windSpeed.value * 0.621371)} mph</p>}
                 {current.relativeHumidity?.value != null && <p className="flex items-center gap-1"><Droplets className="h-3 w-3" />{Math.round(current.relativeHumidity.value)}%</p>}
+                {aqi && <p className="flex items-center gap-1.5 mt-1"><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  aqi.value <= 50 ? 'bg-emerald-600/60 text-emerald-100' :
+                  aqi.value <= 100 ? 'bg-yellow-500/60 text-yellow-100' :
+                  aqi.value <= 150 ? 'bg-orange-500/60 text-orange-100' :
+                  aqi.value <= 200 ? 'bg-red-500/60 text-red-100' :
+                  'bg-rose-800/60 text-rose-100'
+                }`}>AQI {aqi.value}</span><span className="text-white/70 text-[11px]">{aqi.category.Name} · {aqi.pollutant}</span></p>}
               </div>
             </div>
           )}
