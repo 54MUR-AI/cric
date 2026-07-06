@@ -9,6 +9,12 @@ interface PushPayload {
   data?: Record<string, unknown>
 }
 
+interface PushSubscriptionRow {
+  endpoint: string
+  p256dh_key: string
+  auth_key: string
+}
+
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
 Deno.serve(async (req: Request) => {
@@ -64,7 +70,8 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const subscriptions = subs.map((s: any) => ({
+    const rows = subs as PushSubscriptionRow[]
+    const subscriptions = rows.map(s => ({
       endpoint: s.endpoint,
       keys: { p256dh: s.p256dh_key, auth: s.auth_key },
     }))

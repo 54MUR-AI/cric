@@ -1,5 +1,15 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
 
+interface GoTrueUser {
+  id: string
+  email?: string
+  app_metadata?: Record<string, unknown>
+}
+
+interface ProfileRow {
+  is_admin?: boolean
+}
+
 interface CreateUserInput {
   email: string
   password: string
@@ -14,6 +24,11 @@ interface SetAdminInput {
 interface DeleteUserInput {
   user_id: string
 }
+
+type RequestBody =
+  | ({ action: 'createUser' } & CreateUserInput)
+  | ({ action: 'setAdmin' } & SetAdminInput)
+  | ({ action: 'deleteUser' } & DeleteUserInput)
 
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
@@ -41,13 +56,13 @@ Deno.serve(async (req: Request) => {
         status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
-    const user = await userResp.json()
+    const user = await userResp.json() as GoTrueUser
 
     // Check if user has admin role in app_metadata or profiles
     const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_admin`, {
       headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
     })
-    const profiles = await profileResp.json()
+    const profiles = await profileResp.json() as ProfileRow[]
     const profile = Array.isArray(profiles) ? profiles[0] : null
     const isAdmin = profile?.is_admin || user?.app_metadata?.role === 'super_admin'
 
@@ -57,11 +72,11 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { action, ...input } = await req.json()
+    const body = await req.json() as RequestBody
 
-    switch (action) {
+    switch (body.action) {
       case 'createUser': {
-        const { email, password, display_name } = input as CreateUserInput
+        const { email, password, display_name } = body
         const createResp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
           method: 'POST',
           headers: {
@@ -85,7 +100,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'setAdmin': {
-        const { profile_id, grant } = input as SetAdminInput
+        const { profile_id, grant } = body
 
         // Update profiles table
         await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile_id}`, {
@@ -122,7 +137,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'deleteUser': {
-        const { user_id } = input as DeleteUserInput
+        const { user_id } = body
         const deleteResp = await fetch(`${supabaseUrl}/auth/v1/admin/users/${user_id}`, {
           method: 'DELETE',
           headers: {
