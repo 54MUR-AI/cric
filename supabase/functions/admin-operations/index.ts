@@ -11,6 +11,10 @@ interface SetAdminInput {
   grant: boolean
 }
 
+interface DeleteUserInput {
+  user_id: string
+}
+
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
 Deno.serve(async (req: Request) => {
@@ -112,6 +116,25 @@ Deno.serve(async (req: Request) => {
           }),
         })
 
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...cors, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'deleteUser': {
+        const { user_id } = input as DeleteUserInput
+        const deleteResp = await fetch(`${supabaseUrl}/auth/v1/admin/users/${user_id}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'User-Agent': UA,
+          },
+        })
+        if (!deleteResp.ok) {
+          const result = await deleteResp.json().catch(() => ({}))
+          throw new Error(result.msg || result.message || 'deleteUser failed')
+        }
         return new Response(JSON.stringify({ ok: true }), {
           headers: { ...cors, 'Content-Type': 'application/json' },
         })

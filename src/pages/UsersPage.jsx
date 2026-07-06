@@ -307,10 +307,15 @@ export default function UsersPage() {
         message={`This will permanently delete ${confirmRemove?.display_name || 'this user'}'s profile and all their data.`}
         onConfirm={async () => {
           if (!confirmRemove) return
-          await supabase.from('profiles').delete().eq('id', confirmRemove.id)
-          toast.info('User removed')
-          setConfirmRemove(null)
-          fetchAll()
+          try {
+            await callAdmin('deleteUser', { user_id: confirmRemove.id })
+            toast.info('User removed')
+            setConfirmRemove(null)
+            fetchAll()
+          } catch (err) {
+            toast.error(err.message)
+            setConfirmRemove(null)
+          }
         }}
         onCancel={() => setConfirmRemove(null)}
       />
