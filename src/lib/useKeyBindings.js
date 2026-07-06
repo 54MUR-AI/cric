@@ -1,20 +1,23 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const BINDINGS = {
-  'g+d': '/',
-  'g+s': '/schedule',
-  'g+m': '/map',
-  'g+g': '/guide',
-  'g+r': '/records',
-  'g+w': '/maintenance',
-  'g+t': '/meetings',
-  'g+c': '/cabins',
-  'g+p': '/photos',
-  'g+u': '/users',
-}
+export const KEY_BINDINGS = [
+  { combo: 'g+d', label: 'Dashboard' },
+  { combo: 'g+s', label: 'Schedule' },
+  { combo: 'g+m', label: 'Map' },
+  { combo: 'g+g', label: 'Guide' },
+  { combo: 'g+r', label: 'Records' },
+  { combo: 'g+w', label: 'Maintenance' },
+  { combo: 'g+t', label: 'Meetings' },
+  { combo: 'g+c', label: 'Cabins' },
+  { combo: 'g+p', label: 'Photos' },
+  { combo: 'g+u', label: 'Users' },
+]
 
-export function useKeyBindings() {
+const BINDINGS_MAP = Object.fromEntries(KEY_BINDINGS.map(b => [b.combo, '/'.concat(b.label.toLowerCase().replace(/ /g, ''))]))
+BINDINGS_MAP['g+d'] = '/'
+
+export function useKeyBindings(onShowHelp) {
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -24,10 +27,8 @@ export function useKeyBindings() {
     const handler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return
 
-      if (e.key === '?') {
-        const key = Object.keys(BINDINGS)
-        const helpText = key.map(k => `${k}: ${BINDINGS[k] === '/' ? 'Dashboard' : BINDINGS[k].slice(1).replace(/^\w/, c => c.toUpperCase())}`)
-        alert(`Keyboard Shortcuts:\n${helpText.join('\n')}\n\n? - Show this help`)
+      if (e.key === '?' && onShowHelp) {
+        onShowHelp()
         return
       }
 
@@ -36,13 +37,13 @@ export function useKeyBindings() {
       timer = setTimeout(() => { buffer = '' }, 1000)
 
       const combo = buffer.match(/^g$/) ? null : buffer
-      if (combo && BINDINGS[combo]) {
-        navigate(BINDINGS[combo])
+      if (combo && BINDINGS_MAP[combo]) {
+        navigate(BINDINGS_MAP[combo])
         buffer = ''
       }
     }
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [navigate])
+  }, [navigate, onShowHelp])
 }

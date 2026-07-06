@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, LogOut, X, Moon, Sun, Ship, AlertTriangle, ChevronDown,
@@ -6,7 +6,7 @@ import {
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '../../lib/constants'
 import { useAuth } from '../../hooks/useAuth'
 import { useDarkMode } from '../../lib/useDarkMode'
-import { supabase } from '../../lib/supabase'
+import { useOfficers } from '../../lib/OfficersContext'
 
 const iconMap = { LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, Ship, AlertTriangle }
 
@@ -24,17 +24,8 @@ function DarkModeToggle() {
 
 export default function Sidebar({ open, onClose }) {
   const { profile, isAdmin, signOut } = useAuth()
-  const [officers, setOfficers] = useState([])
-  const [refreshKey, setRefreshKey] = useState(0)
+  const { officers } = useOfficers()
   const [officersOpen, setOfficersOpen] = useState(false)
-  useEffect(() => {
-    supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order').then(({ data }) => setOfficers(data || []))
-  }, [refreshKey])
-  useEffect(() => {
-    const handler = () => setRefreshKey(k => k + 1)
-    window.addEventListener('officers-refresh', handler)
-    return () => window.removeEventListener('officers-refresh', handler)
-  }, [])
 
   const nav = (
     <>

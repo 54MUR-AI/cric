@@ -185,8 +185,6 @@ export default function SchedulePage() {
 
   if (loadingB || loadingC) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
 
-  const eventHeightStyle = `.rbc-month-view .rbc-event { min-height: 14px; padding: 0 2px; font-size: 0.6rem; line-height: 1.2; border-radius: 2px; border-width: 1px; } .rbc-month-view .rbc-event-content { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .rbc-month-view .rbc-row-segment { padding: 0; } .rbc-month-view .rbc-row-content { max-height: none; min-height: 0; } .rbc-month-view .rbc-date-cell { padding: 0; text-align: center; font-size: 0.65rem; } .rbc-month-view .rbc-row-bg { min-height: 0; } .rbc-month-view .rbc-show-more { font-size: 0.55rem; line-height: 1; } .rbc-month-view .rbc-header { padding: 2px 0; font-size: 0.65rem; } .rbc-month-view .rbc-row { min-height: 0; } .rbc-month-row { min-height: 0; }`
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -202,7 +200,6 @@ export default function SchedulePage() {
         ))}
       </div>
 
-      <style>{eventHeightStyle}</style>
       <button
         onClick={() => {
           const today = new Date()

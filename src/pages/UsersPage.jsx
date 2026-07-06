@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ui/Toast'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
+import { useOfficers } from '../lib/OfficersContext'
 import { Trash2, Mail, Plus, X, UserPlus, Check, PencilLine, Search } from 'lucide-react'
 import Button from '../components/ui/Button'
 
@@ -12,8 +13,8 @@ const OFFICER_TITLES = ['President', 'Vice President', 'Treasurer', 'Secretary',
 export default function UsersPage() {
   const { isAdmin } = useAuth()
   const toast = useToast()
+  const { officers, refreshOfficers } = useOfficers()
   const [users, setUsers] = useState([])
-  const [officers, setOfficers] = useState([])
   const [loading, setLoading] = useState(true)
   const [sendingReset, setSendingReset] = useState(null)
   const [showAddOfficer, setShowAddOfficer] = useState(false)
@@ -32,12 +33,8 @@ export default function UsersPage() {
   const editRef = useRef(null)
 
   async function fetchAll() {
-    const [uRes, oRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('display_name'),
-      supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order'),
-    ])
-    setUsers(uRes?.data || [])
-    setOfficers(oRes?.data || [])
+    const { data } = await supabase.from('profiles').select('*').order('display_name')
+    setUsers(data || [])
     setLoading(false)
   }
 
@@ -60,6 +57,7 @@ export default function UsersPage() {
     if (officer.title === 'Secretary') setAdmin(officer.profile_id, false)
     toast.info('Director removed')
     fetchAll()
+    refreshOfficers()
   }
 
   async function callAdmin(action, payload) {
@@ -102,6 +100,7 @@ export default function UsersPage() {
     setShowAddOfficer(false)
     setNewOfficer({ profile_id: '', title: OFFICER_TITLES[0] })
     fetchAll()
+    refreshOfficers()
   }
 
   async function createUser() {
@@ -129,7 +128,7 @@ export default function UsersPage() {
     toast.success('Name updated')
     setEditingName(null)
     await fetchAll()
-    window.dispatchEvent(new CustomEvent('officers-refresh'))
+    refreshOfficers()
   }
 
   useEffect(() => {

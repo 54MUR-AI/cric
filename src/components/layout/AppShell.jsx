@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import KeyboardShortcutHelp from '../ui/KeyboardShortcutHelp'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, RotateCcw, RefreshCw, Bell, BellOff } from 'lucide-react'
@@ -60,7 +61,8 @@ export default function AppShell() {
   const location = useLocation()
   useSync()
   const { updateAvailable, activateUpdate } = useSWUpdate()
-  useKeyBindings()
+  const [showKeys, setShowKeys] = useState(false)
+  useKeyBindings(() => setShowKeys(true))
   const { showInstall, install, dismiss } = useInstallPrompt()
   const { supported, enabled, isBraveBrowser, toggle } = usePushNotifications()
   const toast = useToast()
@@ -117,6 +119,7 @@ export default function AppShell() {
         </div>
       )}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <KeyboardShortcutHelp open={showKeys} onClose={() => setShowKeys(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="md:hidden flex items-center justify-between bg-emerald-900 text-stone-100 px-4 py-3">
           <button onClick={() => setSidebarOpen(true)} className="p-1">

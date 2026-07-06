@@ -5,6 +5,7 @@ import AppShell from './components/layout/AppShell'
 import LoginPage from './components/features/auth/LoginPage'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { SkeletonPage } from './components/ui/Skeleton'
+import { OfficersProvider } from './lib/OfficersContext'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const SchedulePage = lazy(() => import('./pages/SchedulePage'))
@@ -47,23 +48,25 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/update-password" element={<Suspense fallback={<PageFallback />}><UpdatePasswordPage /></Suspense>} />
-      <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
-        <Route path="/" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><DashboardPage /></Suspense></ErrorBoundary>} />
-        <Route path="/schedule" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><SchedulePage /></Suspense></ErrorBoundary>} />
-        <Route path="/maintenance" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><MaintenancePage /></Suspense></ErrorBoundary>} />
-        <Route path="/meetings" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><MeetingsPage /></Suspense></ErrorBoundary>} />
-        <Route path="/cabins" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><CabinsPage /></Suspense></ErrorBoundary>} />
-        <Route path="/guide" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><GuidePage /></Suspense></ErrorBoundary>} />
-        <Route path="/records" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><RecordsPage /></Suspense></ErrorBoundary>} />
-        <Route path="/map" element={<Navigate to="/" replace />} />
-        <Route path="/photos" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><PhotosPage /></Suspense></ErrorBoundary>} />
-        <Route path="/users" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><UsersPage /></Suspense></ErrorBoundary>} />
-        <Route path="/emergency" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><EmergencyPage /></Suspense></ErrorBoundary>} />
-        <Route path="/boat-schedule" element={<Navigate to="/schedule" replace />} />
-      </Route>
-    </Routes>
+    <OfficersProvider>
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/update-password" element={<Suspense fallback={<PageFallback />}><UpdatePasswordPage /></Suspense>} />
+        <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+          <Route path="/" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><DashboardPage /></Suspense></ErrorBoundary>} />
+          <Route path="/schedule" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><SchedulePage /></Suspense></ErrorBoundary>} />
+          <Route path="/maintenance" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><MaintenancePage /></Suspense></ErrorBoundary>} />
+          <Route path="/meetings" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><MeetingsPage /></Suspense></ErrorBoundary>} />
+          <Route path="/cabins" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><CabinsPage /></Suspense></ErrorBoundary>} />
+          <Route path="/guide" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><GuidePage /></Suspense></ErrorBoundary>} />
+          <Route path="/records" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><RecordsPage /></Suspense></ErrorBoundary>} />
+          <Route path="/map" element={<Navigate to="/" replace />} />
+          <Route path="/photos" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><PhotosPage /></Suspense></ErrorBoundary>} />
+          <Route path="/users" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><UsersPage /></Suspense></ErrorBoundary>} />
+          <Route path="/emergency" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><EmergencyPage /></Suspense></ErrorBoundary>} />
+          <Route path="/boat-schedule" element={<Navigate to="/schedule" replace />} />
+        </Route>
+      </Routes>
+    </OfficersProvider>
   )
 }

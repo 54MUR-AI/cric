@@ -1,11 +1,9 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Link } from 'react-router-dom'
-import { Radio, Zap, Thermometer, Navigation, MapPin, Share2, ChevronLeft, Search, Maximize, Minimize, Crosshair, Pencil, Ruler, Wifi, Droplets, Flame } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, ChevronLeft, Search, Maximize, Minimize, Crosshair, Ruler, Wifi, Droplets, Flame } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
-import { useConfirm } from '../components/ui/useConfirm'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
 import { usePhotos } from '../hooks/usePhotos'
@@ -14,380 +12,18 @@ import { useBookings } from '../hooks/useBookings'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
-const CRANBERRY_LAKE = [44.2228, -74.8344]
-const CHAIR_ROCK_ISLAND = [44.14722, -74.81194]
-const RADAR_API = 'https://api.rainviewer.com/public/weather-maps.json'
-const RADAR_TILES = 'https://tilecache.rainviewer.com/v2/radar'
-const ESRI_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-const ESRI_TOPO = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
-const ESRI_ATTR = '&copy; <a href="https://www.esri.com/">Esri</a>'
-
-const PIN_COLORS = {
-  cabin: '#10b981', boathouse: '#3b82f6', dock: '#06b6d4',
-  'lean-to': '#d97706', firepit: '#ef4444', cell: '#8b5cf6', other: '#6b7280',
-}
-
-const PIN_SVG = {
-  cabin: '<path d="M8 1L1 7h2v7h10V7h2L8 1zM6 10h4v4H6z"/>',
-  boathouse: '<path d="M8 1L1 7h1v5h12V7h1L8 1zM3 12h10v3H3z"/>',
-  dock: '<path d="M4 10h8v2H4zM6 12v3h1v-3M9 12v3h1v-3"/>',
-  'lean-to': '<path d="M3 12L8 4l5 8H3zM2 12h12v2H2z"/>',
-  firepit: '<path d="M8 4C6 6 5 8 5 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0-2-1-4-3-6zM3 13h10v1H3z"/>',
-  cell: '<path d="M4 12h1l2-3 2 4 2-2 1 1h4"/>',
-  other: '<path d="M8 3C5.6 3 3.5 5.1 3.5 7.5c0 2.8 4.5 6.5 4.5 6.5s4.5-3.7 4.5-6.5C12.5 5.1 10.4 3 8 3zm0 3.5c.8 0 1.5.7 1.5 1.5S8.8 9.5 8 9.5 6.5 8.8 6.5 8 7.2 6.5 8 6.5z"/>',
-}
-
-const GUIDE_SECTIONS = {
-  'solar': '/guide#solar-start', 'generator': '/guide#generator',
-  'water': '/guide#water', 'boats': '/guide#boats',
-  'battery': '/guide#battery-reset',
-}
-
-const PIN_TYPE_LABELS = {
-  cabin: 'Cabins', boathouse: 'Boathouse', dock: 'Docks',
-  'lean-to': 'Lean-tos', firepit: 'Firepits', cell: 'Cell Service', other: 'Other',
-}
-
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-function bearing(lat1, lon1, lat2, lon2) {
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180)
-  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon)
-  const brng = Math.atan2(y, x) * 180 / Math.PI
-  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
-  return dirs[Math.round(brng / 45) % 8]
-}
-
-function pinIcon(type, label, cabinColor) {
-  const color = cabinColor || PIN_COLORS[type] || '#6b7280'
-  const svg = PIN_SVG[type] || PIN_SVG.other
-  return L.divIcon({
-    className: '',
-    html: `<svg viewBox="0 0 16 16" fill="${color}" width="24" height="24" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;" title="${label}">${svg}</svg>`,
-    iconSize: [24, 24], iconAnchor: [12, 12],
-  })
-}
-
-function WindArrow({ speed, direction, lat, lon, name, temp }) {
-  if (speed == null || direction == null) return null
-  const speedMph = Math.round(speed * 1.15078); const size = Math.min(24 + speed * 2, 48)
-  if (lat == null || lon == null || isNaN(Number(lat)) || isNaN(Number(lon))) return null
-  const icon = L.divIcon({
-    className: '',
-    html: `<div style="position:relative;width:48px;height:56px;text-align:center"><div style="position:absolute;bottom:24px;left:50%;margin-left:-2px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:${size}px solid rgba(220,38,38,0.85);transform-origin:bottom center;transform:translateY(-4px) rotate(${direction}deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));"></div><div style="position:absolute;top:6px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.95);border:1px solid #d1d5db;border-radius:6px;padding:1px 5px;font-size:10px;font-weight:600;color:#1f2937;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.1);">${temp != null ? `${Math.round(temp)}°F` : ''} ${speedMph}mph</div></div>`,
-    iconSize: [48, 56], iconAnchor: [24, 28],
-  })
-  return <Marker position={[lat, lon]} icon={icon}><Popup><strong>{name}</strong><br/>{temp != null ? `${Math.round(temp)}°F` : ''}<br/>Wind: ${speedMph} mph ${Math.round(direction)}°</Popup></Marker>
-}
-
-function RadarLayer() {
-  const map = useMap(); const [timestamps, setTimestamps] = useState([]); const [currentIdx, setCurrentIdx] = useState(0)
-  const layerRef = useRef(null); const timerRef = useRef(null)
-  useEffect(() => { fetch(RADAR_API).then(r => r.json()).then(d => { const past = d.radar.past?.map(f => f.time) || []; setTimestamps(past); setCurrentIdx(past.length - 1) }).catch(() => {}) }, [])
-  useEffect(() => { if (timestamps.length === 0) return; if (layerRef.current) map.removeLayer(layerRef.current); const ts = timestamps[currentIdx]; layerRef.current = L.tileLayer(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`, { opacity: 0.5, attribution: 'RainViewer', minZoom: 6, maxZoom: 12, transparent: true }); layerRef.current.addTo(map); return () => { if (layerRef.current) map.removeLayer(layerRef.current) } }, [currentIdx, timestamps, map])
-  useEffect(() => { timerRef.current = setInterval(() => setCurrentIdx(prev => Math.max(0, prev - 1)), 1500); return () => clearInterval(timerRef.current) }, [timestamps])
-  return null
-}
-
-function LightningLayer({ onStrikeNearby }) {
-  const map = useMap()
-  const markersRef = useRef([])
-  const wsRef = useRef(null)
-  const pruneIntervalRef = useRef(null)
-  const onStrikeNearbyRef = useRef(onStrikeNearby)
-  onStrikeNearbyRef.current = onStrikeNearby
-
-  useEffect(() => {
-    let cancelled = false
-    const markers = markersRef.current
-    const seen = new Set()
-
-    function pruneStrikes() {
-      const cutoff = Date.now() - 120000
-      for (let i = markers.length - 1; i >= 0; i--) {
-        if (markers[i]._strikeTime < cutoff) {
-          map.removeLayer(markers[i])
-          markers.splice(i, 1)
-        }
-      }
-    }
-
-    function connect() {
-      if (cancelled) return
-      // Clear old interval before creating new one
-      if (pruneIntervalRef.current) clearInterval(pruneIntervalRef.current)
-      pruneIntervalRef.current = null
-      try {
-        const ws = new WebSocket('wss://live.lightningmaps.org')
-        wsRef.current = ws
-        ws.binaryType = 'arraybuffer'
-
-        ws.onopen = () => {
-          ws.send(JSON.stringify({
-            v: 24, i: {}, s: true, x: 0, w: 0, tx: 0, tw: 0,
-            a: 4, z: 5, b: true, h: '', l: 0, t: 0,
-            from_lightningmaps_org: true,
-            p: [90, 180, -90, -180],
-            r: 'feed',
-          }))
-        }
-
-        ws.onmessage = (event) => {
-          try {
-            const text = typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
-            const msg = JSON.parse(text)
-            const strokes = msg?.strokes ?? []
-            for (const s of strokes) {
-              if (!s.id || seen.has(s.id)) continue
-              seen.add(s.id)
-              if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) continue
-              const icon = L.divIcon({
-                className: '',
-                html: '<div style="color:#fbbf24;font-size:18px;filter:drop-shadow(0 0 4px rgba(251,191,36,0.8));text-shadow:0 0 6px rgba(251,191,36,0.5);line-height:1;">⚡</div>',
-                iconSize: [20, 20], iconAnchor: [10, 10],
-              })
-              const marker = L.marker([s.lat, s.lon], { icon }).addTo(map)
-              marker._strikeTime = s.time
-              markers.push(marker)
-              if (onStrikeNearbyRef.current) {
-                const dist = haversineKm(CHAIR_ROCK_ISLAND[0], CHAIR_ROCK_ISLAND[1], s.lat, s.lon)
-                if (dist < 15) onStrikeNearbyRef.current(s, dist)
-              }
-            }
-          } catch { /* skip unparseable */ }
-        }
-
-        ws.onclose = () => {
-          if (!cancelled) setTimeout(connect, 10000)
-        }
-
-        ws.onerror = () => { ws.close() }
-
-        pruneIntervalRef.current = setInterval(pruneStrikes, 30000)
-      } catch { /* connection failed */ }
-    }
-
-    connect()
-
-    return () => {
-      cancelled = true
-      if (pruneIntervalRef.current) {
-        clearInterval(pruneIntervalRef.current)
-        pruneIntervalRef.current = null
-      }
-      if (wsRef.current) {
-        wsRef.current.close()
-        wsRef.current = null
-      }
-      markers.forEach(m => map.removeLayer(m))
-      markers.length = 0
-    }
-  }, [map])
-
-  return null
-}
-
-function MeasureLayer({ points, onAddPoint, onClear }) {
-  const map = useMap()
-  const polylineRef = useRef(null)
-  const markersRef = useRef([])
-
-  useMapEvents({
-    click(e) {
-      if (onAddPoint) onAddPoint(e.latlng)
-    },
-  })
-
-  useEffect(() => {
-    markersRef.current.forEach(m => map.removeLayer(m))
-    markersRef.current = []
-    points.forEach((p, i) => {
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="background:#3b82f6;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${i + 1}</div>`,
-        iconSize: [20, 20], iconAnchor: [10, 10],
-      })
-      const m = L.marker([p.lat, p.lng], { icon }).addTo(map)
-      markersRef.current.push(m)
-    })
-    return () => { markersRef.current.forEach(m => map.removeLayer(m)); markersRef.current = [] }
-  }, [points, map])
-
-  useEffect(() => {
-    if (polylineRef.current) map.removeLayer(polylineRef.current)
-    if (points.length < 2) { polylineRef.current = null; return }
-    polylineRef.current = L.polyline(points.map(p => [p.lat, p.lng]), { color: '#3b82f6', weight: 2, dashArray: '6,4' }).addTo(map)
-    return () => { if (polylineRef.current) map.removeLayer(polylineRef.current) }
-  }, [points, map])
-
-  useEffect(() => {
-    if (points.length >= 2) {
-      let total = 0
-      for (let i = 1; i < points.length; i++) {
-        total += haversineKm(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng)
-      }
-      map.eachLayer((layer) => {
-        if (layer._measureLabel) map.removeLayer(layer)
-      })
-      const last = points[points.length - 1]
-      const label = L.divIcon({
-        className: '',
-        html: `<div style="background:#1c1917;color:white;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${total.toFixed(2)} km</div>`,
-        iconSize: [0, 0], iconAnchor: [0, 0],
-      })
-      const labelMarker = L.marker([last.lat, last.lng], { icon: label, interactive: false })
-      labelMarker._measureLabel = true
-      labelMarker.addTo(map)
-    }
-  }, [points, map])
-
-  return null
-}
-
-function ForecastPopup({ latlng, data, loading, onClose }) {
-  const map = useMap()
-  useEffect(() => {
-    if (latlng) map.flyTo([latlng.lat, latlng.lng], Math.max(map.getZoom(), 10), { duration: 0.5 })
-  }, [latlng])
-  if (!latlng || (!loading && !data)) return null
-  const icon = L.divIcon({ className: '', html: '<div style="background:#0284c7;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>', iconSize: [12, 12], iconAnchor: [6, 6] })
-  return (
-    <Marker position={[latlng.lat, latlng.lng]} icon={icon}>
-      <Popup maxWidth={280} minWidth={200}>
-        <div className="text-xs space-y-1 max-w-[260px]">
-          {loading ? (
-            <div className="flex items-center gap-2 text-stone-500"><span className="animate-spin h-3 w-3 border-2 border-stone-400 border-t-transparent rounded-full" /> Loading forecast...</div>
-          ) : (
-            <>
-              <div className="font-bold text-stone-800 dark:text-stone-200 text-sm">{data?.location}</div>
-              {data?.periods?.slice(0, 7).map((p, i) => (
-                <div key={i} className={`flex items-start gap-2 py-1 ${i > 0 ? 'border-t border-stone-100 dark:border-stone-800' : ''}`}>
-                  <span className="font-semibold text-stone-600 dark:text-stone-400 min-w-[60px]">{p.name}</span>
-                  <span className="text-stone-700 dark:text-stone-300">{p.temp}°F {p.shortForecast}</span>
-                </div>
-              ))}
-              <button onClick={onClose} className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800">Close</button>
-            </>
-          )}
-        </div>
-      </Popup>
-    </Marker>
-  )
-}
-
-function PhotosLayer({ photos }) {
-  const geotagged = useMemo(() => photos.filter(p => p.latitude != null && p.longitude != null), [photos])
-  if (geotagged.length === 0) return null
-  return geotagged.map(photo => (
-    <Marker key={photo.id} position={[photo.latitude, photo.longitude]} icon={L.divIcon({
-      className: '',
-      html: `<div style="width:32px;height:32px;border-radius:4px;overflow:hidden;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:pointer;"><img src="${photo.url}" alt="" style="width:100%;height:100%;object-fit:cover;" /></div>`,
-      iconSize: [32, 32], iconAnchor: [16, 16],
-    })}>
-      <Popup>
-        <div className="text-xs max-w-[200px]">
-          <img src={photo.url} alt="" className="w-full h-24 object-cover rounded mb-1" />
-          {photo.caption && <div className="text-stone-700 dark:text-stone-300 font-medium">{photo.caption}</div>}
-          {photo.taken_at && <div className="text-stone-400 dark:text-stone-500">{new Date(photo.taken_at).toLocaleDateString()}</div>}
-        </div>
-      </Popup>
-    </Marker>
-  ))
-}
-
-function MapClickHandler({ active, onMapClick, onMapClickGeneral }) {
-  useMapEvents({ click(e) { if (active) onMapClick(e.latlng); else if (onMapClickGeneral) onMapClickGeneral(e.latlng) } })
-  return null
-}
-
-function UserLocationMarker({ position, accuracy }) {
-  const map = useMap()
-  useEffect(() => { if (position) map.flyTo(position, map.getZoom() < 13 ? 13 : map.getZoom(), { duration: 0.5 }) }, [position])
-  if (!position) return null
-  const accRadius = accuracy && accuracy < 1000 ? accuracy : 100
-  return (
-    <>
-      <Circle center={position} radius={accRadius} pathOptions={{ color: '#3b82f6', weight: 1, fillColor: '#3b82f6', fillOpacity: 0.1, dashArray: '4' }} />
-      <Marker position={position} icon={L.divIcon({
-        className: '',
-        html: '<div style="width:18px;height:18px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px rgba(59,130,246,0.5),0 2px 6px rgba(0,0,0,0.3);"><div style="width:8px;height:8px;background:white;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 2s infinite;"></div></div><style>@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }</style>',
-        iconSize: [18, 18], iconAnchor: [9, 9],
-      })} />
-    </>
-  )
-}
-
-function LocateButton({ position }) {
-  const map = useMap()
-  return (
-    <div className="absolute top-2 left-2 z-[800] pointer-events-none">
-      <button onClick={() => { if (position) map.flyTo(position, Math.max(map.getZoom(), 13), { duration: 0.5 }) }} disabled={!position} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors disabled:opacity-40" title="Center on my location">
-        <Crosshair className="h-4 w-4" />
-      </button>
-    </div>
-  )
-}
-
-function PinPopupContent({ pin, cabin, nextBooking, admin, onDelete, onEdit, onPhotoUpload }) {
-  const { confirm, ConfirmDialog } = useConfirm()
-  const dist = haversineKm(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
-  const dir = bearing(CRANBERRY_LAKE[0], CRANBERRY_LAKE[1], pin.latitude, pin.longitude)
-  const pinColor = cabin?.color || PIN_COLORS[pin.type] || '#6b7280'
-  const svg = PIN_SVG[pin.type] || PIN_SVG.other
-
-  const guideKey = Object.keys(GUIDE_SECTIONS).find(k => pin.label.toLowerCase().includes(k) || pin.type === k)
-
-  const handleShare = () => {
-    const text = `${pin.label} — ${(dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`)} ${dir} of landing`
-    if (navigator.share) navigator.share({ title: pin.label, text }).catch(() => {})
-    else navigator.clipboard.writeText(text)
-  }
-
-  return (
-    <div className="text-xs space-y-1.5 min-w-[180px]">
-      <div className="flex items-center gap-1.5">
-        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: pinColor }}>
-          <svg viewBox="0 0 16 16" fill="white" width="10" height="10">{svg}</svg>
-        </span>
-        <strong className="text-sm text-stone-800 dark:text-stone-200">{pin.label}</strong>
-      </div>
-      <div className="flex items-center gap-1 flex-wrap">
-        <span className="capitalize text-stone-400 dark:text-stone-500">{pin.type}</span>
-        {cabin && <><span className="text-stone-300 dark:text-stone-600">&middot;</span><span className="inline-flex items-center gap-0.5 text-stone-500 dark:text-stone-400"><span className="inline-block w-2 h-2 rounded-full" style={{ background: cabin.color }} />{cabin.name}</span></>}
-      </div>
-      {pin.description && <div className="text-stone-500 dark:text-stone-400">{pin.description}</div>}
-      <div className="text-stone-400 dark:text-stone-500">{dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`} {dir} of landing</div>
-
-      {cabin && (
-        <div className="space-y-1">
-          <Link to="/cabins" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
-          <Link to="/schedule" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
-          {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.guests || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
-        </div>
-      )}
-
-      {guideKey && <a href={GUIDE_SECTIONS[guideKey]} className="block text-amber-600 dark:text-amber-400 hover:text-amber-800 font-medium">View Guide &rarr;</a>}
-
-      <button onClick={handleShare} className="inline-flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors mt-1"><Share2 className="h-3 w-3" /> Share</button>
-
-      {pin.image_url && <img src={pin.image_url} alt="" className="w-full h-24 object-cover rounded mt-1" />}
-
-      {admin && (
-        <div className="flex gap-2 pt-1 border-t border-stone-200 dark:border-stone-700 mt-2">
-          <button onClick={() => onEdit(pin)} className="inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 text-xs"><Pencil className="h-3 w-3" /> Edit</button>
-          <label className="text-blue-600 dark:text-blue-400 hover:text-blue-800 cursor-pointer text-xs">Add Photo<input type="file" accept="image/*" className="hidden" onChange={(e) => onPhotoUpload(pin, e.target.files?.[0])} /></label>
-          <button onClick={async () => { if (await confirm({ title: 'Delete Pin', message: 'Are you sure you want to delete this pin?' })) onDelete(pin.id) }} className="text-rose-600 dark:text-rose-400 hover:text-rose-800 text-xs">Delete</button>
-        </div>
-      )}
-      {ConfirmDialog}
-    </div>
-  )
-}
+import RadarLayer from '../components/map/RadarLayer'
+import LightningLayer from '../components/map/LightningLayer'
+import MeasureLayer from '../components/map/MeasureLayer'
+import ForecastPopup from '../components/map/ForecastPopup'
+import PhotosLayer from '../components/map/PhotosLayer'
+import MapClickHandler from '../components/map/MapClickHandler'
+import UserLocationMarker from '../components/map/UserLocationMarker'
+import LocateButton from '../components/map/LocateButton'
+import WindArrow from '../components/map/WindArrow'
+import PinPopupContent from '../components/map/PinPopupContent'
+import { CHAIR_ROCK_ISLAND, CRANBERRY_LAKE, PIN_COLORS, PIN_TYPE_LABELS, ESRI_SAT, ESRI_TOPO, ESRI_ATTR } from '../lib/map/constants'
+import { bearing, pinIcon } from '../lib/map/utils'
 
 export default function MapPage({ compact, onLightningStrike } = {}) {
   const { isAdmin } = useAuth()
@@ -472,7 +108,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     const fetchFireDanger = async () => {
       try {
         const r = await fetch('https://api.weather.gov/firewx/forecast?point=44.14722,-74.81194')
-        if (!r.ok) return // Fire weather not available for this location
+        if (!r.ok) return
         const data = await r.json()
         if (cancelled || !data?.properties?.periods?.length) return
         const today = data.properties.periods[0]
@@ -565,7 +201,8 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     if (!file) return
     const ext = file.name.split('.').pop(); const fileName = `pin_${pin.id}_${Date.now()}.${ext}`; const path = `pin_photos/${fileName}`
     const { error: upErr } = await supabase.storage.from('photos').upload(path, file)
-    if (upErr) { alert('Upload failed'); return }
+    if (upErr && toast) { toast.error('Upload failed'); return }
+    if (upErr) return
     const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
     await supabase.from('map_pins').update({ image_url: publicUrl }).eq('id', pin.id)
     refreshPins()
@@ -655,14 +292,12 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
           {trackingEnabled && <LocateButton position={userLocation} />}
         </MapContainer>
 
-        {/* Fullscreen button */}
         <div className="absolute top-2 right-2 z-[800] pointer-events-none">
           <button onClick={toggleFullscreen} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </button>
         </div>
 
-        {/* Collapsible right sidebar */}
         <div className="absolute right-0 top-0 bottom-0 z-[800] flex pointer-events-none">
           <div className="pointer-events-auto self-center -ml-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="bg-white dark:bg-stone-900 rounded-l-md shadow-md border border-r-0 border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}>
@@ -673,7 +308,6 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
             <div className="pointer-events-auto w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm shadow-lg border-l border-stone-200 dark:border-stone-700 overflow-y-auto text-xs">
               <div className="p-3 space-y-4">
 
-                {/* Base Map */}
                 <div>
                   <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Base Map</h4>
                   <div className="space-y-1">
@@ -687,7 +321,6 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
                   </div>
                 </div>
 
-                {/* Overlays */}
                 <div>
                   <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Overlays</h4>
                   <div className="space-y-1">
@@ -729,7 +362,6 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
                   </div>
                 </div>
 
-                {/* Pin Filters */}
                 <div>
                   <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Pin Filters</h4>
                   <div className="relative mb-2">
@@ -751,7 +383,6 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
                   </div>
                 </div>
 
-                {/* Attribution */}
                 <div className="pt-2 border-t border-stone-200 dark:border-stone-700 text-[10px] text-stone-400 dark:text-stone-500 space-y-0.5">
                   <div>Radar: RainViewer</div>
                   <div>Trails: Waymarked Trails</div>
