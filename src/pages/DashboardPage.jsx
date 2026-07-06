@@ -113,7 +113,7 @@ function WeatherWidget() {
             {new Date(sunData.results.sunset).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </span>
           <span className="text-stone-300 dark:text-stone-600">|</span>
-          <span>{sunData.results.day_length} daylight</span>
+          <span>{Math.floor(Number(sunData.results.day_length) / 3600)}h {String(Math.floor(Number(sunData.results.day_length) % 3600 / 60)).padStart(2, '0')}m daylight</span>
         </div>
       )}
     </div>
