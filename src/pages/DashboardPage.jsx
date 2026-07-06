@@ -236,33 +236,6 @@ export default function DashboardPage() {
 
       <WeatherWidget />
 
-      {recentPhotos.length > 0 && (
-        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
-          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2"><Camera className="h-4 w-4" /> Recent Photos</h2>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {recentPhotos.map((p) => (
-              <button key={p.id} onClick={() => setLightboxPhoto(p)} className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 hover:ring-2 hover:ring-emerald-500 dark:hover:ring-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all">
-                <img src={p.thumbnail_url || p.url} alt={p.caption || ''} className="w-full h-full object-cover" loading="lazy" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {lightboxPhoto && (
-        <LightboxDialog
-          photo={lightboxPhoto}
-          photos={recentPhotos}
-          onClose={() => setLightboxPhoto(null)}
-          onNavigate={setLightboxPhoto}
-        />
-      )}
-
-      <div>
-        <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
-        <MapPage compact onLightningStrike={handleLightningStrike} />
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
           <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Who&rsquo;s Here This Week</h2>
@@ -316,6 +289,33 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
+        <MapPage compact onLightningStrike={handleLightningStrike} />
+      </div>
+
+      {recentPhotos.length > 0 && (
+        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2"><Camera className="h-4 w-4" /> Recent Photos</h2>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {recentPhotos.map((p) => (
+              <button key={p.id} onClick={() => setLightboxPhoto(p)} className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 hover:ring-2 hover:ring-emerald-500 dark:hover:ring-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all">
+                <img src={p.thumbnail_url || p.url} alt={p.caption || ''} className="w-full h-full object-cover" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {lightboxPhoto && (
+        <LightboxDialog
+          photo={lightboxPhoto}
+          photos={recentPhotos}
+          onClose={() => setLightboxPhoto(null)}
+          onNavigate={setLightboxPhoto}
+        />
+      )}
     </div>
   )
 }
