@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
-import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, X } from 'lucide-react'
+import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, X, Sunrise, Sunset, Camera } from 'lucide-react'
+import LightboxDialog from '../components/ui/LightboxDialog'
 import { useToast } from '../components/ui/Toast'
 import { useWeatherAlerts } from '../hooks/useWeatherAlerts'
 import MapPage from './MapPage'
@@ -16,6 +17,7 @@ function WeatherWidget() {
   const [forecast, setForecast] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [sunData, setSunData] = useState(null)
 
   useEffect(() => {
     fetch(CRANBERRY_POINT, { headers: { 'User-Agent': UA } })
@@ -44,6 +46,9 @@ function WeatherWidget() {
         })
       })
       .catch(err => { setError(err.message); setLoading(false) })
+
+    fetch('https://api.sunrise-sunset.org/json?lat=44.2228&lng=-74.8344&date=today&formatted=0')
+      .then(r => r.json()).then(d => { if (d.status === 'OK') setSunData(d) }).catch(() => {})
   }, [])
 
   if (loading) return (
@@ -97,6 +102,20 @@ function WeatherWidget() {
           </div>
         )}
       </div>
+      {sunData && (
+        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-stone-100 dark:border-stone-800 text-xs text-stone-400 dark:text-stone-500">
+          <span className="flex items-center gap-1">
+            <Sunrise className="h-3 w-3" />
+            {new Date(sunData.results.sunrise).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </span>
+          <span className="flex items-center gap-1">
+            <Sunset className="h-3 w-3" />
+            {new Date(sunData.results.sunset).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </span>
+          <span className="text-stone-300 dark:text-stone-600">|</span>
+          <span>{sunData.results.day_length} daylight</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -108,6 +127,9 @@ export default function DashboardPage() {
   const [upcomingBookings, setUpcomingBookings] = useState([])
   const [openTasks, setOpenTasks] = useState([])
   const [nextMeeting, setNextMeeting] = useState(null)
+  const [recentPhotos, setRecentPhotos] = useState([])
+  const [lightboxPhoto, setLightboxPhoto] = useState(null)
+  const [activeOccupants, setActiveOccupants] = useState([])
 
   const triggerTestAlert = () => {
     toast.warning('TEST: Severe Thunderstorm Warning for St. Lawrence County', 8000)
@@ -120,6 +142,9 @@ export default function DashboardPage() {
     supabase.from('bookings').select('*, cabins(name)').gte('start_date', new Date().toISOString().split('T')[0]).order('start_date').limit(5).then(({ data }) => setUpcomingBookings(data || []))
     supabase.from('maintenance_tasks').select('*, maintenance_categories(name)').in('status', ['todo', 'in_progress']).order('due_date').limit(5).then(({ data }) => setOpenTasks(data || []))
     supabase.from('meetings').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date').limit(1).then(({ data }) => setNextMeeting(data?.[0] || null))
+    supabase.from('photos').select('id, url, thumbnail_url, caption').order('created_at', { ascending: false }).limit(8).then(({ data }) => setRecentPhotos(data || []))
+    const today = new Date().toISOString().split('T')[0]
+    supabase.from('bookings').select('*, cabins(name, color, sort_order), profiles(display_name)').lte('start_date', today).gte('end_date', today).then(({ data }) => setActiveOccupants(data || []))
   }, [])
 
   return (
@@ -176,12 +201,56 @@ export default function DashboardPage() {
 
       <WeatherWidget />
 
+      {recentPhotos.length > 0 && (
+        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2"><Camera className="h-4 w-4" /> Recent Photos</h2>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {recentPhotos.map((p) => (
+              <button key={p.id} onClick={() => setLightboxPhoto(p)} className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 hover:ring-2 hover:ring-emerald-500 dark:hover:ring-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all">
+                <img src={p.thumbnail_url || p.url} alt={p.caption || ''} className="w-full h-full object-cover" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {lightboxPhoto && (
+        <LightboxDialog
+          photo={lightboxPhoto}
+          photos={recentPhotos}
+          onClose={() => setLightboxPhoto(null)}
+          onNavigate={setLightboxPhoto}
+        />
+      )}
+
       <div>
         <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
         <MapPage compact onLightningStrike={handleLightningStrike} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Who&rsquo;s Here This Week</h2>
+          {activeOccupants.length === 0 ? (
+            <p className="text-sm text-stone-400 dark:text-stone-500">Island is quiet &mdash; be the first to book!</p>
+          ) : (
+            <ul className="space-y-2">
+              {[...activeOccupants].sort((a, b) => (a.cabins?.sort_order ?? 99) - (b.cabins?.sort_order ?? 99)).map((b) => (
+                <li key={b.id} className="text-sm flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: b.cabins?.color || '#888' }} />
+                  <span className="text-stone-600 dark:text-stone-400 truncate">
+                    {b.cabins?.name}{b.room ? ` (${b.room})` : ''}
+                  </span>
+                  <span className="ml-auto text-stone-400 dark:text-stone-500 truncate text-[11px]">
+                    {b.guests || b.profiles?.display_name || 'Booked'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link to="/schedule" className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:underline">View schedule →</Link>
+        </div>
+
         <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
           <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Upcoming Bookings</h2>
           {upcomingBookings.length === 0 ? (
