@@ -100,10 +100,9 @@ function WeatherWidget() {
   const bgImg = getWeatherImage(current?.textDescription, daytime)
 
   return (
-    <div className="rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 relative overflow-hidden">
-      <div className="absolute inset-0 transition-all duration-700" style={{ backgroundImage: `url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-      <div className="absolute inset-0 bg-black/20" style={{ bottom: '-1px' }} />
-      <div className="relative z-10 p-4">
+    <div className="rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 relative overflow-hidden"
+      style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="p-4">
         <h2 className="font-semibold text-white/90 mb-3 flex items-center gap-2">
           <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
         </h2>
