@@ -1,5 +1,4 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 interface CreateUserInput {
   email: string
@@ -11,6 +10,8 @@ interface SetAdminInput {
   profile_id: string
   grant: boolean
 }
+
+const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
@@ -27,25 +28,26 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-    const supabase = createClient(supabaseUrl, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
+    // Verify caller is super admin by checking their JWT
+    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey, 'User-Agent': UA },
     })
-
-    // Verify caller is super admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) {
+    if (!userResp.ok) {
       return new Response(JSON.stringify({ error: 'unauthorized' }), {
         status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
+    const user = await userResp.json()
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
+    // Check if user has admin role in app_metadata or profiles
+    const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_admin`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
+    })
+    const profiles = await profileResp.json()
+    const profile = Array.isArray(profiles) ? profiles[0] : null
+    const isAdmin = profile?.is_admin || user?.app_metadata?.role === 'super_admin'
 
-    if (!profile?.is_admin) {
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'forbidden' }), {
         status: 403, headers: { ...cors, 'Content-Type': 'application/json' },
       })
@@ -56,27 +58,58 @@ Deno.serve(async (req: Request) => {
     switch (action) {
       case 'createUser': {
         const { email, password, display_name } = input as CreateUserInput
-        const { data, error } = await supabase.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: { display_name: display_name || email.split('@')[0] },
+        const createResp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'User-Agent': UA,
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { display_name: display_name || email.split('@')[0] },
+          }),
         })
-        if (error) throw error
-        return new Response(JSON.stringify({ user: data.user }), {
+        const result = await createResp.json()
+        if (!createResp.ok) throw new Error(result.msg || result.message || 'createUser failed')
+        return new Response(JSON.stringify({ user: { id: result.id } }), {
           headers: { ...cors, 'Content-Type': 'application/json' },
         })
       }
 
       case 'setAdmin': {
         const { profile_id, grant } = input as SetAdminInput
-        await supabase
-          .from('profiles')
-          .update({ is_admin: grant, role: grant ? 'super_admin' : 'member' })
-          .eq('id', profile_id)
 
-        await supabase.auth.admin.updateUserById(profile_id, {
-          app_metadata: { role: grant ? 'super_admin' : 'member' },
+        // Update profiles table
+        await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile_id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'User-Agent': UA,
+          },
+          body: JSON.stringify({
+            is_admin: grant,
+            role: grant ? 'super_admin' : 'member',
+          }),
+        })
+
+        // Update app_metadata via GoTrue admin API
+        await fetch(`${supabaseUrl}/auth/v1/admin/users/${profile_id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'User-Agent': UA,
+          },
+          body: JSON.stringify({
+            app_metadata: { role: grant ? 'super_admin' : 'member' },
+          }),
         })
 
         return new Response(JSON.stringify({ ok: true }), {

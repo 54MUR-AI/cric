@@ -1,6 +1,5 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
 import webpush from 'npm:web-push@3.6.7'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 interface PushPayload {
   title: string
@@ -9,6 +8,8 @@ interface PushPayload {
   icon?: string
   data?: Record<string, unknown>
 }
+
+const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
@@ -24,25 +25,26 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    const supabase = createClient(supabaseUrl, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
 
     // Verify caller is super admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) {
+    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey, 'User-Agent': UA },
+    })
+    if (!userResp.ok) {
       return new Response(JSON.stringify({ error: 'unauthorized' }), {
         status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
+    const user = await userResp.json()
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
+    const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_admin`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
+    })
+    const profiles = await profileResp.json()
+    const profile = Array.isArray(profiles) ? profiles[0] : null
+    const isAdmin = profile?.is_admin || user?.app_metadata?.role === 'super_admin'
 
-    if (!profile?.is_admin) {
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'forbidden' }), {
         status: 403, headers: { ...cors, 'Content-Type': 'application/json' },
       })
@@ -51,17 +53,18 @@ Deno.serve(async (req: Request) => {
     const payload: PushPayload = await req.json()
 
     // Fetch all subscriptions
-    const { data: subs } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh_key, auth_key')
+    const subsResp = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh_key,auth_key`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
+    })
+    const subs = await subsResp.json()
 
-    if (!subs?.length) {
+    if (!Array.isArray(subs) || !subs.length) {
       return new Response(JSON.stringify({ sent: 0 }), {
         headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
-    const subscriptions = subs.map(s => ({
+    const subscriptions = subs.map((s: any) => ({
       endpoint: s.endpoint,
       keys: { p256dh: s.p256dh_key, auth: s.auth_key },
     }))
@@ -75,7 +78,7 @@ Deno.serve(async (req: Request) => {
     webpush.setVapidDetails('mailto:denali.2.foxtrot@gmail.com', vapidPublicKey, vapidPrivateKey)
 
     const results = await Promise.allSettled(
-      subscriptions.map(sub =>
+      subscriptions.map((sub: any) =>
         webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth } },
           JSON.stringify(payload),
