@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Radio, Zap, Thermometer, Navigation, MapPin, ChevronLeft, Search, Maximize, Minimize, Crosshair, Ruler, Wifi, Droplets, Flame } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, ChevronLeft, Search, Maximize, Minimize, Crosshair, Ruler, Wifi, Droplets, Flame, CloudSun, Image } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
@@ -217,17 +217,29 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   const baseLayerLabels = { map: 'Map', satellite: 'Satellite', topo: 'Topo' }
   const baseLayerColors = { map: 'bg-stone-500', satellite: 'bg-purple-600', topo: 'bg-amber-700' }
 
-  const overlayItems = [
-    { key: 'showRadar', label: 'Radar', icon: Radio, activeColor: 'text-rose-500', pulsingDot: '#f43f5e' },
-    { key: 'showStations', label: 'Weather Stations', icon: Thermometer, activeColor: 'text-orange-500' },
-    { key: 'showTrails', label: 'Trails', icon: Navigation, activeColor: 'text-emerald-500' },
-    { key: 'showPins', label: 'Pins', icon: MapPin, activeColor: 'text-sky-500' },
-    { key: 'showLightning', label: 'Lightning', icon: Zap, activeColor: 'text-amber-500', pulsingDot: '#f59e0b' },
-    { key: 'showForecast', label: 'Forecast on Click', icon: Thermometer, activeColor: 'text-sky-500' },
-    { key: 'showPhotos', label: 'Geotagged Photos', icon: MapPin, activeColor: 'text-pink-500' },
-    { key: 'showBathymetry', label: 'Bathymetry', icon: Droplets, activeColor: 'text-cyan-500' },
-    { key: 'showFireDanger', label: 'Fire Danger', icon: Flame, activeColor: 'text-orange-500' },
-    { key: 'showCellCoverage', label: 'Cell Coverage', icon: Wifi, activeColor: 'text-violet-500' },
+  const overlayGroups = [
+    {
+      label: 'Weather', items: [
+        { key: 'showRadar', label: 'Radar', icon: Radio, activeColor: 'text-rose-500', pulsingDot: '#f43f5e' },
+        { key: 'showLightning', label: 'Lightning', icon: Zap, activeColor: 'text-amber-500', pulsingDot: '#f59e0b' },
+        { key: 'showStations', label: 'Weather Stations', icon: Thermometer, activeColor: 'text-orange-500' },
+        { key: 'showFireDanger', label: 'Fire Danger', icon: Flame, activeColor: 'text-orange-500' },
+        { key: 'showForecast', label: 'Forecast on Click', icon: CloudSun, activeColor: 'text-sky-500' },
+      ]
+    },
+    {
+      label: 'Map Features', items: [
+        { key: 'showTrails', label: 'Trails', icon: Navigation, activeColor: 'text-emerald-500' },
+        { key: 'showBathymetry', label: 'Bathymetry', icon: Droplets, activeColor: 'text-cyan-500' },
+        { key: 'showCellCoverage', label: 'Cell Coverage', icon: Wifi, activeColor: 'text-violet-500' },
+      ]
+    },
+    {
+      label: 'Pins & Photos', items: [
+        { key: 'showPins', label: 'Pins', icon: MapPin, activeColor: 'text-sky-500' },
+        { key: 'showPhotos', label: 'Geotagged Photos', icon: Image, activeColor: 'text-pink-500' },
+      ]
+    },
   ]
   const valMap = { showRadar, showStations, showTrails, showPins, showLightning, showForecast, showPhotos, showBathymetry, showFireDanger, showCellCoverage }
   const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning, showForecast: setShowForecast, showPhotos: setShowPhotos, showBathymetry: setShowBathymetry, showFireDanger: setShowFireDanger, showCellCoverage: setShowCellCoverage }
@@ -321,22 +333,29 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
                   </div>
                 </div>
 
+                {overlayGroups.map(group => (
+                  <div key={group.label}>
+                    <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-1">{group.label}</h5>
+                    <div className="space-y-1">
+                      {group.items.map(({ key, label, icon: Icon, activeColor, pulsingDot }) => (
+                        <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                          <input type="checkbox" checked={valMap[key]} onChange={() => setterMap[key](!valMap[key])} className="accent-stone-800 dark:accent-stone-200" />
+                          <Icon className={`h-3.5 w-3.5 ${valMap[key] ? activeColor : 'text-stone-400'}`} />
+                          {label}
+                          {pulsingDot && valMap[key] && (
+                            <span className="ml-auto flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: pulsingDot }}></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: pulsingDot }}></span>
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
                 <div>
-                  <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Overlays</h4>
+                  <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-1">Tools</h5>
                   <div className="space-y-1">
-                    {overlayItems.map(({ key, label, icon: Icon, activeColor, pulsingDot }) => (
-                      <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-                        <input type="checkbox" checked={valMap[key]} onChange={() => setterMap[key](!valMap[key])} className="accent-stone-800 dark:accent-stone-200" />
-                        <Icon className={`h-3.5 w-3.5 ${valMap[key] ? activeColor : 'text-stone-400'}`} />
-                        {label}
-                        {pulsingDot && valMap[key] && (
-                          <span className="ml-auto flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: pulsingDot }}></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: pulsingDot }}></span>
-                          </span>
-                        )}
-                      </label>
-                    ))}
                     <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
                       <input type="checkbox" checked={trackingEnabled} onChange={() => setTrackingEnabled(!trackingEnabled)} className="accent-stone-800 dark:accent-stone-200" />
                       <Crosshair className={`h-3.5 w-3.5 ${trackingEnabled ? 'text-blue-500' : 'text-stone-400'}`} />
