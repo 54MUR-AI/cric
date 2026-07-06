@@ -162,7 +162,6 @@ export default function DashboardPage() {
   const { profile, isAdmin } = useAuth()
   const toast = useToast()
   const { activeAlerts, lightningAlert, dismissAlert, dismissLightning, handleLightningStrike } = useWeatherAlerts()
-  const [upcomingBookings, setUpcomingBookings] = useState([])
   const [openTasks, setOpenTasks] = useState([])
   const [nextMeeting, setNextMeeting] = useState(null)
   const [recentPhotos, setRecentPhotos] = useState([])
@@ -177,7 +176,6 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    supabase.from('bookings').select('*, cabins(name)').gte('start_date', new Date().toISOString().split('T')[0]).order('start_date').limit(5).then(({ data }) => setUpcomingBookings(data || []))
     supabase.from('maintenance_tasks').select('*, maintenance_categories(name)').in('status', ['todo', 'in_progress']).order('due_date').limit(5).then(({ data }) => setOpenTasks(data || []))
     supabase.from('meetings').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date').limit(1).then(({ data }) => setNextMeeting(data?.[0] || null))
     supabase.from('photos').select('id, url, thumbnail_url, caption').order('created_at', { ascending: false }).limit(8).then(({ data }) => setRecentPhotos(data || []))
@@ -266,7 +264,7 @@ export default function DashboardPage() {
         <MapPage compact onLightningStrike={handleLightningStrike} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
           <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Who&rsquo;s Here This Week</h2>
           {activeOccupants.length === 0 ? (
@@ -282,28 +280,6 @@ export default function DashboardPage() {
                   <span className="ml-auto text-stone-400 dark:text-stone-500 truncate text-[11px]">
                     {b.guests || b.profiles?.display_name || 'Booked'}
                   </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link to="/schedule" className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:underline">View schedule →</Link>
-        </div>
-
-        <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
-          <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3">Upcoming Bookings</h2>
-          {upcomingBookings.length === 0 ? (
-            <p className="text-sm text-stone-400 dark:text-stone-500">No upcoming bookings</p>
-          ) : (
-            <ul className="space-y-2">
-              {upcomingBookings.map((b) => (
-                <li key={b.id} className="text-sm flex justify-between group relative">
-                  <span className="text-stone-600 dark:text-stone-400">{b.cabins?.name}</span>
-                  <span className="text-stone-400 dark:text-stone-500">{formatDate(b.start_date)}</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
-                    <div className="bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
-                      {formatDate(b.start_date)} – {formatDate(b.end_date)}{b.guests ? ` · ${b.guests}` : ''}
-                    </div>
-                  </div>
                 </li>
               ))}
             </ul>
