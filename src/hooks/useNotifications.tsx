@@ -1,23 +1,25 @@
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 import { useToast } from '../components/ui/Toast'
 import { usePushNotifications } from './usePushNotifications'
 
-const NotificationContext = createContext(null)
+interface NotificationContextValue {}
+
+const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 const RECENT_WINDOW = 5
 
-export function NotificationProvider({ children }) {
+export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const toast = useToast()
   const { subscribe } = usePushNotifications()
-  const [seenIds, setSeenIds] = useState(() => {
-    try { return new Set(JSON.parse(sessionStorage.getItem('notif-seen') || '[]')) } catch { return new Set() }
+  const [seenIds, setSeenIds] = useState<Set<string>>(() => {
+    try { return new Set<string>(JSON.parse(sessionStorage.getItem('notif-seen') || '[]')) } catch { return new Set() }
   })
-  const intervalRef = useRef(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const markSeen = useCallback((ids) => {
+  const markSeen = useCallback((ids: string[]) => {
     setSeenIds(prev => {
       const next = new Set(prev)
       ids.forEach(id => next.add(id))
@@ -43,11 +45,11 @@ export function NotificationProvider({ children }) {
         const newTasks = (tasks.data || []).filter(t => t.created_by !== user.id && !seenIds.has(`t-${t.id}`))
         const newTrips = (trips.data || []).filter(t => t.created_by !== user.id && !seenIds.has(`tr-${t.id}`))
 
-        const ids = []
+        const ids: string[] = []
 
         newBookings.forEach(b => {
           ids.push(`b-${b.id}`)
-          toast.info(`${b.cabins?.name || 'Cabin'} booked ${b.start_date?.slice(5)}–${b.end_date?.slice(5)}`)
+          toast.info(`${(b.cabins as any)?.name || 'Cabin'} booked ${b.start_date?.slice(5)}–${b.end_date?.slice(5)}`)
         })
         newTasks.forEach(t => {
           ids.push(`t-${t.id}`)
@@ -64,7 +66,7 @@ export function NotificationProvider({ children }) {
 
     check()
     intervalRef.current = setInterval(check, 60000)
-    return () => clearInterval(intervalRef.current)
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [user, seenIds, markSeen, toast, subscribe])
 
   return (
@@ -74,6 +76,7 @@ export function NotificationProvider({ children }) {
   )
 }
 
-export function useNotifications() {
-  return useContext(NotificationContext)
+export function useNotifications(): NotificationContextValue {
+  const ctx = useContext(NotificationContext)
+  return ctx ?? {}
 }

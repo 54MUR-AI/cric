@@ -1,18 +1,35 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useToast } from '../components/ui/Toast'
 import { useAuth } from './useAuth'
 import { sendPushToAll } from './usePushNotifications'
 
-const WeatherAlertsContext = createContext(null)
+interface WeatherAlert {
+  id: string
+  event: string
+  headline: string
+  severity: string
+  urgency: string
+}
+
+interface WeatherAlertsContextValue {
+  alerts: WeatherAlert[]
+  activeAlerts: WeatherAlert[]
+  lightningAlert: string | null
+  dismissAlert: (id: string) => void
+  dismissLightning: () => void
+  handleLightningStrike: (msg: string) => void
+}
+
+const WeatherAlertsContext = createContext<WeatherAlertsContextValue | null>(null)
 
 const NWS_ALERTS_URL = 'https://api.weather.gov/alerts/active?point=44.14722,-74.81194'
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
-const POLL_INTERVAL = 300000 // 5 minutes
+const POLL_INTERVAL = 300000
 
-export function WeatherAlertsProvider({ children }) {
-  const [alerts, setAlerts] = useState([])
-  const [lightningAlert, setLightningAlert] = useState(null)
-  const [dismissedAlerts, setDismissedAlerts] = useState(new Set())
+export function WeatherAlertsProvider({ children }: { children: ReactNode }) {
+  const [alerts, setAlerts] = useState<WeatherAlert[]>([])
+  const [lightningAlert, setLightningAlert] = useState<string | null>(null)
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set())
   const toast = useToast()
   const { isAdmin } = useAuth()
 
@@ -26,12 +43,12 @@ export function WeatherAlertsProvider({ children }) {
         const data = await r.json()
         if (cancelled) return
 
-        const warnings = (data.features || []).filter(f => {
+        const warnings = (data.features || []).filter((f: any) => {
           const e = f.properties.event || ''
           return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm' || e.includes('Small Craft') || e.includes('Marine')
         })
 
-        const mapped = warnings.map(w => ({
+        const mapped: WeatherAlert[] = warnings.map((w: any) => ({
           id: w.properties.id,
           event: w.properties.event,
           headline: (w.properties.headline || w.properties.description || '').slice(0, 150),
@@ -48,7 +65,7 @@ export function WeatherAlertsProvider({ children }) {
     return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
-  const dismissAlert = useCallback((id) => {
+  const dismissAlert = useCallback((id: string) => {
     setDismissedAlerts(prev => new Set([...prev, id]))
   }, [])
 
@@ -56,7 +73,7 @@ export function WeatherAlertsProvider({ children }) {
     setLightningAlert(null)
   }, [])
 
-  const handleLightningStrike = useCallback((msg) => {
+  const handleLightningStrike = useCallback((msg: string) => {
     setLightningAlert(msg)
     if (isAdmin) {
       sendPushToAll({ title: 'Lightning Nearby', body: msg, tag: 'lightning', data: { url: '/' } })
@@ -72,7 +89,7 @@ export function WeatherAlertsProvider({ children }) {
   )
 }
 
-export function useWeatherAlerts() {
+export function useWeatherAlerts(): WeatherAlertsContextValue {
   const ctx = useContext(WeatherAlertsContext)
   if (!ctx) throw new Error('useWeatherAlerts must be used within WeatherAlertsProvider')
   return ctx

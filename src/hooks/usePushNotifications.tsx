@@ -4,7 +4,7 @@ import { useAuth } from './useAuth'
 
 const VAPID_PUBLIC_KEY = 'BNVy6avXiwCH62TDZqHCi11KaFll6AGVXyyuzVmMx18eHsAyDgzG0_Kxck4M3ixkUxSngN9XvejDd6hb9yIvF7o'
 
-function urlBase64ToUint8Array(base64String) {
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = atob(base64)
@@ -15,8 +15,13 @@ function urlBase64ToUint8Array(base64String) {
 
 const VAPID_KEY_BYTES = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 
-function isBrave() {
-  return navigator.brave && typeof navigator.brave.isBrave === 'function'
+function isBrave(): boolean {
+  return (navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function'
+}
+
+interface SubscribeResult {
+  ok: boolean
+  reason?: string
 }
 
 export function usePushNotifications() {
@@ -25,12 +30,11 @@ export function usePushNotifications() {
   const [enabled, setEnabled] = useState(false)
   const [isBraveBrowser, setIsBraveBrowser] = useState(false)
 
-  // Check subscription status on mount and when user changes
   useEffect(() => {
     const hasAPI = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
     setSupported(hasAPI)
     setIsBraveBrowser(isBrave())
-    
+
     if (hasAPI && user) {
       checkSubscriptionStatus()
     }
@@ -47,12 +51,12 @@ export function usePushNotifications() {
     }
   }
 
-  const subscribe = useCallback(async () => {
+  const subscribe = useCallback(async (): Promise<SubscribeResult> => {
     if (!user || !supported) return { ok: false, reason: 'unsupported' }
 
     if (Notification.permission === 'denied') return { ok: false, reason: 'denied' }
 
-    let perm = Notification.permission
+    let perm: NotificationPermission = Notification.permission
     if (perm === 'default') {
       perm = await Notification.requestPermission()
       if (perm !== 'granted') return { ok: false, reason: 'denied' }
@@ -60,8 +64,7 @@ export function usePushNotifications() {
 
     try {
       const reg = await navigator.serviceWorker.ready
-      
-      // Check if already subscribed
+
       const existing = await reg.pushManager.getSubscription()
       if (existing) {
         await saveSubscription(existing)
@@ -69,21 +72,20 @@ export function usePushNotifications() {
         return { ok: true }
       }
 
-      // Subscribe fresh
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: VAPID_KEY_BYTES,
+        applicationServerKey: VAPID_KEY_BYTES as unknown as BufferSource,
       })
 
       await saveSubscription(sub)
       setEnabled(true)
       return { ok: true }
     } catch (err) {
-      return { ok: false, reason: `${err.name}: ${err.message}` }
+      return { ok: false, reason: `${(err as Error).name}: ${(err as Error).message}` }
     }
   }, [user, supported])
 
-  const unsubscribe = useCallback(async () => {
+  const unsubscribe = useCallback(async (): Promise<{ ok: boolean }> => {
     try {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
@@ -106,7 +108,14 @@ export function usePushNotifications() {
   return { supported, enabled, isBraveBrowser, subscribe, unsubscribe, toggle }
 }
 
-export async function sendPushToAll(payload) {
+interface PushPayload {
+  title: string
+  body?: string
+  tag?: string
+  data?: Record<string, unknown>
+}
+
+export async function sendPushToAll(payload: PushPayload) {
   try {
     const functionUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
       || 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1'
@@ -126,7 +135,7 @@ export async function sendPushToAll(payload) {
   } catch {}
 }
 
-async function saveSubscription(sub) {
+async function saveSubscription(sub: PushSubscription) {
   const subJSON = sub.toJSON()
   if (!subJSON.endpoint || !subJSON.keys) return
 
@@ -137,8 +146,8 @@ async function saveSubscription(sub) {
   await supabase.from('push_subscriptions').upsert(
     {
       endpoint: subJSON.endpoint,
-      p256dh_key: subJSON.keys.p256dh,
-      auth_key: subJSON.keys.auth,
+      p256dh_key: (subJSON.keys as any).p256dh,
+      auth_key: (subJSON.keys as any).auth,
       user_id: userId,
       user_agent: navigator.userAgent,
     },

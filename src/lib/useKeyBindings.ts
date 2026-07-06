@@ -1,7 +1,12 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-export const KEY_BINDINGS = [
+interface KeyBinding {
+  combo: string
+  label: string
+}
+
+export const KEY_BINDINGS: KeyBinding[] = [
   { combo: 'g+d', label: 'Dashboard' },
   { combo: 'g+s', label: 'Schedule' },
   { combo: 'g+m', label: 'Map' },
@@ -14,18 +19,19 @@ export const KEY_BINDINGS = [
   { combo: 'g+u', label: 'Users' },
 ]
 
-const BINDINGS_MAP = Object.fromEntries(KEY_BINDINGS.map(b => [b.combo, '/'.concat(b.label.toLowerCase().replace(/ /g, ''))]))
+const BINDINGS_MAP: Record<string, string> = Object.fromEntries(KEY_BINDINGS.map(b => [b.combo, '/'.concat(b.label.toLowerCase().replace(/ /g, ''))]))
 BINDINGS_MAP['g+d'] = '/'
 
-export function useKeyBindings(onShowHelp) {
+export function useKeyBindings(onShowHelp?: () => void) {
   const navigate = useNavigate()
 
   useEffect(() => {
     let buffer = ''
-    let timer
+    let timer: ReturnType<typeof setTimeout>
 
-    const handler = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
 
       if (e.key === '?' && onShowHelp) {
         onShowHelp()

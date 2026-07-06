@@ -1,10 +1,13 @@
 import { supabase } from './supabase'
 import db from './db'
 
-export async function syncTable(table, query) {
+export async function syncTable(table: string, query: any) {
   const { data, error } = await query
   if (error) throw error
-  if (data) await db.table(table).bulkPut(data)
+  if (data) {
+    const tbl = (db as any)[table]
+    if (tbl?.bulkPut) await tbl.bulkPut(data)
+  }
   return data
 }
 
@@ -24,7 +27,15 @@ export async function refreshAll() {
   ])
 }
 
-export async function queueChange(table, action, payload) {
+interface PendingChange {
+  id?: number
+  table: string
+  action: 'insert' | 'update' | 'delete'
+  payload: any
+  created_at: string
+}
+
+export async function queueChange(table: string, action: string, payload: any) {
   await db.pending_changes.add({ table, action, payload, created_at: new Date().toISOString() })
 }
 
@@ -33,13 +44,13 @@ export async function processPending() {
   for (const change of changes) {
     try {
       if (change.action === 'insert') {
-        await supabase.from(change.table).insert(change.payload)
+        await (supabase.from(change.table) as any).insert(change.payload)
       } else if (change.action === 'update') {
-        await supabase.from(change.table).update(change.payload.data).eq(change.payload.idField, change.payload.id)
+        await (supabase.from(change.table) as any).update(change.payload.data).eq(change.payload.idField, change.payload.id)
       } else if (change.action === 'delete') {
-        await supabase.from(change.table).delete().eq(change.payload.idField, change.payload.id)
+        await (supabase.from(change.table) as any).delete().eq(change.payload.idField, change.payload.id)
       }
-      await db.pending_changes.delete(change.id)
+      await db.pending_changes.delete(change.id!)
     } catch (e) {
       console.warn('Failed to sync pending change:', change, e)
     }

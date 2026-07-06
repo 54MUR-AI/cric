@@ -2,7 +2,8 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Radio, Zap, Thermometer, Navigation, MapPin, ChevronLeft, Search, Maximize, Minimize, Crosshair, Ruler, Wifi, Droplets, Flame, CloudSun, Image } from 'lucide-react'
+import { Radio, Zap, Thermometer, Navigation, MapPin, ChevronLeft, Search, Maximize, Minimize, Crosshair, Ruler, Wifi, Droplets, Flame, CloudSun, Image, Loader } from 'lucide-react'
+import { SkeletonSidebar } from '../components/ui/Skeleton'
 import { useToast } from '../components/ui/Toast'
 import { useWeatherStations } from '../hooks/useWeatherStations'
 import { useMapPins } from '../hooks/useMapPins'
@@ -247,6 +248,106 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   const mapHeight = compact ? 'min-h-[250px] h-[250px] md:min-h-[400px] md:h-[400px]' : 'min-h-[450px]'
   const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
 
+  const sidebarContent = stationsLoading && pinsLoading ? (
+    <SkeletonSidebar />
+  ) : (
+    <div className="p-3 space-y-4">
+      <div>
+        <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Base Map</h4>
+        <div className="space-y-1">
+          {Object.entries(baseLayerLabels).map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+              <input type="radio" name="baseLayer" aria-label={`${label} base map`} checked={baseLayer === key} onChange={() => setBaseLayerFixed(key)} className="accent-stone-800 dark:accent-stone-200" />
+              <span className={`inline-block w-2 h-2 rounded-full ${baseLayerColors[key]}`} />
+              {label}
+            </label>
+          ))}
+        </div>
+      </div>
+      {overlayGroups.map(group => (
+        <div key={group.label}>
+          <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-1">{group.label}</h5>
+          <div className="space-y-1">
+            {group.items.map(({ key, label, icon: Icon, activeColor, pulsingDot }) => (
+              <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                <input type="checkbox" aria-label={`Toggle ${label}`} checked={valMap[key]} onChange={() => setterMap[key](!valMap[key])} className="accent-stone-800 dark:accent-stone-200" />
+                <Icon className={`h-3.5 w-3.5 ${valMap[key] ? activeColor : 'text-stone-400'}`} />
+                {label}
+                {pulsingDot && valMap[key] && (
+                  <span className="ml-auto flex h-2 w-2" aria-hidden="true">
+                    <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: pulsingDot }}></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: pulsingDot }}></span>
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div>
+        <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-1">Tools</h5>
+        <div className="space-y-1">
+          <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+            <input type="checkbox" aria-label="Toggle GPS tracking" checked={trackingEnabled} onChange={() => setTrackingEnabled(!trackingEnabled)} className="accent-stone-800 dark:accent-stone-200" />
+            <Crosshair className={`h-3.5 w-3.5 ${trackingEnabled ? 'text-blue-500' : 'text-stone-400'}`} />
+            GPS Track
+            {trackingEnabled && <span className="ml-auto flex h-2 w-2" aria-hidden="true"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span></span>}
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+            <input type="checkbox" aria-label="Toggle measurement tool" checked={measuring} onChange={() => { setMeasuring(!measuring); if (!measuring) setMeasurePoints([]) }} className="accent-stone-800 dark:accent-stone-200" />
+            <Ruler className={`h-3.5 w-3.5 ${measuring ? 'text-blue-500' : 'text-stone-400'}`} />
+            Measure
+            {measuring && <span className="ml-auto text-blue-500 text-[10px]">{measurePoints.length} pts</span>}
+          </label>
+          {measuring && measurePoints.length > 0 && (
+            <button onClick={() => setMeasurePoints([])} aria-label="Clear measurement points" className="text-[10px] text-rose-500 dark:text-rose-400 hover:text-rose-700 pl-6">Clear points</button>
+          )}
+          {showFireDanger && fireDanger && (
+            <div className="flex items-center gap-1.5 pl-6 py-1 text-[10px]">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ background: fireDanger.color }} />
+              <span className="text-stone-500 dark:text-stone-400">{fireDanger.rating}</span>
+            </div>
+          )}
+          {locationError && <div className="text-[10px] text-rose-500 dark:text-rose-400 mt-1">{locationError}</div>}
+        </div>
+      </div>
+      <div>
+        <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Pin Filters</h4>
+        <div className="relative mb-2">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400 dark:text-stone-500" />
+          <input type="text" placeholder="Search pins..." aria-label="Search pins" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 pl-6 pr-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" />
+        </div>
+        <div className="space-y-1">
+          {Object.entries(PIN_TYPE_LABELS).map(([type, label]) => {
+            const active = activeTypes.includes(type)
+            return (
+              <label key={type} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+                <input type="checkbox" aria-label={`Filter ${label} pins`} checked={active} onChange={() => toggleType(type)} className="accent-stone-800 dark:accent-stone-200" />
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: PIN_COLORS[type] }} />
+                {label}
+                <span className="ml-auto text-stone-400 dark:text-stone-500">{pinsLoading ? <span className="inline-block h-3 w-5 bg-stone-200 dark:bg-stone-700 rounded animate-pulse align-middle" /> : pins.filter(p => p.type === type).length}</span>
+              </label>
+            )
+          })}
+        </div>
+      </div>
+      <div className="pt-2 border-t border-stone-200 dark:border-stone-700 text-[10px] text-stone-400 dark:text-stone-500 space-y-0.5">
+        <div>Radar: RainViewer</div>
+        <div>Trails: Waymarked Trails</div>
+        <div>Stations: Weather.gov</div>
+        <div>Lightning: Blitzortung.org</div>
+        <div>Marine Warnings: NWS</div>
+        <div>Bathymetry: OpenTopoMap</div>
+        <div>Fire Danger: NWS</div>
+        <div className="mt-1" role="status" aria-live="polite">
+          {stationsLoading ? <span className="inline-block h-3 w-16 bg-stone-200 dark:bg-stone-700 rounded animate-pulse align-middle" /> : `${stations.length} stations`}
+          <span className="mx-1">&middot;</span>
+          {pinsLoading ? <span className="inline-block h-3 w-12 bg-stone-200 dark:bg-stone-700 rounded animate-pulse align-middle" /> : `${pins.length} pins`}
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className={compact ? '' : 'space-y-3'}>
       {!compact && (
@@ -256,8 +357,8 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
             <p className="text-sm text-stone-400 dark:text-stone-500">Interactive map with weather, trails, and radar</p>
           </div>
           {isAdmin && (
-            <button onClick={() => { setIsAddingPin(!isAddingPin); setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors text-xs ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white dark:bg-stone-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-600'}`}>
-              <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
+            <button onClick={() => { setIsAddingPin(!isAddingPin); setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} aria-label={isAddingPin ? 'Cancel adding pin' : 'Add pin'} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition-colors text-xs ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white dark:bg-stone-900 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-600'}`}>
+              <span className="inline-block h-2 w-2 rounded-full bg-rose-500" aria-hidden="true" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
           )}
         </div>
@@ -305,122 +406,28 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
         </MapContainer>
 
         <div className="absolute top-2 right-2 z-[800] pointer-events-none">
-          <button onClick={toggleFullscreen} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+          <button onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} className="pointer-events-auto bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-md shadow-md border border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </button>
         </div>
 
         <div className="absolute right-0 top-0 bottom-0 z-[800] flex pointer-events-none">
           <div className="pointer-events-auto self-center -ml-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="bg-white dark:bg-stone-900 rounded-l-md shadow-md border border-r-0 border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'} aria-expanded={sidebarOpen} className="bg-white dark:bg-stone-900 rounded-l-md shadow-md border border-r-0 border-stone-200 dark:border-stone-700 p-1.5 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors" title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}>
               <ChevronLeft className={`h-4 w-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
             </button>
           </div>
           {sidebarOpen && (
-            <div className="pointer-events-auto w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm shadow-lg border-l border-stone-200 dark:border-stone-700 overflow-y-auto text-xs">
-              <div className="p-3 space-y-4">
-
-                <div>
-                  <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Base Map</h4>
-                  <div className="space-y-1">
-                    {Object.entries(baseLayerLabels).map(([key, label]) => (
-                      <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-                        <input type="radio" name="baseLayer" checked={baseLayer === key} onChange={() => setBaseLayerFixed(key)} className="accent-stone-800 dark:accent-stone-200" />
-                        <span className={`inline-block w-2 h-2 rounded-full ${baseLayerColors[key]}`} />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {overlayGroups.map(group => (
-                  <div key={group.label}>
-                    <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-1">{group.label}</h5>
-                    <div className="space-y-1">
-                      {group.items.map(({ key, label, icon: Icon, activeColor, pulsingDot }) => (
-                        <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-                          <input type="checkbox" checked={valMap[key]} onChange={() => setterMap[key](!valMap[key])} className="accent-stone-800 dark:accent-stone-200" />
-                          <Icon className={`h-3.5 w-3.5 ${valMap[key] ? activeColor : 'text-stone-400'}`} />
-                          {label}
-                          {pulsingDot && valMap[key] && (
-                            <span className="ml-auto flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ backgroundColor: pulsingDot }}></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: pulsingDot }}></span>
-                            </span>
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <div>
-                  <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-1">Tools</h5>
-                  <div className="space-y-1">
-                    <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-                      <input type="checkbox" checked={trackingEnabled} onChange={() => setTrackingEnabled(!trackingEnabled)} className="accent-stone-800 dark:accent-stone-200" />
-                      <Crosshair className={`h-3.5 w-3.5 ${trackingEnabled ? 'text-blue-500' : 'text-stone-400'}`} />
-                      GPS Track
-                      {trackingEnabled && <span className="ml-auto flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span></span>}
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-                      <input type="checkbox" checked={measuring} onChange={() => { setMeasuring(!measuring); if (!measuring) setMeasurePoints([]) }} className="accent-stone-800 dark:accent-stone-200" />
-                      <Ruler className={`h-3.5 w-3.5 ${measuring ? 'text-blue-500' : 'text-stone-400'}`} />
-                      Measure
-                      {measuring && <span className="ml-auto text-blue-500 text-[10px]">{measurePoints.length} pts</span>}
-                    </label>
-                    {measuring && measurePoints.length > 0 && (
-                      <button onClick={() => setMeasurePoints([])} className="text-[10px] text-rose-500 dark:text-rose-400 hover:text-rose-700 pl-6">Clear points</button>
-                    )}
-                    {showFireDanger && fireDanger && (
-                      <div className="flex items-center gap-1.5 pl-6 py-1 text-[10px]">
-                        <span className="inline-block w-2 h-2 rounded-full" style={{ background: fireDanger.color }} />
-                        <span className="text-stone-500 dark:text-stone-400">{fireDanger.rating}</span>
-                      </div>
-                    )}
-                    {locationError && <div className="text-[10px] text-rose-500 dark:text-rose-400 mt-1">{locationError}</div>}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">Pin Filters</h4>
-                  <div className="relative mb-2">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400 dark:text-stone-500" />
-                    <input type="text" placeholder="Search pins..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 pl-6 pr-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" />
-                  </div>
-                  <div className="space-y-1">
-                    {Object.entries(PIN_TYPE_LABELS).map(([type, label]) => {
-                      const active = activeTypes.includes(type)
-                      return (
-                        <label key={type} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-                          <input type="checkbox" checked={active} onChange={() => toggleType(type)} className="accent-stone-800 dark:accent-stone-200" />
-                          <span className="inline-block w-2 h-2 rounded-full" style={{ background: PIN_COLORS[type] }} />
-                          {label}
-                          <span className="ml-auto text-stone-400 dark:text-stone-500">{pins.filter(p => p.type === type).length}</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-stone-200 dark:border-stone-700 text-[10px] text-stone-400 dark:text-stone-500 space-y-0.5">
-                  <div>Radar: RainViewer</div>
-                  <div>Trails: Waymarked Trails</div>
-                  <div>Stations: Weather.gov</div>
-                  <div>Lightning: Blitzortung.org</div>
-                  <div>Marine Warnings: NWS</div>
-                  <div>Bathymetry: OpenTopoMap</div>
-                  <div>Fire Danger: NWS</div>
-                  <div className="mt-1">{stationsLoading ? 'Loading stations...' : `${stations.length} stations`} &middot; {pins.length} pins</div>
-                </div>
-              </div>
+            <div role="region" aria-label="Map layers and controls" className="pointer-events-auto w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm shadow-lg border-l border-stone-200 dark:border-stone-700 overflow-y-auto text-xs">
+              {sidebarContent}
             </div>
           )}
         </div>
 
         {compact && isAdmin && (
           <div className="absolute top-2 left-2 z-[800]">
-            <button onClick={() => { setIsAddingPin(!isAddingPin); setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 border transition-colors text-xs shadow-sm ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm text-rose-600 dark:text-rose-400 border-stone-300 dark:border-stone-600'}`}>
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />{isAddingPin ? 'Cancel' : 'Add Pin'}
+            <button onClick={() => { setIsAddingPin(!isAddingPin); setEditingPin(null); setNewPinLatLng(null); setPinForm({ label: '', type: 'cabin', description: '', cabin_id: '' }); setPinError('') }} aria-label={isAddingPin ? 'Cancel adding pin' : 'Add pin'} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 border transition-colors text-xs shadow-sm ${isAddingPin ? 'bg-rose-600 text-white border-rose-600 animate-pulse' : 'bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm text-rose-600 dark:text-rose-400 border-stone-300 dark:border-stone-600'}`}>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden="true" />{isAddingPin ? 'Cancel' : 'Add Pin'}
             </button>
           </div>
         )}

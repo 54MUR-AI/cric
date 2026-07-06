@@ -18,6 +18,33 @@ interface PushPayload {
   data?: Record<string, unknown>
 }
 
+interface NwsProperties {
+  id: string
+  event?: string
+  headline?: string
+  description?: string
+  severity?: string
+  urgency?: string
+}
+
+interface NwsFeature {
+  properties: NwsProperties
+}
+
+interface NwsResponse {
+  features?: NwsFeature[]
+}
+
+interface SubscriptionRow {
+  endpoint: string
+  p256dh_key: string
+  auth_key: string
+}
+
+interface SentAlert {
+  alert_id: string
+}
+
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
   const cors = getCorsHeaders(origin)
@@ -56,8 +83,8 @@ Deno.serve(async (req: Request) => {
 
 async function checkNwsAlerts(): Promise<void> {
   const r = await fetch(NWS_ALERTS_URL, { headers: { 'User-Agent': NWS_UA } })
-  const data = await r.json()
-  const features = (data.features || []).filter((f: any) => {
+  const data: NwsResponse = await r.json()
+  const features = (data.features || []).filter((f: NwsFeature) => {
     const e = f.properties.event || ''
     return e.includes('Warning') || e.includes('Watch') || e === 'Severe Thunderstorm' || e.includes('Small Craft') || e.includes('Marine')
   })
@@ -67,12 +94,13 @@ async function checkNwsAlerts(): Promise<void> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-  const { data: existing } = await fetch(`${supabaseUrl}/rest/v1/sent_nws_alerts?select=alert_id`, {
+  const existingResp = await fetch(`${supabaseUrl}/rest/v1/sent_nws_alerts?select=alert_id`, {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-  }).then(r => r.json()).catch(() => ({ data: [] }))
+  })
+  const existing: SentAlert[] = await existingResp.json().catch(() => [])
 
-  const existingIds = new Set((existing || []).map((r: any) => r.alert_id))
-  const newFeatures = features.filter((f: any) => !existingIds.has(f.properties.id))
+  const existingIds = new Set((existing || []).map((r: SentAlert) => r.alert_id))
+  const newFeatures = features.filter((f: NwsFeature) => !existingIds.has(f.properties.id))
 
   if (!newFeatures.length) return
 
@@ -135,10 +163,11 @@ async function checkRecentActivity(): Promise<void> {
 }
 
 async function getSubscriptions(serviceKey: string, supabaseUrl: string): Promise<Subscription[]> {
-  const { data } = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh_key,auth_key`, {
+  const resp = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh_key,auth_key`, {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-  }).then(r => r.json()).catch(() => ({ data: [] }))
-  return (data || []).map((s: any) => ({
+  })
+  const rows: SubscriptionRow[] = await resp.json().catch(() => [])
+  return (rows || []).map((s: SubscriptionRow) => ({
     endpoint: s.endpoint,
     keys: { p256dh: s.p256dh_key, auth: s.auth_key },
   }))

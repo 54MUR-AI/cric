@@ -3,8 +3,34 @@ import { supabase } from '../lib/supabase'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
 
+interface CabinRef {
+  name: string
+}
+
+interface MapPin {
+  id: string
+  label: string
+  type: string
+  latitude: number
+  longitude: number
+  description?: string
+  cabin_id?: string
+  created_by?: string
+  created_at?: string
+  cabin?: CabinRef
+}
+
+interface PinInput {
+  label: string
+  type: string
+  latitude: number
+  longitude: number
+  description?: string
+  cabin_id?: string
+}
+
 export function useMapPins() {
-  const [pins, setPins] = useState([])
+  const [pins, setPins] = useState<MapPin[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
 
@@ -27,10 +53,9 @@ export function useMapPins() {
 
   useEffect(() => { fetchPins() }, [fetchPins])
 
-  const addPin = useCallback(async ({ label, type, latitude, longitude, description, cabin_id }) => {
+  const addPin = useCallback(async (input: PinInput) => {
     const { data: { user } } = await supabase.auth.getUser()
-    const payload = { label, type, latitude, longitude, description, created_by: user?.id }
-    if (cabin_id) payload.cabin_id = cabin_id
+    const payload = { ...input, created_by: user?.id }
     const { data, error } = await supabase
       .from('map_pins')
       .insert(payload)
@@ -43,18 +68,18 @@ export function useMapPins() {
     return data
   }, [toast])
 
-  const updatePin = useCallback(async (id, updates) => {
+  const updatePin = useCallback(async (id: string, updates: Partial<MapPin>) => {
     const prev = pins
     setPins(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
     const { data, error } = await supabase.from('map_pins').update(updates).eq('id', id).select('*, cabin:cabins(name)').single()
-    if (error) { setPins(prev); console.error('Pin update error:', error); toast.error(`Failed to update pin: ${error.message}`); return }
+    if (error) { setPins(prev); console.error('Pin update error:', error); toast.error('Failed to update pin'); return }
     setPins(prev => prev.map(p => p.id === id ? data : p))
     db.map_pins.put(data)
     toast.success('Pin updated')
     return data
   }, [pins, toast])
 
-  const deletePin = useCallback(async (id) => {
+  const deletePin = useCallback(async (id: string) => {
     const prev = pins
     setPins(prev => prev.filter(p => p.id !== id))
     const { error } = await supabase.from('map_pins').delete().eq('id', id)

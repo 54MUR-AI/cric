@@ -3,9 +3,38 @@ import { supabase } from '../lib/supabase'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
 
+interface CategoryRef {
+  name: string
+}
+
+interface ProfileDisplay {
+  display_name: string
+}
+
+interface MaintenanceTask {
+  id: string
+  title: string
+  description?: string
+  status: string
+  category_id?: string
+  assigned_to?: string
+  created_by: string
+  due_date?: string
+  created_at?: string
+  maintenance_categories?: CategoryRef
+  assigned_to_profile?: ProfileDisplay
+  created_by_profile?: ProfileDisplay
+}
+
+interface Category {
+  id: string
+  name: string
+  sort_order?: number
+}
+
 export function useMaintenance() {
-  const [tasks, setTasks] = useState([])
-  const [categories, setCategories] = useState([])
+  const [tasks, setTasks] = useState<MaintenanceTask[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
 
@@ -26,7 +55,7 @@ export function useMaintenance() {
 
   useEffect(() => { fetchData() }, [])
 
-  async function createTask(task) {
+  async function createTask(task: Partial<MaintenanceTask>) {
     const { data, error } = await supabase.from('maintenance_tasks').insert(task).select().single()
     if (error) throw error
     if (data) {
@@ -39,7 +68,7 @@ export function useMaintenance() {
     return data
   }
 
-  async function updateTask(id, updates) {
+  async function updateTask(id: string, updates: Partial<MaintenanceTask>) {
     setTasks((prev) => {
       const updated = prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
       const match = updated.find(t => t.id === id)
@@ -52,7 +81,7 @@ export function useMaintenance() {
     return data
   }
 
-  async function deleteTask(id) {
+  async function deleteTask(id: string) {
     const prev = tasks
     setTasks((prev) => prev.filter((t) => t.id !== id))
     try { await supabase.from('maintenance_tasks').delete().eq('id', id); db.maintenance_tasks.delete(id); toast.info('Task deleted') }

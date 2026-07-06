@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 
 export function useSWUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
-  const [registration, setRegistration] = useState(null)
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return

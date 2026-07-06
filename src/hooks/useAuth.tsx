@@ -1,11 +1,31 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import type { User } from '@supabase/supabase-js'
 
-const AuthContext = createContext(null)
+interface Profile {
+  id: string
+  display_name?: string
+  email?: string
+  is_admin?: boolean
+  created_at?: string
+}
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
+interface AuthContextValue {
+  user: User | null
+  profile: Profile | null
+  role: string
+  isAdmin: boolean
+  loading: boolean
+  signIn: (email: string) => Promise<void>
+  signInWithPassword: (email: string, password: string) => Promise<{ user: User | null }>
+  signOut: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [role, setRole] = useState('member')
   const [loading, setLoading] = useState(true)
 
@@ -41,7 +61,7 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; subscription.unsubscribe() }
   }, [])
 
-  async function fetchProfile(userId) {
+  async function fetchProfile(userId: string) {
     try {
       const { data } = await supabase
         .from('profiles')
@@ -53,12 +73,12 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }
 
-  async function signIn(email) {
+  async function signIn(email: string) {
     const { error } = await supabase.auth.signInWithOtp({ email })
     if (error) throw error
   }
 
-  async function signInWithPassword(email, password) {
+  async function signInWithPassword(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     return data
@@ -77,7 +97,7 @@ export function AuthProvider({ children }) {
   )
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx

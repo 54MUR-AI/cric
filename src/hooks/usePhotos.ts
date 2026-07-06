@@ -5,9 +5,34 @@ import db from '../lib/db'
 import { queueChange } from '../lib/sync'
 import { useToast } from '../components/ui/Toast'
 
+interface Photo {
+  id: string
+  storage_path: string
+  url: string
+  caption?: string
+  taken_at?: string
+  latitude?: number
+  longitude?: number
+  album_id?: string
+  uploaded_by?: string
+  created_at?: string
+}
+
+interface Album {
+  id: string
+  name: string
+  description?: string
+  created_at?: string
+}
+
+interface UploadOptions {
+  caption?: string
+  album_id?: string
+}
+
 export function usePhotos() {
-  const [photos, setPhotos] = useState([])
-  const [albums, setAlbums] = useState([])
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
 
@@ -24,8 +49,8 @@ export function usePhotos() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  const uploadPhoto = useCallback(async (file, { caption, album_id } = {}) => {
-    let takenAt = null; let latitude = null; let longitude = null
+  const uploadPhoto = useCallback(async (file: File, { caption, album_id }: UploadOptions = {}): Promise<Photo> => {
+    let takenAt: string | null = null; let latitude: number | null = null; let longitude: number | null = null
     try {
       const exif = await exifr.parse(file, ['DateTimeOriginal', 'latitude', 'longitude'])
       if (exif?.DateTimeOriginal) takenAt = exif.DateTimeOriginal.toISOString()
@@ -70,7 +95,7 @@ export function usePhotos() {
     return data
   }, [toast])
 
-  const deletePhoto = useCallback(async (photo) => {
+  const deletePhoto = useCallback(async (photo: Photo) => {
     try {
       await Promise.all([
         supabase.storage.from('photos').remove([photo.storage_path]),

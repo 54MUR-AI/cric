@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 
 export function useSync() {
   const { user } = useAuth()
-  const intervalRef = useRef(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -13,7 +13,7 @@ export function useSync() {
       refreshAll()
       processPending()
     }, 30000)
-    return () => clearInterval(intervalRef.current)
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [user])
 
   useEffect(() => {

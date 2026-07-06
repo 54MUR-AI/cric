@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react'
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => void
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
 export function useInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstall, setShowInstall] = useState(false)
   const [dismissed, setDismissed] = useState(() => localStorage.getItem('cric-install-dismissed'))
 
   useEffect(() => {
-    const handler = (e) => {
+    const handler = (e: Event) => {
       e.preventDefault()
-      setDeferredPrompt(e)
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
       if (!dismissed) setShowInstall(true)
     }
     window.addEventListener('beforeinstallprompt', handler)

@@ -9,7 +9,7 @@ export function useDarkMode() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
-    localStorage.setItem('cric-dark', dark)
+    localStorage.setItem('cric-dark', String(dark))
   }, [dark])
 
   const toggle = () => setDark(prev => !prev)

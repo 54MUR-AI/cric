@@ -20,13 +20,15 @@ export default function RadarLayer() {
 
   useEffect(() => {
     if (timestamps.length === 0) return
-    if (layerRef.current) map.removeLayer(layerRef.current)
     const ts = timestamps[currentIdx]
-    layerRef.current = L.tileLayer(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`, {
-      opacity: 0.5, attribution: 'RainViewer', minZoom: 6, maxZoom: 12, transparent: true,
-    })
-    layerRef.current.addTo(map)
-    return () => { if (layerRef.current) map.removeLayer(layerRef.current) }
+    if (layerRef.current) {
+      layerRef.current.setUrl(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`)
+    } else {
+      layerRef.current = L.tileLayer(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`, {
+        opacity: 0.5, attribution: 'RainViewer', minZoom: 6, maxNativeZoom: 12, maxZoom: 21, transparent: true,
+      })
+      layerRef.current.addTo(map)
+    }
   }, [currentIdx, timestamps, map])
 
   useEffect(() => {

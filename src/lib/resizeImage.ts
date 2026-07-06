@@ -1,11 +1,9 @@
 const MAX_DIMENSION = 2048
 const QUALITY = 0.85
 
-export async function resizeImage(file) {
-  // Only resize images, not videos
+export async function resizeImage(file: File): Promise<File> {
   if (!file.type.startsWith('image/')) return file
 
-  // Don't resize small images
   if (file.size < 500 * 1024) return file
 
   return new Promise((resolve) => {
@@ -17,21 +15,18 @@ export async function resizeImage(file) {
 
       let { width, height } = img
 
-      // Calculate new dimensions
       if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
         const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height)
         width = Math.round(width * ratio)
         height = Math.round(height * ratio)
       }
 
-      // Create canvas and draw resized image
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
       const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
+      if (ctx) ctx.drawImage(img, 0, 0, width, height)
 
-      // Convert to blob
       canvas.toBlob(
         (blob) => {
           if (!blob) { resolve(file); return }
