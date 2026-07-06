@@ -12,6 +12,17 @@ import MapPage from './MapPage'
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
+function getWeatherTheme(desc, daytime) {
+  const d = (desc || '').toLowerCase()
+  if (d.includes('thunder') || d.includes('storm')) return 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return daytime ? 'linear-gradient(135deg, #3a6073 0%, #5a7b8c 100%)' : 'linear-gradient(135deg, #1a2634 0%, #2c3e50 100%)'
+  if (d.includes('snow') || d.includes('sleet') || d.includes('ice')) return daytime ? 'linear-gradient(135deg, #a8c0d6 0%, #d4e4f0 100%)' : 'linear-gradient(135deg, #2c3e50 0%, #4a6274 100%)'
+  if (d.includes('fog') || d.includes('mist') || d.includes('haze')) return daytime ? 'linear-gradient(135deg, #b8c6db 0%, #d4dfe8 100%)' : 'linear-gradient(135deg, #2a2a2a 0%, #3d3d3d 100%)'
+  if (d.includes('cloud') || d.includes('overcast')) return daytime ? 'linear-gradient(135deg, #7a8a9a 0%, #a0b4c4 100%)' : 'linear-gradient(135deg, #1e2a3a 0%, #2c3e50 100%)'
+  if (daytime) return 'linear-gradient(135deg, #4facfe 0%, #74d4fe 100%)'
+  return 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)'
+}
+
 function WeatherWidget() {
   const [current, setCurrent] = useState(null)
   const [forecast, setForecast] = useState(null)
@@ -73,49 +84,58 @@ function WeatherWidget() {
     </div>
   )
 
+  const daytime = sunData
+    ? Date.now() > new Date(sunData.results.sunrise).getTime() && Date.now() < new Date(sunData.results.sunset).getTime()
+    : true
+  const bg = getWeatherTheme(current?.textDescription, daytime)
+
   return (
-    <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
-      <h2 className="font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
-        <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {current && (
-          <div className="flex items-center gap-4">
-            <div className="text-4xl font-bold text-stone-800 dark:text-stone-200">{current.temperature?.value != null ? `${Math.round(current.temperature.value * 9 / 5 + 32)}°F` : '--'}</div>
-            <div className="text-sm text-stone-500 dark:text-stone-400 space-y-1">
-              <p className="text-stone-700 dark:text-stone-300 font-medium">{current.textDescription || '--'}</p>
-              {current.windSpeed?.value != null && <p className="flex items-center gap-1"><Wind className="h-3 w-3" />{Math.round(current.windSpeed.value * 0.621371)} mph</p>}
-              {current.relativeHumidity?.value != null && <p className="flex items-center gap-1"><Droplets className="h-3 w-3" />{Math.round(current.relativeHumidity.value)}%</p>}
-            </div>
-          </div>
-        )}
-        {forecast && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {forecast.map((p, i) => (
-              <div key={i} className="flex flex-col items-center gap-1 min-w-[64px] text-center">
-                <span className="text-[10px] text-stone-400 dark:text-stone-500 font-medium leading-tight">{p.name.replace('Night', '').replace('Evening', '').trim()}</span>
-                <Thermometer className={`h-4 w-4 ${p.temperature > 70 ? 'text-amber-500 dark:text-amber-400' : p.temperature > 50 ? 'text-stone-500 dark:text-stone-400' : 'text-blue-500 dark:text-blue-400'}`} />
-                <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{p.temperature}°</span>
-                <span className="text-[9px] text-stone-400 dark:text-stone-500 leading-tight">{p.shortForecast}</span>
+    <div className="rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 relative overflow-hidden">
+      <div className="absolute inset-0 transition-all duration-700" style={{ background: bg }} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+      <div className="relative z-10 p-4">
+        <h2 className="font-semibold text-white/90 mb-3 flex items-center gap-2">
+          <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {current && (
+            <div className="flex items-center gap-4">
+              <div className="text-4xl font-bold text-white">{current.temperature?.value != null ? `${Math.round(current.temperature.value * 9 / 5 + 32)}°F` : '--'}</div>
+              <div className="text-sm text-white/80 space-y-1">
+                <p className="text-white/90 font-medium">{current.textDescription || '--'}</p>
+                {current.windSpeed?.value != null && <p className="flex items-center gap-1"><Wind className="h-3 w-3" />{Math.round(current.windSpeed.value * 0.621371)} mph</p>}
+                {current.relativeHumidity?.value != null && <p className="flex items-center gap-1"><Droplets className="h-3 w-3" />{Math.round(current.relativeHumidity.value)}%</p>}
               </div>
-            ))}
+            </div>
+          )}
+          {forecast && (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {forecast.map((p, i) => (
+                <div key={i} className="flex flex-col items-center gap-1 min-w-[64px] text-center">
+                  <span className="text-[10px] text-white/60 font-medium leading-tight">{p.name.replace('Night', '').replace('Evening', '').trim()}</span>
+                  <Thermometer className={`h-4 w-4 ${p.temperature > 70 ? 'text-amber-300' : p.temperature > 50 ? 'text-white/70' : 'text-blue-300'}`} />
+                  <span className="text-sm font-bold text-white/90">{p.temperature}°</span>
+                  <span className="text-[9px] text-white/60 leading-tight">{p.shortForecast}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {sunData && (
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/10 text-xs text-white/60">
+            <span className="flex items-center gap-1">
+              <Sunrise className="h-3 w-3" />
+              {new Date(sunData.results.sunrise).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            </span>
+            <span className="flex items-center gap-1">
+              <Sunset className="h-3 w-3" />
+              {new Date(sunData.results.sunset).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            </span>
+            <span className="text-white/20">|</span>
+            <span>{Math.floor(Number(sunData.results.day_length) / 3600)}h {String(Math.floor(Number(sunData.results.day_length) % 3600 / 60)).padStart(2, '0')}m daylight</span>
           </div>
         )}
       </div>
-      {sunData && (
-        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-stone-100 dark:border-stone-800 text-xs text-stone-400 dark:text-stone-500">
-          <span className="flex items-center gap-1">
-            <Sunrise className="h-3 w-3" />
-            {new Date(sunData.results.sunrise).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </span>
-          <span className="flex items-center gap-1">
-            <Sunset className="h-3 w-3" />
-            {new Date(sunData.results.sunset).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </span>
-          <span className="text-stone-300 dark:text-stone-600">|</span>
-          <span>{Math.floor(Number(sunData.results.day_length) / 3600)}h {String(Math.floor(Number(sunData.results.day_length) % 3600 / 60)).padStart(2, '0')}m daylight</span>
-        </div>
-      )}
     </div>
   )
 }
