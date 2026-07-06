@@ -13,15 +13,14 @@ const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
 const AIRNOW_KEY = '043241C9-8A16-49B8-B754-AB9D7B84216C'
 const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
-function getWeatherTheme(desc, daytime) {
+function getWeatherImage(desc, daytime) {
   const d = (desc || '').toLowerCase()
-  if (d.includes('thunder') || d.includes('storm')) return 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
-  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return daytime ? 'linear-gradient(135deg, #3a6073 0%, #5a7b8c 100%)' : 'linear-gradient(135deg, #1a2634 0%, #2c3e50 100%)'
-  if (d.includes('snow') || d.includes('sleet') || d.includes('ice')) return daytime ? 'linear-gradient(135deg, #a8c0d6 0%, #d4e4f0 100%)' : 'linear-gradient(135deg, #2c3e50 0%, #4a6274 100%)'
-  if (d.includes('fog') || d.includes('mist') || d.includes('haze')) return daytime ? 'linear-gradient(135deg, #b8c6db 0%, #d4dfe8 100%)' : 'linear-gradient(135deg, #2a2a2a 0%, #3d3d3d 100%)'
-  if (d.includes('cloud') || d.includes('overcast')) return daytime ? 'linear-gradient(135deg, #7a8a9a 0%, #a0b4c4 100%)' : 'linear-gradient(135deg, #1e2a3a 0%, #2c3e50 100%)'
-  if (daytime) return 'linear-gradient(135deg, #4facfe 0%, #74d4fe 100%)'
-  return 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)'
+  if (d.includes('thunder') || d.includes('storm')) return '/images/weather/thunderstorm.jpg'
+  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return '/images/weather/rain.jpg'
+  if (d.includes('snow') || d.includes('sleet') || d.includes('ice')) return '/images/weather/snow.jpg'
+  if (d.includes('fog') || d.includes('mist') || d.includes('haze')) return '/images/weather/fog.jpg'
+  if (d.includes('cloud') || d.includes('overcast')) return daytime ? '/images/weather/cloudy-day.jpg' : '/images/weather/cloudy-night.jpg'
+  return daytime ? '/images/weather/clear-day.jpg' : '/images/weather/clear-night.jpg'
 }
 
 function WeatherWidget() {
@@ -98,11 +97,11 @@ function WeatherWidget() {
   const daytime = sunData
     ? Date.now() > new Date(sunData.results.sunrise).getTime() && Date.now() < new Date(sunData.results.sunset).getTime()
     : true
-  const bg = getWeatherTheme(current?.textDescription, daytime)
+  const bgImg = getWeatherImage(current?.textDescription, daytime)
 
   return (
     <div className="rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 relative overflow-hidden">
-      <div className="absolute inset-0 transition-all duration-700" style={{ background: bg }} />
+      <div className="absolute inset-0 transition-all duration-700" style={{ backgroundImage: `url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
       <div className="relative z-10 p-4">
         <h2 className="font-semibold text-white/90 mb-3 flex items-center gap-2">
@@ -150,9 +149,10 @@ function WeatherWidget() {
               {new Date(sunData.results.sunset).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
             </span>
             <span className="text-white/20">|</span>
-            <span>{Math.floor(Number(sunData.results.day_length) / 3600)}h {String(Math.floor(Number(sunData.results.day_length) % 3600 / 60)).padStart(2, '0')}m daylight</span>
-          </div>
-        )}
+          <span>{Math.floor(Number(sunData.results.day_length) / 3600)}h {String(Math.floor(Number(sunData.results.day_length) % 3600 / 60)).padStart(2, '0')}m daylight</span>
+        </div>
+      )}
+      <p className="text-[10px] text-white/30 mt-2 text-right">Photos from Unsplash</p>
       </div>
     </div>
   )
