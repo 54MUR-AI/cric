@@ -26,7 +26,7 @@ export default function BathymetryLayer() {
     const borderClr = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
     const Control = L.Control.extend({
       onAdd() {
-        const container = L.DomUtil.create('div', 'leaflet-bar')
+        const container = L.DomUtil.create('div')
         container.innerHTML = `
           <div style="background:${bg};padding:10px 14px;border-radius:8px;font-size:11px;line-height:1.5;box-shadow:0 2px 10px rgba(0,0,0,0.15);border:1px solid ${borderClr};max-width:220px;color:${fg};">
             <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:${titleFg};">Cranberry Lake</div>
