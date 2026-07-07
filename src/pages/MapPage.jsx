@@ -100,24 +100,28 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
 
   function sendSystemNotification(title, body) {
     if (Notification.permission === 'granted') {
-      try { new Notification(title, { body, icon: '/images/icon-192.png' }) } catch { /* ignore */ }
+      try { new Notification(title, { body, icon: '/icons/icon-192x192.png' }) } catch { /* ignore */ }
     }
   }
 
   useEffect(() => {
     let cancelled = false
-    const fetchFireDanger = async () => {
+    const checkRedFlag = async () => {
       try {
-        const r = await fetch('https://api.weather.gov/firewx/forecast?point=44.14722,-74.81194')
+        const r = await fetch('https://api.weather.gov/alerts/active?point=44.14722,-74.81194', { headers: { 'User-Agent': '(cric.app, denali.2.foxtrot@gmail.com)' } })
         if (!r.ok) return
         const data = await r.json()
-        if (cancelled || !data?.properties?.periods?.length) return
-        const today = data.properties.periods[0]
-        setFireDanger({ rating: today.name, color: today.color || (today.name?.includes('High') ? '#ef4444' : today.name?.includes('Moderate') ? '#f59e0b' : '#22c55e'), description: today.detailedForecast?.slice(0, 100) })
+        if (cancelled) return
+        const rf = (data.features || []).find(f => /red flag/i.test(f.properties.event || ''))
+        if (rf) {
+          setFireDanger({ rating: 'Red Flag Warning', color: '#ef4444', description: (rf.properties.headline || rf.properties.description || '').slice(0, 100) })
+        } else {
+          setFireDanger(null)
+        }
       } catch { /* ignore */ }
     }
-    fetchFireDanger()
-    const interval = setInterval(fetchFireDanger, 1800000)
+    checkRedFlag()
+    const interval = setInterval(checkRedFlag, 600000)
     return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
