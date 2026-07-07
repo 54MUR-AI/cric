@@ -17,25 +17,32 @@ export default function BathymetryLayer() {
   const ctrlRef = useRef(null)
 
   useEffect(() => {
+    const isDark = document.documentElement.classList.contains('dark')
+    const bg = isDark ? 'rgba(28,25,23,0.95)' : 'rgba(255,255,255,0.95)'
+    const fg = isDark ? '#d6d3d1' : '#444'
+    const muted = isDark ? '#a8a29e' : '#666'
+    const titleFg = isDark ? '#7dd3fc' : '#1e3a5f'
+    const linkClr = isDark ? '#60a5fa' : '#1a73e8'
+    const borderClr = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
     const Control = L.Control.extend({
       onAdd() {
         const container = L.DomUtil.create('div', 'leaflet-bar')
         container.innerHTML = `
-          <div style="background:rgba(255,255,255,0.95);padding:10px 14px;border-radius:8px;font-size:11px;line-height:1.5;box-shadow:0 2px 10px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.1);max-width:220px;color:#444;">
-            <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:#1e3a5f;">Cranberry Lake</div>
+          <div style="background:${bg};padding:10px 14px;border-radius:8px;font-size:11px;line-height:1.5;box-shadow:0 2px 10px rgba(0,0,0,0.15);border:1px solid ${borderClr};max-width:220px;color:${fg};">
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:${titleFg};">Cranberry Lake</div>
             <table style="width:100%;border-collapse:collapse;">
-              <tr><td style="padding:1px 4px 1px 0;color:#666;">Area</td><td style="font-weight:600;">${LAKE_STATS.area}</td></tr>
-              <tr><td style="padding:1px 4px 1px 0;color:#666;">Mean depth</td><td style="font-weight:600;">${LAKE_STATS.meanDepth}</td></tr>
-              <tr><td style="padding:1px 4px 1px 0;color:#666;">Max depth</td><td style="font-weight:600;">${LAKE_STATS.maxDepth}</td></tr>
-              <tr><td style="padding:1px 4px 1px 0;color:#666;">Elevation</td><td style="font-weight:600;">${LAKE_STATS.elevation}</td></tr>
+              <tr><td style="padding:1px 4px 1px 0;color:${muted};">Area</td><td style="font-weight:600;">${LAKE_STATS.area}</td></tr>
+              <tr><td style="padding:1px 4px 1px 0;color:${muted};">Mean depth</td><td style="font-weight:600;">${LAKE_STATS.meanDepth}</td></tr>
+              <tr><td style="padding:1px 4px 1px 0;color:${muted};">Max depth</td><td style="font-weight:600;">${LAKE_STATS.maxDepth}</td></tr>
+              <tr><td style="padding:1px 4px 1px 0;color:${muted};">Elevation</td><td style="font-weight:600;">${LAKE_STATS.elevation}</td></tr>
             </table>
             <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;">
               <span style="display:inline-block;width:12px;height:12px;background:#e6f3ff;border:1px solid #b3d4f0;"></span>
-              <span style="margin-right:6px;color:#666;">Shallow</span>
+              <span style="margin-right:6px;">Shallow</span>
               <span style="display:inline-block;width:12px;height:12px;background:#1a5276;border:1px solid #0e2f44;"></span>
-              <span style="margin-right:6px;color:#666;">Deep (38')</span>
+              <span style="margin-right:6px;">Deep (38')</span>
             </div>
-            <a href="${LAKE_STATS.pdfUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;color:#1a73e8;text-decoration:none;font-weight:600;font-size:11px;">PDF Contour Map ↗</a>
+            <a href="${LAKE_STATS.pdfUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;color:${linkClr};text-decoration:none;font-weight:600;font-size:11px;">Contour Map ↗</a>
           </div>`
         return container
       },
