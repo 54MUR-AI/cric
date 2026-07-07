@@ -42,7 +42,7 @@ export default function BathymetryLayer() {
               <span style="display:inline-block;width:12px;height:12px;background:#1a5276;border:1px solid #0e2f44;"></span>
               <span style="margin-right:6px;">Deep (38')</span>
             </div>
-            <a href="${LAKE_STATS.pdfUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;color:${linkClr};text-decoration:none;font-weight:600;font-size:11px;">Contour Map ↗</a>
+            <a href="${LAKE_STATS.pdfUrl}" target="_blank" rel="noopener" style="display:inline-block;white-space:nowrap;margin-top:8px;padding:3px 8px;border-radius:9999px;background:${isDark ? 'rgba(96,165,250,0.15)' : 'rgba(26,115,232,0.08)'};color:${linkClr};font-weight:600;font-size:11px;text-decoration:none;cursor:pointer;">Contour Map ↗</a>
           </div>`
         return container
       },
