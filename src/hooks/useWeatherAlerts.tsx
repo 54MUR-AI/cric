@@ -39,6 +39,9 @@ export function WeatherAlertsProvider({ children }: { children: ReactNode }) {
   const { isAdmin } = useAuth()
   const isAdminRef = useRef(isAdmin)
   isAdminRef.current = isAdmin
+  const precipitationAlertRef = useRef(precipitationAlert)
+  precipitationAlertRef.current = precipitationAlert
+  const precipClearStreakRef = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -80,10 +83,17 @@ export function WeatherAlertsProvider({ children }: { children: ReactNode }) {
         const precip = current.precipitation ?? 0
 
         if (code >= 95 || precip >= 5) {
+          precipClearStreakRef.current = 0
           if (Date.now() - precipThrottle > 300000) {
             precipThrottle = Date.now()
             setPrecipitationAlert('Heavy rain or thunderstorm detected — active weather nearby.')
             if (isAdminRef.current) sendPushToAll({ tag: 'precipitation' })
+          }
+        } else if (precipClearStreakRef.current < 2 && precipitationAlertRef.current) {
+          // Require two consecutive clear checks (~10 min) before auto-clearing
+          precipClearStreakRef.current += 1
+          if (precipClearStreakRef.current >= 2) {
+            setPrecipitationAlert(null)
           }
         }
       } catch { /* ignore */ }

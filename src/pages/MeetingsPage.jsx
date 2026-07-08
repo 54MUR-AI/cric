@@ -47,13 +47,22 @@ export default function MeetingsPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    const meeting = await createMeeting({ ...formData, created_by: user.id })
-    if (!meeting) return
-    const items = agendaItems.filter((a) => a.title.trim())
-    for (let i = 0; i < items.length; i++) {
-      await supabase.from('meeting_agenda_items').insert({ ...items[i], meeting_id: meeting.id, sort_order: i })
+    try {
+      const meeting = await createMeeting({ ...formData, created_by: user.id })
+      if (!meeting) return
+      const items = agendaItems.filter((a) => a.title.trim())
+      for (let i = 0; i < items.length; i++) {
+        const { error } = await supabase.from('meeting_agenda_items').insert({ ...items[i], meeting_id: meeting.id, sort_order: i })
+        if (error) {
+          console.error('Failed to insert agenda item:', error)
+          toast.error('Failed to add agenda item')
+        }
+      }
+      setShowForm(false)
+    } catch (err) {
+      console.error('Failed to create meeting:', err)
+      toast.error('Failed to create meeting')
     }
-    setShowForm(false)
   }
 
   async function handleDeleteMeeting() {

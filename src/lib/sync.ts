@@ -27,18 +27,6 @@ export async function refreshAll() {
   ])
 }
 
-interface PendingChange {
-  id?: number
-  table: string
-  action: 'insert' | 'update' | 'delete'
-  payload: any
-  created_at: string
-}
-
-export async function queueChange(table: string, action: string, payload: any) {
-  await db.pending_changes.add({ table, action, payload, created_at: new Date().toISOString() })
-}
-
 export async function processPending() {
   const changes = await db.pending_changes.toArray()
   for (const change of changes) {

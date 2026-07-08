@@ -54,7 +54,14 @@ export default function UsersPage() {
   async function removeOfficer(officer) {
     const { error } = await supabase.from('officers').delete().eq('id', officer.id)
     if (error) { toast.error(error.message); return }
-    if (officer.title === 'Secretary') setAdmin(officer.profile_id, false)
+    if (officer.title === 'Secretary') {
+      try {
+        await setAdmin(officer.profile_id, false)
+      } catch (err) {
+        console.error('Failed to revoke admin:', err)
+        toast.error('Director removed but admin revocation failed')
+      }
+    }
     toast.info('Director removed')
     fetchAll()
     refreshOfficers()

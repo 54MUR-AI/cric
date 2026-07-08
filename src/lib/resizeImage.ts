@@ -25,7 +25,8 @@ export async function resizeImage(file: File): Promise<File> {
       canvas.width = width
       canvas.height = height
       const ctx = canvas.getContext('2d')
-      if (ctx) ctx.drawImage(img, 0, 0, width, height)
+      if (!ctx) { resolve(file); return }
+      ctx.drawImage(img, 0, 0, width, height)
 
       canvas.toBlob(
         (blob) => {

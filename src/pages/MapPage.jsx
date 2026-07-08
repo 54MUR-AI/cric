@@ -34,13 +34,14 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   const { photos } = usePhotos()
   const { cabins } = useCabins()
   const { bookings } = useBookings()
+  const cabinCenterKey = pins.filter(p => p.type === 'cabin').map(p => `${p.latitude},${p.longitude}`).join('|')
   const cabinCenter = useMemo(() => {
     const cabinPins = pins.filter(p => p.type === 'cabin')
     if (cabinPins.length === 0) return undefined
     const lat = cabinPins.reduce((s, p) => s + p.latitude, 0) / cabinPins.length
     const lon = cabinPins.reduce((s, p) => s + p.longitude, 0) / cabinPins.length
     return [lat, lon]
-  }, [pins])
+  }, [cabinCenterKey])
 
   const [showRadar, setShowRadar] = useState(true)
   const [showStations, setShowStations] = useState(true)

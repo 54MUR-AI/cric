@@ -63,13 +63,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchProfile(userId: string) {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single()
-      setProfile(data)
-    } catch {}
+        .maybeSingle()
+      if (error) throw error
+      if (data) {
+        setProfile(data)
+      } else {
+        // Profile doesn't exist yet (trigger race), create it
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({ id: userId })
+          .select('*')
+          .single()
+        if (insertError) throw insertError
+        setProfile(newProfile)
+      }
+    } catch (err) {
+      console.warn('Failed to fetch/create profile', err)
+    }
     setLoading(false)
   }
 

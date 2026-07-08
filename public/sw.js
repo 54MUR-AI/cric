@@ -1,13 +1,15 @@
+import { precacheAndRoute } from 'workbox-precaching'
+import { ExpirationPlugin } from 'workbox-expiration'
+
 const CACHE = 'cric-v2'
 const STATIC_EXT = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.woff', '.woff2', '.ttf', '.ico', '.json']
+const MAX_CACHE_ENTRIES = 100
 
-// Inject manifest placeholder
-const ignored = self.__WB_MANIFEST
+// Precache app shell (injected by vite-plugin-pwa)
+precacheAndRoute(self.__WB_MANIFEST)
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then(cache => cache.add('/index.html')).then(() => self.skipWaiting())
-  )
+  event.waitUntil(self.skipWaiting())
 })
 
 self.addEventListener('activate', (event) => {
@@ -43,9 +45,15 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method === 'GET' && STATIC_EXT.some(ext => url.pathname.endsWith(ext))) {
     event.respondWith(
       caches.match(event.request).then(cached =>
-        cached || fetch(event.request).then(res => {
+        cached || fetch(event.request).then(async res => {
           const clone = res.clone()
-          caches.open(CACHE).then(cache => cache.put(event.request, clone))
+          const cache = await caches.open(CACHE)
+          await cache.put(event.request, clone)
+          // Enforce cache cap
+          const keys = await cache.keys()
+          if (keys.length > MAX_CACHE_ENTRIES) {
+            await cache.delete(keys[0])
+          }
           return res
         })
       )

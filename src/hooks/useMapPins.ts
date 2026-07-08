@@ -69,10 +69,16 @@ export function useMapPins() {
   }, [toast])
 
   const updatePin = useCallback(async (id: string, updates: Partial<MapPin>) => {
-    const prev = pins
+    const originalPin = pins.find(p => p.id === id)
+    if (!originalPin) return
     setPins(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
     const { data, error } = await supabase.from('map_pins').update(updates).eq('id', id).select('*').single()
-    if (error) { setPins(prev); console.error('Pin update error:', error); toast.error('Failed to update pin'); return }
+    if (error) {
+      setPins(prev => prev.map(p => p.id === id ? originalPin : p))
+      console.error('Pin update error:', error)
+      toast.error('Failed to update pin')
+      return
+    }
     setPins(prev => prev.map(p => p.id === id ? data : p))
     db.map_pins.put(data)
     toast.success('Pin updated')
@@ -80,10 +86,15 @@ export function useMapPins() {
   }, [pins, toast])
 
   const deletePin = useCallback(async (id: string) => {
-    const prev = pins
+    const deletedPin = pins.find(p => p.id === id)
+    if (!deletedPin) return
     setPins(prev => prev.filter(p => p.id !== id))
     const { error } = await supabase.from('map_pins').delete().eq('id', id)
-    if (error) { setPins(prev); toast.error('Failed to delete pin'); return }
+    if (error) {
+      setPins(prev => [...prev, deletedPin].sort((a, b) => a.label.localeCompare(b.label)))
+      toast.error('Failed to delete pin')
+      return
+    }
     db.map_pins.delete(id)
     toast.info('Pin deleted')
   }, [pins, toast])

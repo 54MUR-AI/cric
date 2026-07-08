@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import exifr from 'exifr'
 import db from '../lib/db'
-import { queueChange } from '../lib/sync'
 import { useToast } from '../components/ui/Toast'
 
 interface Photo {
@@ -37,39 +36,12 @@ interface UploadOptions {
   exif?: ExifData
 }
 
-const PHOTO_SERVER_URL = import.meta.env.VITE_PHOTO_SERVER_URL
-const PHOTO_SERVER_API_KEY = import.meta.env.VITE_PHOTO_SERVER_API_KEY
+const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
+  || 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1'
 
-async function uploadToPiServer(file: File): Promise<{ storage_path: string }> {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 5000)
-
-  try {
-    const res = await fetch(`${PHOTO_SERVER_URL}/upload`, {
-      method: 'POST',
-      headers: { 'X-API-Key': PHOTO_SERVER_API_KEY! },
-      body: formData,
-      signal: controller.signal,
-    })
-    if (!res.ok) throw new Error(`Pi server upload failed: ${res.status}`)
-    return await res.json()
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
-async function uploadToSupabase(file: File, path: string): Promise<{ publicUrl: string }> {
-  const { error } = await supabase.storage.from('photos').upload(path, file)
-  if (error) throw error
-  const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
-  return { publicUrl }
-}
-
-function isPiPhoto(url: string): boolean {
-  return !!PHOTO_SERVER_URL && url.startsWith(PHOTO_SERVER_URL)
+async function getToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
 }
 
 export function usePhotos() {
@@ -79,6 +51,18 @@ export function usePhotos() {
   const toast = useToast()
 
   const fetchAll = useCallback(async () => {
+    // Seed from cache first for instant/offline render
+    try {
+      const [cachedPhotos, cachedAlbums] = await Promise.all([
+        db.photos.orderBy('taken_at').reverse().toArray(),
+        db.photo_albums.orderBy('name').toArray(),
+      ])
+      if (cachedPhotos.length) setPhotos(cachedPhotos)
+      if (cachedAlbums.length) setAlbums(cachedAlbums)
+    } catch (err) {
+      console.warn('Failed to read photos from cache', err)
+    }
+
     try {
       const [photosRes, albumsRes] = await Promise.all([
         supabase.from('photos').select('*').order('taken_at', { ascending: false }).order('created_at', { ascending: false }),
@@ -86,8 +70,13 @@ export function usePhotos() {
       ])
       if (!photosRes.error) { setPhotos(photosRes.data || []); db.photos.bulkPut(photosRes.data || []) }
       if (!albumsRes.error) { setAlbums(albumsRes.data || []); db.photo_albums.bulkPut(albumsRes.data || []) }
-    } catch {} finally { setLoading(false) }
-  }, [])
+    } catch (err) {
+      console.warn('Failed to load photos from network', err)
+      if (photos.length === 0) toast.error('Could not load photos')
+    } finally {
+      setLoading(false)
+    }
+  }, [photos.length, toast])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -107,29 +96,30 @@ export function usePhotos() {
       } catch {}
     }
 
-    const ext = file.name.split('.').pop()
-    const fileName = `${crypto.randomUUID()}.${ext}`
-    const path = `photos/${fileName}`
+    const token = await getToken()
+    if (!token) throw new Error('Not authenticated')
 
-    let storage_path: string
-    let url: string
-    let uploadedToPi = false
+    const formData = new FormData()
+    formData.append('file', file)
 
-    if (PHOTO_SERVER_URL && PHOTO_SERVER_API_KEY) {
-      try {
-        const result = await uploadToPiServer(file)
-        storage_path = `photos/${result.storage_path}`
-        url = `${PHOTO_SERVER_URL}/photos/${result.storage_path}`
-        uploadedToPi = true
-      } catch {
-        const result = await uploadToSupabase(file, path)
-        storage_path = path
-        url = result.publicUrl
-      }
-    } else {
-      const result = await uploadToSupabase(file, path)
-      storage_path = path
-      url = result.publicUrl
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+
+    let uploadResult: { storage_path: string; url: string; backend: string }
+    try {
+      const res = await fetch(`${FUNCTIONS_URL}/photo-upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+        signal: controller.signal,
+      })
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+      uploadResult = await res.json()
+    } catch (err) {
+      console.error('Photo upload failed', err)
+      throw err
+    } finally {
+      clearTimeout(timeout)
     }
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -137,8 +127,8 @@ export function usePhotos() {
     const { data, error } = await supabase
       .from('photos')
       .insert({
-        storage_path,
-        url,
+        storage_path: uploadResult.storage_path,
+        url: uploadResult.url,
         caption: caption || null,
         taken_at: takenAt,
         latitude, longitude,
@@ -149,14 +139,7 @@ export function usePhotos() {
       .single()
 
     if (error) {
-      if (uploadedToPi) {
-        await fetch(`${PHOTO_SERVER_URL}/photos/${storage_path.replace('photos/', '')}`, {
-          method: 'DELETE',
-          headers: { 'X-API-Key': PHOTO_SERVER_API_KEY! },
-        })
-      } else {
-        await supabase.storage.from('photos').remove([storage_path])
-      }
+      console.error('Photo DB insert failed; file may be orphaned on storage', error)
       throw error
     }
 
@@ -168,25 +151,23 @@ export function usePhotos() {
 
   const deletePhoto = useCallback(async (photo: Photo) => {
     try {
-      if (isPiPhoto(photo.url)) {
-        const filename = photo.url.split('/').pop()!
-        await Promise.all([
-          fetch(`${PHOTO_SERVER_URL}/photos/${filename}`, {
-            method: 'DELETE',
-            headers: { 'X-API-Key': PHOTO_SERVER_API_KEY! },
-          }),
-          supabase.from('photos').delete().eq('id', photo.id),
-        ])
-      } else {
-        await Promise.all([
-          supabase.storage.from('photos').remove([photo.storage_path]),
-          supabase.from('photos').delete().eq('id', photo.id),
-        ])
+      const token = await getToken()
+      if (!token) throw new Error('Not authenticated')
+
+      const res = await fetch(`${FUNCTIONS_URL}/photo-delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ photoId: photo.id, storagePath: photo.storage_path }),
+      })
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error((errJson as any).error || `Delete failed: ${res.status}`)
       }
       setPhotos(prev => prev.filter(p => p.id !== photo.id))
       db.photos.delete(photo.id)
       toast.info('Photo deleted')
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete photo', err)
       toast.error('Failed to delete photo')
     }
   }, [toast])

@@ -69,7 +69,6 @@ export default function LightningLayer({ center, onStrikeNearby, onAllClear }) {
 
   useEffect(() => {
     cancelledRef.current = false
-    knownIdsRef.current.clear()
 
     async function fetchStrikes() {
       try {

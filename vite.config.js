@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
+      includeAssets: ['favicon.png', 'icons/*.png'],
       manifest: {
         name: 'CRIC Manager',
         short_name: 'CRIC',
@@ -34,11 +34,6 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'public',
       filename: 'sw.js',
-      workbox: {
-        globPatterns: ['**/*.{js,css,svg,png,ico}'],
-        navigateFallback: 'index.html',
-        navigationPreload: true,
-      },
     }),
   ],
 })

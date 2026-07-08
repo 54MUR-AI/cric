@@ -15,7 +15,6 @@ interface PushPayload {
 }
 
 interface SendPushBody {
-  subscriptions: Subscription[]
   payload: PushPayload
 }
 
@@ -28,9 +27,37 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { subscriptions, payload }: SendPushBody = await req.json()
+    const token = (req.headers.get('authorization') || '').replace('Bearer ', '')
+    if (!token) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
 
-    if (!subscriptions?.length) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+
+    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey, 'User-Agent': UA },
+    })
+    if (!userResp.ok) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
+    const user = await userResp.json()
+    const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_admin`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
+    })
+    const profiles = await profileResp.json()
+    const profile = Array.isArray(profiles) ? profiles[0] : null
+    const isAdmin = profile?.is_admin || user?.app_metadata?.role === 'super_admin'
+    if (!isAdmin) return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: cors })
+
+    const { payload }: SendPushBody = await req.json()
+
+    const subsResp = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh_key,auth_key`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
+    })
+    const subs = await subsResp.json()
+    const subscriptions: Subscription[] = Array.isArray(subs) ? subs.map((s: any) => ({
+      endpoint: s.endpoint,
+      keys: { p256dh: s.p256dh_key, auth: s.auth_key },
+    })) : []
+
+    if (!subscriptions.length) {
       return new Response(JSON.stringify({ sent: 0 }), {
         headers: { ...cors, 'Content-Type': 'application/json' },
       })
