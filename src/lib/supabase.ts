@@ -8,7 +8,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 function sfetch(input: RequestInfo | URL, init?: RequestInit) {
-  return fetch(input, { ...init, cache: 'no-store' })
+  if (input instanceof Request) {
+    const url = new URL(input.url)
+    url.searchParams.set('_cb', String(Date.now()))
+    const h = new Headers(input.headers)
+    h.set('Cache-Control', 'no-cache, no-store')
+    return fetch(new Request(url, { body: input.body, method: input.method, headers: h, cache: 'no-store' }))
+  }
+  const str = String(input)
+  const sep = str.includes('?') ? '&' : '?'
+  return fetch(str + sep + '_cb=' + Date.now(), { ...init, cache: 'no-store', headers: { ...(init?.headers as Record<string, string> | undefined), 'Cache-Control': 'no-cache, no-store' } })
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

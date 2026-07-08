@@ -22,12 +22,12 @@ const ignored = self.__WB_MANIFEST
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(event.request, { cache: 'no-store' }).catch(() => caches.match('/index.html'))
     )
     return
   }
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    caches.match(event.request).then(cached => cached || fetch(event.request, { cache: 'no-store' }))
   )
 })
 
