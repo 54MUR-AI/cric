@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, Phone, Zap, Droplets, Flame, Ship, AlertTriangle, ClipboardCheck, RotateCcw } from 'lucide-react'
+import { BookOpen, Phone, Zap, Droplets, Flame, Ship, AlertTriangle, ClipboardCheck, RotateCcw, ChevronDown, DoorClosed } from 'lucide-react'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -38,6 +38,24 @@ function Checklist({ id, items }) {
           </li>
         ))}
       </ol>
+    </div>
+  )
+}
+
+function GuideSection({ section }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div id={section.id} className={`rounded-lg border ${section.bg}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 w-full text-left p-5"
+      >
+        <section.icon className={`h-5 w-5 shrink-0 ${section.color}`} />
+        <h2 className="font-semibold text-stone-800 dark:text-stone-200 flex-1">{section.title}</h2>
+        <ChevronDown className={`h-4 w-4 text-stone-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-5 pb-5">{section.content}</div>}
     </div>
   )
 }
@@ -266,6 +284,79 @@ const sections = [
     ),
   },
   {
+    id: 'closing-bat-manor',
+    icon: DoorClosed,
+    title: 'Closing Camp — Bat Manor',
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-900/30',
+    content: (
+      <div className="space-y-5 text-sm">
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Boats in Boathouse</h4>
+          <Checklist id="bat-boathouse" items={[
+            '15 HP – clean out! Tie up in Boathouse',
+            'Guide Boat – Tie up in Boathouse',
+            'Make sure they are tied and bumpers out so they cannot bump – there may be hurricanes when wind comes in all directions',
+            'Close outside Boathouse doors and fasten from inside',
+            'Lock land-side padlock',
+          ]} />
+        </div>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Other Boats and Front Porch</h4>
+          <Checklist id="bat-porch" items={[
+            'Blue Canoe – pull upon shore beside other boats and turn over',
+            'Put away living room rugs (beat outside first) in tin closet',
+            'Put away paddles, boat cushions and life vests in downstairs bedroom closet',
+            'Hammock – take down and put on toy chest',
+            'Bike – put at foot of stairs',
+            'Porch Furniture – place in living room (leave large table outside by door) – Leave out two rockers and small round table to enjoy last look at lake before leaving',
+            'Birch-bark and Rec Canoes – put across beds in downstairs bedroom',
+            'Yellow Kayak – put in living room (remember Porch Furniture has to come inside too)',
+          ]} />
+        </div>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Linen Closet / Beds / Rugs / Windows</h4>
+          <Checklist id="bat-linen" items={[
+            'Bedspreads/Mattress Pads – tin closet shelf in back',
+            'Dirty linens – take home or launder at Birch\'s and put back in tin closet on shelf to the right',
+            'Sleeping Bags – neatly rolled on floor of tin closet',
+            'Blankets – Fold and store in tin closet (on sides if room – otherwise on floor – leave rug area clear until last minute)',
+            'Place Fabric Softener sheets (3-4) on each mattress (not necessary on foam mattresses), then cover beds with sheets (stored in drawers of dressers in each room). Don\'t forget downstairs couch.',
+            'Last things in Tin Closet: bed pillows and sofa pillows',
+            'Close all windows',
+          ]} />
+        </div>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Closet off the Back Porch (COB) and Back Dock</h4>
+          <Checklist id="bat-cob" items={[
+            'Empty small kerosene can into larger blue can in the COB',
+            'Take home all canned goods stored in COB',
+            'Clean off back dock and store chairs in COB – leave Bobbie\'s chair on back dock',
+            'Lock COB',
+          ]} />
+        </div>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Kitchen and Bathrooms</h4>
+          <Checklist id="bat-kitchen" items={[
+            'Take home what you brought – don\'t leave any canned goods (even if they are not yours!)',
+            'Store all paper towels, toilet paper, tissues in upper left of Old Ice Box',
+            'Store spices in tin can',
+            'Collect and store all matches, candles and soap in tins',
+            'Empty batteries from flash lights and leave on table at foot of stairs',
+            'Burn Papers – collect and return all baskets',
+            'Take trash and recycling to Dump – check current schedule for hours',
+            'Scrub out and let dry kitchen trash barrels – then place new bags in each barrel (otherwise stuff gets thrown in without bags and we have to clean again)',
+            'Scrub out refrigerator, empty out ice dishes. Turn off refrigerator and prop doors open',
+            'Wash and put away all dishes, silver and pots and pans. Leave drain in sink and wipe off all counters',
+            'Dump out all water jugs',
+            'Turn off gas water heater',
+            'Close all windows',
+          ]} />
+        </div>
+      </div>
+    ),
+  },
+  {
     id: 'contacts',
     icon: Phone,
     title: 'Key Contacts',
@@ -310,15 +401,9 @@ export default function GuidePage() {
       </div>
       <p className="text-sm text-stone-500 dark:text-stone-400">Operating procedures, contacts, and reference for CRIC Island. Source: Cranberry Guide (maintained by Neil Donnelly & CRIC members).</p>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {sections.map((s) => (
-          <div key={s.id} id={s.id} className={`rounded-lg border p-5 ${s.bg}`}>
-            <div className="flex items-center gap-2 mb-3">
-              <s.icon className={`h-5 w-5 ${s.color}`} />
-              <h2 className="font-semibold text-stone-800 dark:text-stone-200">{s.title}</h2>
-            </div>
-            {s.content}
-          </div>
+          <GuideSection key={s.id} section={s} />
         ))}
       </div>
 
