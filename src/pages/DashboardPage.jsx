@@ -160,7 +160,7 @@ function WeatherWidget() {
 export default function DashboardPage() {
   const { profile, isAdmin } = useAuth()
   const toast = useToast()
-  const { activeAlerts, lightningAlert, precipitationAlert, dismissAlert, dismissLightning, dismissPrecipitation } = useWeatherAlerts()
+  const { activeAlerts, lightningAlert, precipitationAlert, dismissAlert, dismissLightning, dismissPrecipitation, handleLightningStrike } = useWeatherAlerts()
   const [openTasks, setOpenTasks] = useState([])
   const [nextMeeting, setNextMeeting] = useState(null)
   const [recentPhotos, setRecentPhotos] = useState([])
