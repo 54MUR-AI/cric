@@ -24,9 +24,10 @@ export function useCabins() {
   const toast = useToast()
   const channelRef = useRef<any>(null)
 
-  async function fetchCabins() {
+  async function fetchCabins(isRetry = false) {
     try {
       setError(null)
+      if (!isRetry) setLoading(true)
       const cached = await db.cabins.orderBy('sort_order').toArray()
       if (cached.length) setCabins(cached)
 
@@ -40,10 +41,13 @@ export function useCabins() {
     } catch (err: any) {
       const msg = err?.message || 'Unknown error'
       console.error('Failed to fetch cabins:', msg)
+      if (!isRetry) {
+        setTimeout(() => fetchCabins(true), 2000)
+        return
+      }
       setError(msg)
-    } finally {
-      setLoading(false)
     }
+    setLoading(false)
   }
 
   useEffect(() => {

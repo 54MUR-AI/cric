@@ -30,9 +30,10 @@ export function useBookings() {
   const toast = useToast()
   const channelRef = useRef<any>(null)
 
-  async function fetchBookings() {
+  async function fetchBookings(isRetry = false) {
     try {
       setError(null)
+      if (!isRetry) setLoading(true)
       const cached = await db.bookings.orderBy('start_date').toArray()
       if (cached.length) setBookings(cached)
 
@@ -49,10 +50,13 @@ export function useBookings() {
     } catch (err: any) {
       const msg = err?.message || 'Unknown error'
       console.error('Failed to fetch bookings:', msg)
+      if (!isRetry) {
+        setTimeout(() => fetchBookings(true), 2000)
+        return
+      }
       setError(msg)
-    } finally {
-      setLoading(false)
     }
+    setLoading(false)
   }
 
   useEffect(() => {

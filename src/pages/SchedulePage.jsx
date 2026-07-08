@@ -187,10 +187,13 @@ export default function SchedulePage() {
 
   const syncError = errorB || errorC
 
+  const augBookings = bookings.filter(b => b.start_date?.startsWith('2026-08'))
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Schedule</h1>
+        <span className="text-[10px] text-stone-400 dark:text-stone-600 font-mono">B:{bookings.length} Aug:{augBookings.length}</span>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-2">
