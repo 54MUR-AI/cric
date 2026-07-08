@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
 import { Link } from 'react-router-dom'
-import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, X, Sunrise, Sunset, Camera } from 'lucide-react'
+import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, CloudRain, X, Sunrise, Sunset, Camera } from 'lucide-react'
 import LightboxDialog from '../components/ui/LightboxDialog'
 import { useToast } from '../components/ui/Toast'
 import { useWeatherAlerts } from '../hooks/useWeatherAlerts'
@@ -102,7 +102,7 @@ function WeatherWidget() {
   return (
     <div className="rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 relative overflow-hidden"
       style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="p-4">
+      <div className="p-4" style={{ textShadow: '1px 0 0 rgba(0,0,0,0.5), -1px 0 0 rgba(0,0,0,0.5), 0 1px 0 rgba(0,0,0,0.5), 0 -1px 0 rgba(0,0,0,0.5)' }}>
         <h2 className="font-semibold text-white/90 mb-3 flex items-center gap-2">
           <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
         </h2>
@@ -160,7 +160,7 @@ function WeatherWidget() {
 export default function DashboardPage() {
   const { profile, isAdmin } = useAuth()
   const toast = useToast()
-  const { activeAlerts, lightningAlert, dismissAlert, dismissLightning, handleLightningStrike } = useWeatherAlerts()
+  const { activeAlerts, lightningAlert, precipitationAlert, dismissAlert, dismissLightning, dismissPrecipitation } = useWeatherAlerts()
   const [openTasks, setOpenTasks] = useState([])
   const [nextMeeting, setNextMeeting] = useState(null)
   const [recentPhotos, setRecentPhotos] = useState([])
@@ -205,7 +205,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Alert Banner */}
-      {(activeAlerts.length > 0 || lightningAlert) && (
+      {(activeAlerts.length > 0 || lightningAlert || precipitationAlert) && (
         <div className="space-y-2">
           {lightningAlert && (
             <div className="rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 p-3 flex items-start gap-3">
@@ -215,6 +215,16 @@ export default function DashboardPage() {
                 <p className="text-xs text-amber-700 dark:text-amber-400">{lightningAlert}</p>
               </div>
               <button onClick={dismissLightning} className="shrink-0 text-amber-500 hover:text-amber-700 dark:hover:text-amber-300"><X className="h-4 w-4" /></button>
+            </div>
+          )}
+          {precipitationAlert && (
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 p-3 flex items-start gap-3">
+              <CloudRain className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Active Weather</p>
+                <p className="text-xs text-blue-700 dark:text-blue-400">{precipitationAlert}</p>
+              </div>
+              <button onClick={dismissPrecipitation} className="shrink-0 text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"><X className="h-4 w-4" /></button>
             </div>
           )}
           {activeAlerts.map(a => (

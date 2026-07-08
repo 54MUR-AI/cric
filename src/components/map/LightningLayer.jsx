@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { haversineKm } from '../../lib/map/utils'
-import { CHAIR_ROCK_ISLAND } from '../../lib/map/constants'
 
 const LIGHTNING_URL = 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1/intel-lightning'
 const POLL_MS = 15_000
@@ -53,13 +52,16 @@ function buildIcon() {
   return c
 }
 
-export default function LightningLayer({ onStrikeNearby }) {
+export default function LightningLayer({ center, onStrikeNearby }) {
   const map = useMap()
   const markersRef = useRef(new Map())
   const strikeTimesRef = useRef(new Map())
   const knownIdsRef = useRef(new Set())
   const alertThrottleRef = useRef(0)
   const cancelledRef = useRef(false)
+
+  const centerLat = center?.[0] ?? 44.14722
+  const centerLon = center?.[1] ?? -74.81194
 
   useEffect(() => {
     cancelledRef.current = false
@@ -116,7 +118,7 @@ export default function LightningLayer({ onStrikeNearby }) {
 
           // proximity alert
           if (onStrikeNearby) {
-            const dist = haversineKm(CHAIR_ROCK_ISLAND[0], CHAIR_ROCK_ISLAND[1], lat, lon)
+            const dist = haversineKm(centerLat, centerLon, lat, lon)
             if (dist <= PROXIMITY_KM) {
               const now2 = Date.now()
               if (now2 - alertThrottleRef.current > 300000) {
@@ -153,7 +155,7 @@ export default function LightningLayer({ onStrikeNearby }) {
       strikeTimesRef.current.clear()
       knownIdsRef.current.clear()
     }
-  }, [map, onStrikeNearby])
+  }, [map, onStrikeNearby, centerLat, centerLon])
 
   // blink animation loop (opacity toggle for recent strikes)
   useEffect(() => {

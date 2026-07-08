@@ -34,6 +34,13 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   const { photos } = usePhotos()
   const { cabins } = useCabins()
   const { bookings } = useBookings()
+  const cabinCenter = useMemo(() => {
+    const cabinPins = pins.filter(p => p.type === 'cabin')
+    if (cabinPins.length === 0) return undefined
+    const lat = cabinPins.reduce((s, p) => s + p.latitude, 0) / cabinPins.length
+    const lon = cabinPins.reduce((s, p) => s + p.longitude, 0) / cabinPins.length
+    return [lat, lon]
+  }, [pins])
 
   const [showRadar, setShowRadar] = useState(true)
   const [showStations, setShowStations] = useState(true)
@@ -126,12 +133,16 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
+  const cabinCenterRef = useRef(cabinCenter)
+  cabinCenterRef.current = cabinCenter
+
   const handleStrikeNearby = useCallback((strike, distKm) => {
     const now = Date.now()
     if (now - lastLightningAlertRef.current > 300000) {
       lastLightningAlertRef.current = now
-      const dir = bearing(CHAIR_ROCK_ISLAND[0], CHAIR_ROCK_ISLAND[1], strike.lat, strike.lon)
-      const msg = `Lightning ${distKm.toFixed(1)}km ${dir} of Chair Rock Island! Take cover.`
+      const c = cabinCenterRef.current ?? CHAIR_ROCK_ISLAND
+      const dir = bearing(c[0], c[1], strike.lat, strike.lon)
+      const msg = `Lightning ${distKm.toFixed(1)}km ${dir}! Take cover.`
       toast.warning(msg, 8000)
       sendSystemNotification('Lightning Alert', msg)
       if (onLightningStrike) onLightningStrike(msg)
@@ -375,7 +386,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
-          {showLightning && <LightningLayer onStrikeNearby={handleStrikeNearby} />}
+          {showLightning && <LightningLayer center={cabinCenter} onStrikeNearby={handleStrikeNearby} />}
           {measuring && <MeasureLayer points={measurePoints} onAddPoint={(latlng) => setMeasurePoints(prev => [...prev, latlng])} />}
           {showForecast && <ForecastPopup latlng={forecastLatLng} data={forecastData} loading={forecastLoading} onClose={() => { setForecastLatLng(null); setForecastData(null) }} />}
           {showPhotos && <PhotosLayer photos={photos} />}
