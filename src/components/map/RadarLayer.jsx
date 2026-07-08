@@ -24,10 +24,17 @@ export default function RadarLayer() {
     if (layerRef.current) {
       layerRef.current.setUrl(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`)
     } else {
-      layerRef.current = L.tileLayer(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`, {
+      const layer = L.tileLayer(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`, {
         opacity: 0.5, attribution: 'RainViewer', minZoom: 6, maxNativeZoom: 12, maxZoom: 21, transparent: true,
       })
-      layerRef.current.addTo(map)
+      layer.on('tileerror', () => {
+        if (!layerRef.current) return
+        clearInterval(timerRef.current)
+        layerRef.current.removeFrom(map)
+        layerRef.current = null
+      })
+      layer.addTo(map)
+      layerRef.current = layer
     }
   }, [currentIdx, timestamps, map])
 
