@@ -38,9 +38,9 @@ export function useBookings() {
       const cached = await db.bookings.orderBy('start_date').toArray()
       if (cached.length) setBookings(cached)
 
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('bookings')
-        .select('*, cabins(name, color)', { count: 'exact' })
+        .select('*, cabins(name, color)')
         .order('start_date')
       if (error) throw error
 
