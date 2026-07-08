@@ -27,6 +27,7 @@ export function useBookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [debug, setDebug] = useState<string>('')
   const toast = useToast()
   const channelRef = useRef<any>(null)
 
@@ -37,15 +38,42 @@ export function useBookings() {
       const cached = await db.bookings.orderBy('start_date').toArray()
       if (cached.length) setBookings(cached)
 
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('bookings')
-        .select('*, cabins(name, color)')
+        .select('*, cabins(name, color)', { count: 'exact' })
         .order('start_date')
       if (error) throw error
+
+      let rawCount = -1
+      try {
+        const session = await supabase.auth.getSession()
+        const token = session?.data?.session?.access_token
+        if (token) {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+          const resp = await fetch(
+            `${supabaseUrl}/rest/v1/bookings?select=id,cabin_id,start_date,end_date,user_id,room,guests,notes,created_at&order=start_date&_cb=${Date.now()}`,
+            {
+              headers: {
+                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${token}`,
+              },
+              cache: 'no-store',
+            },
+          )
+          if (resp.ok) {
+            const raw = await resp.json()
+            rawCount = raw.length
+          }
+        }
+      } catch {}
+
       if (data) {
         setBookings(data)
         db.bookings.bulkPut(data)
         localStorage.setItem(CACHE_KEY, String(Date.now()))
+        setDebug(`sdk:${data.length} raw:${rawCount}`)
+      } else {
+        setDebug(`sdk:0 raw:${rawCount}`)
       }
     } catch (err: any) {
       const msg = err?.message || 'Unknown error'
@@ -55,6 +83,7 @@ export function useBookings() {
         return
       }
       setError(msg)
+      setDebug(`err:${msg}`)
     }
     setLoading(false)
   }
