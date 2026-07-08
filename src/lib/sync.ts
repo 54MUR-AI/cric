@@ -14,7 +14,7 @@ export async function syncTable(table: string, query: any) {
 export async function refreshAll() {
   await Promise.allSettled([
     syncTable('cabins', supabase.from('cabins').select('*').order('sort_order').order('name')),
-    syncTable('bookings', supabase.from('bookings').select('*, cabins(name, color)').order('start_date')),
+    syncTable('bookings', supabase.from('bookings').select('*').order('start_date')),
     syncTable('maintenance_tasks', supabase.from('maintenance_tasks').select('*, maintenance_categories(name), assigned_to_profile:assigned_to(display_name), created_by_profile:created_by(display_name)').order('created_at', { ascending: false })),
     syncTable('maintenance_categories', supabase.from('maintenance_categories').select('*').order('sort_order').order('name')),
     syncTable('meetings', supabase.from('meetings').select('*, profiles:created_by(display_name)').order('date', { ascending: false })),

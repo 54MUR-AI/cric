@@ -40,7 +40,7 @@ export function useBookings() {
 
       const { data, error } = await supabase
         .from('bookings')
-        .select('*, cabins(name, color)')
+        .select('*')
         .order('start_date')
       if (error) throw error
 
@@ -124,7 +124,7 @@ export function useBookings() {
     if (data) {
       const { data: full } = await supabase
         .from('bookings')
-        .select('*, cabins(name, color)')
+        .select('*')
         .eq('id', data.id)
         .single()
       if (full) { setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking created') }
@@ -144,7 +144,7 @@ export function useBookings() {
     if (error) throw error
     const { data: full } = await supabase
       .from('bookings')
-      .select('*, cabins(name, color)')
+      .select('*')
       .eq('id', id)
       .single()
     if (full) { setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full); toast.success('Booking updated') }
