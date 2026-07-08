@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
@@ -27,14 +27,12 @@ export function useBookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
+  const channelRef = useRef<any>(null)
 
   async function fetchBookings() {
     try {
-      const lastSync = parseInt(localStorage.getItem(CACHE_KEY) || '0', 10)
-      const cacheFresh = (Date.now() - lastSync) < CACHE_TTL
-
       const cached = await db.bookings.orderBy('start_date').toArray()
-      if (cached.length && cacheFresh) setBookings(cached)
+      if (cached.length) setBookings(cached)
 
       const { data, error } = await supabase
         .from('bookings')
@@ -53,7 +51,27 @@ export function useBookings() {
     }
   }
 
-  useEffect(() => { fetchBookings() }, [])
+  useEffect(() => {
+    fetchBookings()
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchBookings()
+    }
+    const onFocus = () => fetchBookings()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onFocus)
+
+    channelRef.current = supabase
+      .channel('bookings-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => fetchBookings())
+      .subscribe()
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onFocus)
+      channelRef.current?.unsubscribe()
+    }
+  }, [])
 
   async function createBooking(booking: Partial<Booking>) {
     const { data, error } = await supabase.from('bookings').insert(booking).select().single()

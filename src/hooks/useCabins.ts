@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
@@ -21,14 +21,12 @@ export function useCabins() {
   const [cabins, setCabins] = useState<Cabin[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
+  const channelRef = useRef<any>(null)
 
   async function fetchCabins() {
     try {
-      const lastSync = parseInt(localStorage.getItem(CACHE_KEY) || '0', 10)
-      const cacheFresh = (Date.now() - lastSync) < CACHE_TTL
-
       const cached = await db.cabins.orderBy('sort_order').toArray()
-      if (cached.length && cacheFresh) setCabins(cached)
+      if (cached.length) setCabins(cached)
 
       const { data, error } = await supabase.from('cabins').select('*').order('sort_order').order('name')
       if (error) throw error
@@ -44,7 +42,27 @@ export function useCabins() {
     }
   }
 
-  useEffect(() => { fetchCabins() }, [])
+  useEffect(() => {
+    fetchCabins()
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchCabins()
+    }
+    const onFocus = () => fetchCabins()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onFocus)
+
+    channelRef.current = supabase
+      .channel('cabins-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cabins' }, () => fetchCabins())
+      .subscribe()
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onFocus)
+      channelRef.current?.unsubscribe()
+    }
+  }, [])
 
   async function createCabin(cabin: Partial<Cabin>) {
     const { data } = await supabase.from('cabins').insert(cabin).select().single()
