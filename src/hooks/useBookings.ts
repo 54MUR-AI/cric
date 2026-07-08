@@ -20,20 +20,37 @@ interface Booking {
   cabins?: CabinInfo
 }
 
+const CACHE_KEY = 'cache_ts_bookings'
+const CACHE_TTL = 60_000
+
 export function useBookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
 
   async function fetchBookings() {
-    const cached = await db.bookings.orderBy('start_date').toArray()
-    if (cached.length) setBookings(cached)
-    const { data } = await supabase
-      .from('bookings')
-      .select('*, cabins(name, color)')
-      .order('start_date')
-    if (data) { setBookings(data); db.bookings.bulkPut(data) }
-    setLoading(false)
+    try {
+      const lastSync = parseInt(localStorage.getItem(CACHE_KEY) || '0', 10)
+      const cacheFresh = (Date.now() - lastSync) < CACHE_TTL
+
+      const cached = await db.bookings.orderBy('start_date').toArray()
+      if (cached.length && cacheFresh) setBookings(cached)
+
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*, cabins(name, color)')
+        .order('start_date')
+      if (error) throw error
+      if (data) {
+        setBookings(data)
+        db.bookings.bulkPut(data)
+        localStorage.setItem(CACHE_KEY, String(Date.now()))
+      }
+    } catch (err) {
+      console.error('Failed to fetch bookings:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchBookings() }, [])

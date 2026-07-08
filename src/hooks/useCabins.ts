@@ -14,17 +14,34 @@ interface Cabin {
   created_at?: string
 }
 
+const CACHE_KEY = 'cache_ts_cabins'
+const CACHE_TTL = 300_000
+
 export function useCabins() {
   const [cabins, setCabins] = useState<Cabin[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
 
   async function fetchCabins() {
-    const cached = await db.cabins.orderBy('sort_order').toArray()
-    if (cached.length) setCabins(cached)
-    const { data } = await supabase.from('cabins').select('*').order('sort_order').order('name')
-    if (data) { setCabins(data); db.cabins.bulkPut(data) }
-    setLoading(false)
+    try {
+      const lastSync = parseInt(localStorage.getItem(CACHE_KEY) || '0', 10)
+      const cacheFresh = (Date.now() - lastSync) < CACHE_TTL
+
+      const cached = await db.cabins.orderBy('sort_order').toArray()
+      if (cached.length && cacheFresh) setCabins(cached)
+
+      const { data, error } = await supabase.from('cabins').select('*').order('sort_order').order('name')
+      if (error) throw error
+      if (data) {
+        setCabins(data)
+        db.cabins.bulkPut(data)
+        localStorage.setItem(CACHE_KEY, String(Date.now()))
+      }
+    } catch (err) {
+      console.error('Failed to fetch cabins:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchCabins() }, [])
