@@ -30,6 +30,41 @@ interface UploadOptions {
   album_id?: string
 }
 
+const PHOTO_SERVER_URL = import.meta.env.VITE_PHOTO_SERVER_URL
+const PHOTO_SERVER_API_KEY = import.meta.env.VITE_PHOTO_SERVER_API_KEY
+
+async function uploadToPiServer(file: File): Promise<{ storage_path: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5000)
+
+  try {
+    const res = await fetch(`${PHOTO_SERVER_URL}/upload`, {
+      method: 'POST',
+      headers: { 'X-API-Key': PHOTO_SERVER_API_KEY! },
+      body: formData,
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error(`Pi server upload failed: ${res.status}`)
+    return await res.json()
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function uploadToSupabase(file: File, path: string): Promise<{ publicUrl: string }> {
+  const { error } = await supabase.storage.from('photos').upload(path, file)
+  if (error) throw error
+  const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
+  return { publicUrl }
+}
+
+function isPiPhoto(url: string): boolean {
+  return !!PHOTO_SERVER_URL && url.startsWith(PHOTO_SERVER_URL)
+}
+
 export function usePhotos() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [albums, setAlbums] = useState<Album[]>([])
@@ -63,18 +98,34 @@ export function usePhotos() {
     const fileName = `${crypto.randomUUID()}.${ext}`
     const path = `photos/${fileName}`
 
-    const { error: uploadError } = await supabase.storage.from('photos').upload(path, file)
-    if (uploadError) throw uploadError
+    let storage_path: string
+    let url: string
+    let uploadedToPi = false
 
-    const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
+    if (PHOTO_SERVER_URL && PHOTO_SERVER_API_KEY) {
+      try {
+        const result = await uploadToPiServer(file)
+        storage_path = `photos/${result.storage_path}`
+        url = `${PHOTO_SERVER_URL}/photos/${result.storage_path}`
+        uploadedToPi = true
+      } catch {
+        const result = await uploadToSupabase(file, path)
+        storage_path = path
+        url = result.publicUrl
+      }
+    } else {
+      const result = await uploadToSupabase(file, path)
+      storage_path = path
+      url = result.publicUrl
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
 
     const { data, error } = await supabase
       .from('photos')
       .insert({
-        storage_path: path,
-        url: publicUrl,
+        storage_path,
+        url,
         caption: caption || null,
         taken_at: takenAt,
         latitude, longitude,
@@ -85,7 +136,14 @@ export function usePhotos() {
       .single()
 
     if (error) {
-      await supabase.storage.from('photos').remove([path])
+      if (uploadedToPi) {
+        await fetch(`${PHOTO_SERVER_URL}/photos/${storage_path.replace('photos/', '')}`, {
+          method: 'DELETE',
+          headers: { 'X-API-Key': PHOTO_SERVER_API_KEY! },
+        })
+      } else {
+        await supabase.storage.from('photos').remove([storage_path])
+      }
       throw error
     }
 
@@ -97,10 +155,21 @@ export function usePhotos() {
 
   const deletePhoto = useCallback(async (photo: Photo) => {
     try {
-      await Promise.all([
-        supabase.storage.from('photos').remove([photo.storage_path]),
-        supabase.from('photos').delete().eq('id', photo.id),
-      ])
+      if (isPiPhoto(photo.url)) {
+        const filename = photo.url.split('/').pop()!
+        await Promise.all([
+          fetch(`${PHOTO_SERVER_URL}/photos/${filename}`, {
+            method: 'DELETE',
+            headers: { 'X-API-Key': PHOTO_SERVER_API_KEY! },
+          }),
+          supabase.from('photos').delete().eq('id', photo.id),
+        ])
+      } else {
+        await Promise.all([
+          supabase.storage.from('photos').remove([photo.storage_path]),
+          supabase.from('photos').delete().eq('id', photo.id),
+        ])
+      }
       setPhotos(prev => prev.filter(p => p.id !== photo.id))
       db.photos.delete(photo.id)
       toast.info('Photo deleted')

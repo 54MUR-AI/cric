@@ -1,0 +1,15 @@
+[Unit]
+Description=CRIC Photo Server
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin
+EnvironmentFile=/home/admin/.env
+ExecStart=/usr/bin/node /home/admin/cric-photos-server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
