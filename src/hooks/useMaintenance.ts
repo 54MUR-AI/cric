@@ -44,11 +44,23 @@ export function useMaintenance() {
     const cachedCats = await db.maintenance_categories.orderBy('sort_order').toArray()
     if (cachedCats.length) setCategories(cachedCats)
 
-    const [tasksRes, catsRes] = await Promise.all([
-      supabase.from('maintenance_tasks').select('*, maintenance_categories(name), assigned_to_profile:assigned_to(display_name), created_by_profile:created_by(display_name)').order('created_at', { ascending: false }),
+    const [tasksRes, catsRes, profilesRes] = await Promise.all([
+      supabase.from('maintenance_tasks').select('*').order('created_at', { ascending: false }),
       supabase.from('maintenance_categories').select('*').order('sort_order').order('name'),
+      supabase.from('profiles').select('id, display_name'),
     ])
-    if (tasksRes.data) { setTasks(tasksRes.data); db.maintenance_tasks.bulkPut(tasksRes.data) }
+    if (tasksRes.data) {
+      const catMap = new Map((catsRes.data ?? []).map(c => [c.id, c]))
+      const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, p]))
+      const merged = tasksRes.data.map(t => ({
+        ...t,
+        maintenance_categories: catMap.get(t.category_id) ? { name: catMap.get(t.category_id).name } : undefined,
+        assigned_to_profile: profMap.get(t.assigned_to) ? { display_name: profMap.get(t.assigned_to).display_name } : undefined,
+        created_by_profile: profMap.get(t.created_by) ? { display_name: profMap.get(t.created_by).display_name } : undefined,
+      }))
+      setTasks(merged)
+      db.maintenance_tasks.bulkPut(merged)
+    }
     if (catsRes.data) { setCategories(catsRes.data); db.maintenance_categories.bulkPut(catsRes.data) }
     setLoading(false)
   }
@@ -61,9 +73,15 @@ export function useMaintenance() {
     if (data) {
       const { data: full } = await supabase
         .from('maintenance_tasks')
-        .select('*, maintenance_categories(name), assigned_to_profile:assigned_to(display_name), created_by_profile:created_by(display_name)')
+        .select('*')
         .eq('id', data.id).single()
-      if (full) { setTasks((prev) => [full, ...prev]); db.maintenance_tasks.put(full); toast.success('Task created') }
+      if (full) {
+        const { data: catData } = await supabase.from('maintenance_categories').select('name').eq('id', full.category_id).single()
+        if (catData) full.maintenance_categories = catData
+        const { data: assignData } = full.assigned_to ? await supabase.from('profiles').select('display_name').eq('id', full.assigned_to).single() : { data: null }
+        if (assignData) full.assigned_to_profile = assignData
+        setTasks((prev) => [full, ...prev]); db.maintenance_tasks.put(full); toast.success('Task created')
+      }
     }
     return data
   }

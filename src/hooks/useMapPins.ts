@@ -40,7 +40,7 @@ export function useMapPins() {
       if (cached.length) setPins(cached)
       const { data, error } = await supabase
         .from('map_pins')
-        .select('*, cabin:cabins(name)')
+        .select('*')
         .order('label')
       if (error) throw error
       if (data) { setPins(data); db.map_pins.bulkPut(data) }
@@ -59,7 +59,7 @@ export function useMapPins() {
     const { data, error } = await supabase
       .from('map_pins')
       .insert(payload)
-      .select('*, cabin:cabins(name)')
+      .select('*')
       .single()
     if (error) throw error
     setPins(prev => [...prev, data].sort((a, b) => a.label.localeCompare(b.label)))
@@ -71,7 +71,7 @@ export function useMapPins() {
   const updatePin = useCallback(async (id: string, updates: Partial<MapPin>) => {
     const prev = pins
     setPins(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
-    const { data, error } = await supabase.from('map_pins').update(updates).eq('id', id).select('*, cabin:cabins(name)').single()
+    const { data, error } = await supabase.from('map_pins').update(updates).eq('id', id).select('*').single()
     if (error) { setPins(prev); console.error('Pin update error:', error); toast.error('Failed to update pin'); return }
     setPins(prev => prev.map(p => p.id === id ? data : p))
     db.map_pins.put(data)

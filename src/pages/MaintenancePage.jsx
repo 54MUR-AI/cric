@@ -27,8 +27,13 @@ export default function MaintenancePage() {
 
   async function openTask(task) {
     setSelectedTask(task)
-    const { data } = await supabase.from('maintenance_comments').select('*, profiles:user_id(display_name)').eq('task_id', task.id).order('created_at')
-    setComments(data || [])
+    const [commentsRes, profilesRes] = await Promise.all([
+      supabase.from('maintenance_comments').select('*').eq('task_id', task.id).order('created_at'),
+      supabase.from('profiles').select('id, display_name'),
+    ])
+    const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
+    const merged = (commentsRes.data ?? []).map(c => ({ ...c, profiles: profMap.get(c.user_id) ?? null }))
+    setComments(merged)
     setNewComment('')
   }
 
@@ -36,8 +41,13 @@ export default function MaintenancePage() {
     if (!newComment.trim()) return
     await supabase.from('maintenance_comments').insert({ task_id: selectedTask.id, user_id: user.id, body: newComment })
     setNewComment('')
-    const { data } = await supabase.from('maintenance_comments').select('*, profiles:user_id(display_name)').eq('task_id', selectedTask.id).order('created_at')
-    setComments(data || [])
+    const [commentsRes, profilesRes] = await Promise.all([
+      supabase.from('maintenance_comments').select('*').eq('task_id', selectedTask.id).order('created_at'),
+      supabase.from('profiles').select('id, display_name'),
+    ])
+    const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
+    const merged = (commentsRes.data ?? []).map(c => ({ ...c, profiles: profMap.get(c.user_id) ?? null }))
+    setComments(merged)
   }
 
   async function handleSubmit(e) {

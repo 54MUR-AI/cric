@@ -27,7 +27,6 @@ export function useBookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [debug, setDebug] = useState<string>('')
   const toast = useToast()
   const channelRef = useRef<any>(null)
 
@@ -58,7 +57,6 @@ export function useBookings() {
         setBookings(merged)
         db.bookings.bulkPut(merged)
         localStorage.setItem(CACHE_KEY, String(Date.now()))
-        setDebug(`B:${merged.length}`)
       }
     } catch (err: any) {
       const msg = err?.message || 'Unknown error'
@@ -68,7 +66,6 @@ export function useBookings() {
         return
       }
       setError(msg)
-      setDebug(`err:${msg}`)
     }
     setLoading(false)
   }
@@ -136,5 +133,5 @@ export function useBookings() {
     return full
   }
 
-  return { bookings, loading, error, debug, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
+  return { bookings, loading, error, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
 }

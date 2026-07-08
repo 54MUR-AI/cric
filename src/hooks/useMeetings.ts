@@ -34,7 +34,7 @@ export function useMeetings() {
   async function fetchMeetings() {
     const cached = await db.meetings.orderBy('date').reverse().toArray()
     if (cached.length) setMeetings(cached)
-    const { data } = await supabase.from('meetings').select('*, profiles:created_by(display_name)').order('date', { ascending: false })
+    const { data } = await supabase.from('meetings').select('*').order('date', { ascending: false })
     if (data) { setMeetings(data); db.meetings.bulkPut(data) }
     setLoading(false)
   }
@@ -65,7 +65,7 @@ export function useMeetings() {
 
   async function getMeetingWithItems(id: string): Promise<(Meeting & { agenda_items: AgendaItem[] }) | null> {
     const cachedItems = await db.meeting_agenda_items.where('meeting_id').equals(id).sortBy('sort_order')
-    const { data: meeting } = await supabase.from('meetings').select('*, profiles:created_by(display_name)').eq('id', id).single()
+    const { data: meeting } = await supabase.from('meetings').select('*').eq('id', id).single()
     if (!meeting) return null
     const { data: items } = await supabase.from('meeting_agenda_items').select('*').eq('meeting_id', id).order('sort_order')
     const agendaItems = items || cachedItems

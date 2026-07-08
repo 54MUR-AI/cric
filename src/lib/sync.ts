@@ -15,15 +15,15 @@ export async function refreshAll() {
   await Promise.allSettled([
     syncTable('cabins', supabase.from('cabins').select('*').order('sort_order').order('name')),
     syncTable('bookings', supabase.from('bookings').select('*').order('start_date')),
-    syncTable('maintenance_tasks', supabase.from('maintenance_tasks').select('*, maintenance_categories(name), assigned_to_profile:assigned_to(display_name), created_by_profile:created_by(display_name)').order('created_at', { ascending: false })),
+    syncTable('maintenance_tasks', supabase.from('maintenance_tasks').select('*').order('created_at', { ascending: false })),
     syncTable('maintenance_categories', supabase.from('maintenance_categories').select('*').order('sort_order').order('name')),
-    syncTable('meetings', supabase.from('meetings').select('*, profiles:created_by(display_name)').order('date', { ascending: false })),
-    syncTable('map_pins', supabase.from('map_pins').select('*, cabin:cabins(name)').order('label')),
+    syncTable('meetings', supabase.from('meetings').select('*').order('date', { ascending: false })),
+    syncTable('map_pins', supabase.from('map_pins').select('*').order('label')),
     syncTable('photos', supabase.from('photos').select('*').order('taken_at', { ascending: false }).order('created_at', { ascending: false })),
     syncTable('photo_albums', supabase.from('photo_albums').select('*').order('name')),
-    syncTable('officers', supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order')),
+    syncTable('officers', supabase.from('officers').select('*').order('sort_order')),
     syncTable('profiles', supabase.from('profiles').select('*').order('display_name')),
-    syncTable('boat_trips', supabase.from('boat_trips').select('*, profiles:created_by(display_name)').order('trip_date').order('departure_time')),
+    syncTable('boat_trips', supabase.from('boat_trips').select('*').order('trip_date').order('departure_time')),
   ])
 }
 

@@ -27,7 +27,14 @@ export function OfficersProvider({ children }: { children: ReactNode }) {
   const refreshOfficers = useCallback(() => setRefreshKey(k => k + 1), [])
 
   useEffect(() => {
-    supabase.from('officers').select('*, profile:profile_id(display_name)').order('sort_order').then(({ data }) => setOfficers((data as Officer[]) || []))
+    Promise.all([
+      supabase.from('officers').select('*').order('sort_order'),
+      supabase.from('profiles').select('id, display_name'),
+    ]).then(([offRes, profRes]) => {
+      const profMap = new Map((profRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
+      const merged = (offRes.data ?? []).map(o => ({ ...o, profile: profMap.get(o.profile_id) ?? null }))
+      setOfficers(merged as Officer[])
+    })
   }, [refreshKey])
 
   return (

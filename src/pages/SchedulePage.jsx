@@ -32,7 +32,7 @@ function fmtInput(d) {
 }
 
 export default function SchedulePage() {
-  const { bookings, loading: loadingB, error: errorB, debug: debugB, createBooking, updateBooking, deleteBooking, refetch } = useBookings()
+  const { bookings, loading: loadingB, error: errorB, createBooking, updateBooking, deleteBooking, refetch } = useBookings()
   const { cabins, loading: loadingC, error: errorC } = useCabins()
   const { user, isAdmin } = useAuth()
   const { copy } = useShare()
@@ -177,8 +177,13 @@ export default function SchedulePage() {
   }
 
   async function fetchTrips() {
-    const { data } = await supabase.from('boat_trips').select('*, profiles:created_by(display_name)').order('trip_date').order('departure_time')
-    setTrips(data || [])
+    const [tripsRes, profilesRes] = await Promise.all([
+      supabase.from('boat_trips').select('*').order('trip_date').order('departure_time'),
+      supabase.from('profiles').select('id, display_name'),
+    ])
+    const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
+    const merged = (tripsRes.data ?? []).map(t => ({ ...t, profiles: profMap.get(t.created_by) ?? null }))
+    setTrips(merged)
   }
 
   useEffect(() => { fetchTrips() }, [])
@@ -193,7 +198,6 @@ export default function SchedulePage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">Schedule</h1>
-        <span className="text-[10px] text-stone-400 dark:text-stone-600 font-mono">{debugB || `B:${bookings.length} Aug:${augBookings.length}`}</span>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-2">

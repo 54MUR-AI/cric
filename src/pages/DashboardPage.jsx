@@ -175,11 +175,31 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    supabase.from('maintenance_tasks').select('*, maintenance_categories(name)').in('status', ['todo', 'in_progress']).order('due_date').limit(5).then(({ data }) => setOpenTasks(data || []))
+    Promise.all([
+      supabase.from('maintenance_tasks').select('*').in('status', ['todo', 'in_progress']).order('due_date').limit(5),
+      supabase.from('maintenance_categories').select('id, name'),
+    ]).then(([tasksRes, catsRes]) => {
+      const catMap = new Map((catsRes.data ?? []).map(c => [c.id, c.name]))
+      const merged = (tasksRes.data ?? []).map(t => ({ ...t, maintenance_categories: t.category_id && catMap.has(t.category_id) ? { name: catMap.get(t.category_id) } : undefined }))
+      setOpenTasks(merged)
+    })
     supabase.from('meetings').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date').limit(1).then(({ data }) => setNextMeeting(data?.[0] || null))
     supabase.from('photos').select('id, url, thumbnail_url, caption').order('created_at', { ascending: false }).limit(8).then(({ data }) => setRecentPhotos(data || []))
     const today = new Date().toISOString().split('T')[0]
-    supabase.from('bookings').select('*, cabins(name, color, sort_order), profiles(display_name)').lte('start_date', today).gte('end_date', today).then(({ data }) => setActiveOccupants(data || []))
+    Promise.all([
+      supabase.from('bookings').select('*').lte('start_date', today).gte('end_date', today),
+      supabase.from('cabins').select('id, name, color, sort_order'),
+      supabase.from('profiles').select('id, display_name'),
+    ]).then(([bookingsRes, cabinsRes, profilesRes]) => {
+      const cabinMap = new Map((cabinsRes.data ?? []).map(c => [c.id, c]))
+      const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, p.display_name]))
+      const merged = (bookingsRes.data ?? []).map(b => ({
+        ...b,
+        cabins: cabinMap.get(b.cabin_id) ? { name: cabinMap.get(b.cabin_id).name, color: cabinMap.get(b.cabin_id).color, sort_order: cabinMap.get(b.cabin_id).sort_order } : undefined,
+        profiles: b.user_id && profMap.has(b.user_id) ? { display_name: profMap.get(b.user_id) } : undefined,
+      }))
+      setActiveOccupants(merged)
+    })
   }, [])
 
   return (

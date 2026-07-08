@@ -114,8 +114,13 @@ export default function BoatSchedulePage() {
   }, [])
 
   async function fetchTrips() {
-    const { data } = await supabase.from('boat_trips').select('*, profiles:created_by(display_name)').order('trip_date').order('departure_time')
-    setTrips(data || [])
+    const [tripsRes, profilesRes] = await Promise.all([
+      supabase.from('boat_trips').select('*').order('trip_date').order('departure_time'),
+      supabase.from('profiles').select('id, display_name'),
+    ])
+    const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
+    const merged = (tripsRes.data ?? []).map(t => ({ ...t, profiles: profMap.get(t.created_by) ?? null }))
+    setTrips(merged)
   }
 
   const upcoming = trips.filter(t => t.trip_date >= today)
