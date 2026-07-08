@@ -64,17 +64,24 @@ export function useBookings() {
           if (resp.ok) {
             const raw = await resp.json()
             rawCount = raw.length
+            if (data) {
+              const rawIds = new Set(raw.map(r => r.id))
+              const sdkIds = new Set(data.map(d => d.id))
+              const missing = raw.filter(r => !sdkIds.has(r.id))
+              setDebug(`sdk:${data.length} raw:${rawCount} miss:${missing.map(m => m.cabin_id).join(',')}`)
+            }
           }
         }
       } catch {}
+
+      if (data && rawCount === -1) {
+        setDebug(`sdk:${data.length} raw:err`)
+      }
 
       if (data) {
         setBookings(data)
         db.bookings.bulkPut(data)
         localStorage.setItem(CACHE_KEY, String(Date.now()))
-        setDebug(`sdk:${data.length} raw:${rawCount}`)
-      } else {
-        setDebug(`sdk:0 raw:${rawCount}`)
       }
     } catch (err: any) {
       const msg = err?.message || 'Unknown error'
