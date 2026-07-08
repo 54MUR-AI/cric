@@ -7,6 +7,7 @@ import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { resizeImage } from '../lib/resizeImage'
 import { vibrate } from '../lib/haptics'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
 import exifr from 'exifr'
 import LightboxDialog from '../components/ui/LightboxDialog'
 
@@ -23,6 +24,7 @@ function groupByDate(photos) {
 
 export default function PhotosPage() {
   const { photos, albums, loading, uploadPhoto, deletePhoto, refresh } = usePhotos()
+  const { user, isAdmin } = useAuth()
   const { confirm, ConfirmDialog } = useConfirm()
   const { copy, share } = useShare()
   const [groups, setGroups] = useState([])
@@ -82,10 +84,11 @@ export default function PhotosPage() {
   const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const clearSelection = () => setSelected(new Set())
   const deleteSelected = async () => {
-    if (!await confirm({ title: 'Delete Photos', message: `Delete ${selected.size} photo${selected.size > 1 ? 's' : ''}?` })) return
-    for (const id of selected) {
-      const photo = photos.find(p => p.id === id)
-      if (photo) await deletePhoto(photo)
+    const deletable = photos.filter(p => selected.has(p.id) && (isAdmin || p.uploaded_by === user?.id))
+    if (deletable.length === 0) return
+    if (!await confirm({ title: 'Delete Photos', message: `Delete ${deletable.length} photo${deletable.length > 1 ? 's' : ''}?` })) return
+    for (const photo of deletable) {
+      await deletePhoto(photo)
     }
     setSelected(new Set())
     vibrate([10, 20, 10])
@@ -172,8 +175,9 @@ export default function PhotosPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {group.photos.map((photo) => {
                 const isSelected = selected.has(photo.id)
+                const canDelete = isAdmin || photo.uploaded_by === user?.id
                 return (
-                  <div key={photo.id} className={`relative group aspect-square rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 cursor-pointer ${isSelected ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 ring-offset-1 dark:ring-offset-stone-900' : ''}`} onClick={() => { if (selected.size > 0) toggleSelect(photo.id); else setLightbox(photo) }}>
+                  <div key={photo.id} className={`relative group aspect-square rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800 cursor-pointer ${isSelected ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 ring-offset-1 dark:ring-offset-stone-900' : ''}`} onClick={() => { if (selected.size > 0 && canDelete) toggleSelect(photo.id); else setLightbox(photo) }}>
                     <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                     {photo.caption && (
@@ -181,14 +185,18 @@ export default function PhotosPage() {
                         <p className="text-white text-xs truncate">{photo.caption}</p>
                       </div>
                     )}
-                    <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(photo.id)} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-stone-300 dark:border-stone-600 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400" />
-                    </div>
+                    {canDelete && (
+                      <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(photo.id)} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-stone-300 dark:border-stone-600 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400" />
+                      </div>
+                    )}
                     <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={(e) => { e.stopPropagation(); share({ title: 'CRIC Photo', text: photo.caption || 'Camp memory', url: photo.url }) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-stone-600 dark:text-stone-400">
                         <Share2 className="h-3 w-3" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs text-stone-600 dark:text-stone-400">✕</button>
+                      {canDelete && (
+                        <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo) }} className="bg-white/80 hover:bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs text-stone-600 dark:text-stone-400">✕</button>
+                      )}
                     </div>
                   </div>
                 )
