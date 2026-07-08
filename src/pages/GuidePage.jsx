@@ -42,8 +42,8 @@ function Checklist({ id, items }) {
   )
 }
 
-function GuideSection({ section }) {
-  const [open, setOpen] = useState(false)
+function GuideSection({ section, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
 
   return (
     <div id={section.id} className={`rounded-lg border ${section.bg}`}>
@@ -56,6 +56,23 @@ function GuideSection({ section }) {
         <ChevronDown className={`h-4 w-4 text-stone-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && <div className="px-5 pb-5">{section.content}</div>}
+    </div>
+  )
+}
+
+function NestedSection({ title, icon: Icon, color, children }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900/50">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 w-full text-left p-4"
+      >
+        {Icon && <Icon className={`h-4 w-4 shrink-0 ${color}`} />}
+        <h3 className="font-medium text-stone-800 dark:text-stone-200 flex-1 text-sm">{title}</h3>
+        <ChevronDown className={`h-4 w-4 text-stone-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
     </div>
   )
 }
@@ -78,6 +95,7 @@ const sections = [
     title: 'Critical Rules',
     color: 'text-red-600 dark:text-red-400',
     bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30',
+    defaultOpen: true,
     content: (
       <div className="prose prose-sm max-w-none text-stone-700 dark:text-stone-300">
         <p className="font-bold text-red-700 dark:text-red-400">Generator Breakers and Solar Breakers must NEVER power the same loads at the same time.</p>
@@ -141,116 +159,148 @@ const sections = [
             'Turn both switches to 1&2 (up).',
           ]} />
         </div>
+        <NestedSection title="Closing Camp — Bat Manor" icon={DoorClosed} color="text-purple-600 dark:text-purple-400">
+          <div className="space-y-5 text-sm">
+            <div>
+              <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Front Porch</h4>
+              <Checklist id="bat-porch" items={[
+                'Put away living room rugs (beat outside first) in tin closet',
+                'Hammock – take down and put on toy chest',
+                'Bike – put at foot of stairs',
+                'Porch Furniture – place in living room (leave large table outside by door) – Leave out two rockers and small round table to enjoy last look at lake before leaving',
+              ]} />
+            </div>
+            <div>
+              <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Linen Closet / Beds / Rugs / Windows</h4>
+              <Checklist id="bat-linen" items={[
+                'Bedspreads/Mattress Pads – tin closet shelf in back',
+                'Dirty linens – take home or launder at Birch\'s and put back in tin closet on shelf to the right',
+                'Sleeping Bags – neatly rolled on floor of tin closet',
+                'Blankets – Fold and store in tin closet (on sides if room – otherwise on floor – leave rug area clear until last minute)',
+                'Place Fabric Softener sheets (3-4) on each mattress (not necessary on foam mattresses), then cover beds with sheets (stored in drawers of dressers in each room). Don\'t forget downstairs couch.',
+                'Last things in Tin Closet: bed pillows and sofa pillows',
+                'Close all windows',
+              ]} />
+            </div>
+            <div>
+              <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Closet off the Back Porch (COB) and Back Dock</h4>
+              <Checklist id="bat-cob" items={[
+                'Empty small kerosene can into larger blue can in the COB',
+                'Take home all canned goods stored in COB',
+                'Clean off back dock and store chairs in COB – leave Bobbie\'s chair on back dock',
+                'Lock COB',
+              ]} />
+            </div>
+            <div>
+              <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Kitchen and Bathrooms</h4>
+              <Checklist id="bat-kitchen" items={[
+                'Take home what you brought – don\'t leave any canned goods (even if they are not yours!)',
+                'Store all paper towels, toilet paper, tissues in upper left of Old Ice Box',
+                'Store spices in tin can',
+                'Collect and store all matches, candles and soap in tins',
+                'Empty batteries from flash lights and leave on table at foot of stairs',
+                'Burn Papers – collect and return all baskets',
+                'Take trash and recycling to Dump – check current schedule for hours',
+                'Scrub out and let dry kitchen trash barrels – then place new bags in each barrel (otherwise stuff gets thrown in without bags and we have to clean again)',
+                'Scrub out refrigerator, empty out ice dishes. Turn off refrigerator and prop doors open',
+                'Wash and put away all dishes, silver and pots and pans. Leave drain in sink and wipe off all counters',
+                'Dump out all water jugs',
+                'Turn off gas water heater',
+                'Close all windows',
+              ]} />
+            </div>
+          </div>
+        </NestedSection>
       </div>
     ),
   },
   {
-    id: 'solar-start',
+    id: 'electrical',
     icon: Zap,
-    title: 'Solar Power — Start',
+    title: 'Electrical Systems',
     color: 'text-amber-600 dark:text-amber-400',
     bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/30',
     content: (
-      <div className="text-sm text-stone-700 dark:text-stone-300 space-y-3">
-        <ol className="list-decimal list-inside space-y-1">
-          <li>Inspect battery box for critters; close box.<Img name="image5.jpg" alt="Battery box" className="mt-1" /></li>
-          <li>Confirm Charge Controller LEDs are lit.<Img name="image13.jpg" alt="Charge Controller" className="mt-1" /></li>
-          <li>Turn ALL Generator Load Panel breakers OFF (down).<Img name="image6.jpg" alt="Generator breakers" className="mt-1" /></li>
-          <li>Connect red monitor wire if disconnected.<Img name="image16.jpg" alt="Red monitor wire" className="mt-1" /></li>
-          <li>Rotate Charge Controller Battery Switch counter-clockwise two notches → Main Bank.<Img name="image1.jpg" alt="Charge controller switch" className="mt-1" /></li>
-          <li>Switch Inverter Battery Switch to Main Bank.</li>
-          <li>Close Inverter Breaker (lever horizontal).<Img name="image11.jpg" alt="Inverter breaker" className="mt-1" /></li>
-          <li>Turn inverter ON (power-save off); wait for "Inverter Power On Line" LED.<Img name="image2.jpg" alt="Inverter" className="mt-1" /></li>
-          <li>Turn on Water Pump breaker in Solar Load Panel → pump runs then shuts off.<Img name="image3.jpg" alt="Solar breakers" className="mt-1" /></li>
-          <li>Turn on desired cabin breakers in Solar Load Panel.</li>
-        </ol>
-      </div>
-    ),
-  },
-  {
-    id: 'solar-close',
-    icon: Zap,
-    title: 'Solar Power — Close',
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/30',
-    content: (
-      <div className="text-sm text-stone-700 dark:text-stone-300 space-y-3">
-        <ol className="list-decimal list-inside space-y-1">
-          <li>All Solar Load Panel breakers OFF (down).<Img name="image3.jpg" alt="Solar breakers OFF" className="mt-1" /></li>
-          <li>All Generator breakers OFF (down).<Img name="image6.jpg" alt="Generator breakers OFF" className="mt-1" /></li>
-          <li>Inverter OFF (middle position — all lights must be out).<Img name="image2.jpg" alt="Inverter OFF" className="mt-1" /></li>
-          <li>Open Inverter Breaker (yellow button → lever vertical).<Img name="image11.jpg" alt="Inverter breaker open" className="mt-1" /></li>
-          <li>Rotate Charge Controller switch clockwise two notches → Aux Bank.<Img name="image1.jpg" alt="Charge controller aux" className="mt-1" /></li>
-          <li>Inverter switch to Aux Bank.</li>
-          <li>Disconnect red monitor wire.<Img name="image16.jpg" alt="Red monitor wire disconnect" className="mt-1" /></li>
-          <li>If maintainer works: Connect to generator battery and close its breaker.</li>
-        </ol>
-      </div>
-    ),
-  },
-  {
-    id: 'battery-reset',
-    icon: Zap,
-    title: 'Battery Reset (Battleborn BMS)',
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/30',
-    content: (
-      <div className="text-sm text-stone-700 dark:text-stone-300 space-y-2">
-        <p>Call <strong>Battleborn</strong> first: <a href="tel:+17756223448" className="text-emerald-700 dark:text-emerald-400 hover:underline">775-622-3448</a> (Pacific).<Img name="image5.jpg" alt="Battery bank" className="mt-1" /></p>
-        <ol className="list-decimal list-inside space-y-1">
-          <li>Turn Inverter OFF.</li>
-          <li>Jumper Aux + to Main + and Aux – to Main –.</li>
-          <li>Turn both switches to 1&2 (up).</li>
-        </ol>
-        <p className="text-xs text-stone-500 dark:text-stone-400">In 2024 a single jumper from primary positive bus to aux positive post raised voltage from ~4.5V to 23.5V.</p>
-        <Img name="image8.jpg" alt="Battery status monitor" />
-      </div>
-    ),
-  },
-  {
-    id: 'solar-monitoring',
-    icon: Zap,
-    title: 'Solar Monitoring & Tips',
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/30',
-    content: (
-      <div className="text-sm text-stone-700 dark:text-stone-300 space-y-3">
-        <Img name="image17.jpg" alt="Solar panels and combiner box" className="mb-2" />
-        <ul className="list-disc list-inside space-y-1">
-          <li>Daily use: 30–50% of battery capacity. With clouds, runs out after ~2 days.</li>
-          <li>Full charge by 10–11am on sunny days.</li>
-          <li>Check charge at 10–11am; shut off water in unoccupied houses if low.</li>
-          <li>Keep pump house door closed (stays warmer).</li>
-          <li>Cannot use electrical appliances/tools that create heat (hairdryers, toasters, etc.).</li>
-          <li>Toilet left running one night drained batteries significantly.</li>
-          <li>Low-voltage cutoff suggested to prevent total drain.</li>
-        </ul>
-      </div>
-    ),
-  },
-  {
-    id: 'generator',
-    icon: Flame,
-    title: 'Generator (Propane)',
-    color: 'text-orange-600 dark:text-orange-400',
-    bg: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-900/30',
-    content: (
-      <div className="space-y-3 text-sm text-stone-700 dark:text-stone-300">
-        <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-1">Normal Use</h4>
-          <p>Run ~10 minutes at least once every two weeks.</p>
-          <ul className="list-disc list-inside space-y-1 mt-1">
-            <li>Propane on, regulator green. Open primary tank first.<Img name="image4.jpg" alt="Propane regulator" className="mt-1" /></li>
-            <li>Battery cables secure inside generator.<Img name="image9.jpg" alt="Generator battery" className="mt-1" /></li>
-            <li>Charger plugged under desk (SLI / 10A).<Img name="image7.jpg" alt="Battery charger" className="mt-1" /></li>
-            <li>Solar 'pump' breaker OFF → Generator 'pump' breaker ON.<Img name="image6.jpg" alt="Generator breakers" className="mt-1" /></li>
-            <li>Generator switch: MANUAL or AUTOMATIC.</li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-1">If Generator Won't Start</h4>
-          <p>Almost always battery. Tighten terminals. Charge via solar charger (Solar 'pump' ON) for 90+ minutes. Green 'Full' light may appear before ready — give it time.</p>
-        </div>
+      <div className="space-y-3">
+        <NestedSection title="Solar Power — Start" icon={Zap} color="text-amber-600 dark:text-amber-400">
+          <div className="text-sm text-stone-700 dark:text-stone-300 space-y-3">
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Inspect battery box for critters; close box.<Img name="image5.jpg" alt="Battery box" className="mt-1" /></li>
+              <li>Confirm Charge Controller LEDs are lit.<Img name="image13.jpg" alt="Charge Controller" className="mt-1" /></li>
+              <li>Turn ALL Generator Load Panel breakers OFF (down).<Img name="image6.jpg" alt="Generator breakers" className="mt-1" /></li>
+              <li>Connect red monitor wire if disconnected.<Img name="image16.jpg" alt="Red monitor wire" className="mt-1" /></li>
+              <li>Rotate Charge Controller Battery Switch counter-clockwise two notches → Main Bank.<Img name="image1.jpg" alt="Charge controller switch" className="mt-1" /></li>
+              <li>Switch Inverter Battery Switch to Main Bank.</li>
+              <li>Close Inverter Breaker (lever horizontal).<Img name="image11.jpg" alt="Inverter breaker" className="mt-1" /></li>
+              <li>Turn inverter ON (power-save off); wait for "Inverter Power On Line" LED.<Img name="image2.jpg" alt="Inverter" className="mt-1" /></li>
+              <li>Turn on Water Pump breaker in Solar Load Panel → pump runs then shuts off.<Img name="image3.jpg" alt="Solar breakers" className="mt-1" /></li>
+              <li>Turn on desired cabin breakers in Solar Load Panel.</li>
+            </ol>
+          </div>
+        </NestedSection>
+
+        <NestedSection title="Solar Power — Close" icon={Zap} color="text-amber-600 dark:text-amber-400">
+          <div className="text-sm text-stone-700 dark:text-stone-300 space-y-3">
+            <ol className="list-decimal list-inside space-y-1">
+              <li>All Solar Load Panel breakers OFF (down).<Img name="image3.jpg" alt="Solar breakers OFF" className="mt-1" /></li>
+              <li>All Generator breakers OFF (down).<Img name="image6.jpg" alt="Generator breakers OFF" className="mt-1" /></li>
+              <li>Inverter OFF (middle position — all lights must be out).<Img name="image2.jpg" alt="Inverter OFF" className="mt-1" /></li>
+              <li>Open Inverter Breaker (yellow button → lever vertical).<Img name="image11.jpg" alt="Inverter breaker open" className="mt-1" /></li>
+              <li>Rotate Charge Controller switch clockwise two notches → Aux Bank.<Img name="image1.jpg" alt="Charge controller aux" className="mt-1" /></li>
+              <li>Inverter switch to Aux Bank.</li>
+              <li>Disconnect red monitor wire.<Img name="image16.jpg" alt="Red monitor wire disconnect" className="mt-1" /></li>
+              <li>If maintainer works: Connect to generator battery and close its breaker.</li>
+            </ol>
+          </div>
+        </NestedSection>
+
+        <NestedSection title="Battery Reset (Battleborn BMS)" icon={Zap} color="text-amber-600 dark:text-amber-400">
+          <div className="text-sm text-stone-700 dark:text-stone-300 space-y-2">
+            <p>Call <strong>Battleborn</strong> first: <a href="tel:+17756223448" className="text-emerald-700 dark:text-emerald-400 hover:underline">775-622-3448</a> (Pacific).<Img name="image5.jpg" alt="Battery bank" className="mt-1" /></p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Turn Inverter OFF.</li>
+              <li>Jumper Aux + to Main + and Aux – to Main –.</li>
+              <li>Turn both switches to 1&2 (up).</li>
+            </ol>
+            <p className="text-xs text-stone-500 dark:text-stone-400">In 2024 a single jumper from primary positive bus to aux positive post raised voltage from ~4.5V to 23.5V.</p>
+            <Img name="image8.jpg" alt="Battery status monitor" />
+          </div>
+        </NestedSection>
+
+        <NestedSection title="Solar Monitoring & Tips" icon={Zap} color="text-amber-600 dark:text-amber-400">
+          <div className="text-sm text-stone-700 dark:text-stone-300 space-y-3">
+            <Img name="image17.jpg" alt="Solar panels and combiner box" className="mb-2" />
+            <ul className="list-disc list-inside space-y-1">
+              <li>Daily use: 30–50% of battery capacity. With clouds, runs out after ~2 days.</li>
+              <li>Full charge by 10–11am on sunny days.</li>
+              <li>Check charge at 10–11am; shut off water in unoccupied houses if low.</li>
+              <li>Keep pump house door closed (stays warmer).</li>
+              <li>Cannot use electrical appliances/tools that create heat (hairdryers, toasters, etc.).</li>
+              <li>Toilet left running one night drained batteries significantly.</li>
+              <li>Low-voltage cutoff suggested to prevent total drain.</li>
+            </ul>
+          </div>
+        </NestedSection>
+
+        <NestedSection title="Generator (Propane)" icon={Flame} color="text-orange-600 dark:text-orange-400">
+          <div className="space-y-3 text-sm text-stone-700 dark:text-stone-300">
+            <div>
+              <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-1">Normal Use</h4>
+              <p>Run ~10 minutes at least once every two weeks.</p>
+              <ul className="list-disc list-inside space-y-1 mt-1">
+                <li>Propane on, regulator green. Open primary tank first.<Img name="image4.jpg" alt="Propane regulator" className="mt-1" /></li>
+                <li>Battery cables secure inside generator.<Img name="image9.jpg" alt="Generator battery" className="mt-1" /></li>
+                <li>Charger plugged under desk (SLI / 10A).<Img name="image7.jpg" alt="Battery charger" className="mt-1" /></li>
+                <li>Solar 'pump' breaker OFF → Generator 'pump' breaker ON.<Img name="image6.jpg" alt="Generator breakers" className="mt-1" /></li>
+                <li>Generator switch: MANUAL or AUTOMATIC.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-1">If Generator Won't Start</h4>
+              <p>Almost always battery. Tighten terminals. Charge via solar charger (Solar 'pump' ON) for 90+ minutes. Green 'Full' light may appear before ready — give it time.</p>
+            </div>
+          </div>
+        </NestedSection>
       </div>
     ),
   },
@@ -298,70 +348,12 @@ const sections = [
     ),
   },
   {
-    id: 'closing-bat-manor',
-    icon: DoorClosed,
-    title: 'Closing Camp — Bat Manor',
-    color: 'text-purple-600 dark:text-purple-400',
-    bg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-900/30',
-    content: (
-      <div className="space-y-5 text-sm">
-        <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Front Porch</h4>
-          <Checklist id="bat-porch" items={[
-            'Put away living room rugs (beat outside first) in tin closet',
-            'Hammock – take down and put on toy chest',
-            'Bike – put at foot of stairs',
-            'Porch Furniture – place in living room (leave large table outside by door) – Leave out two rockers and small round table to enjoy last look at lake before leaving',
-          ]} />
-        </div>
-        <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Linen Closet / Beds / Rugs / Windows</h4>
-          <Checklist id="bat-linen" items={[
-            'Bedspreads/Mattress Pads – tin closet shelf in back',
-            'Dirty linens – take home or launder at Birch\'s and put back in tin closet on shelf to the right',
-            'Sleeping Bags – neatly rolled on floor of tin closet',
-            'Blankets – Fold and store in tin closet (on sides if room – otherwise on floor – leave rug area clear until last minute)',
-            'Place Fabric Softener sheets (3-4) on each mattress (not necessary on foam mattresses), then cover beds with sheets (stored in drawers of dressers in each room). Don\'t forget downstairs couch.',
-            'Last things in Tin Closet: bed pillows and sofa pillows',
-            'Close all windows',
-          ]} />
-        </div>
-        <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Closet off the Back Porch (COB) and Back Dock</h4>
-          <Checklist id="bat-cob" items={[
-            'Empty small kerosene can into larger blue can in the COB',
-            'Take home all canned goods stored in COB',
-            'Clean off back dock and store chairs in COB – leave Bobbie\'s chair on back dock',
-            'Lock COB',
-          ]} />
-        </div>
-        <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Kitchen and Bathrooms</h4>
-          <Checklist id="bat-kitchen" items={[
-            'Take home what you brought – don\'t leave any canned goods (even if they are not yours!)',
-            'Store all paper towels, toilet paper, tissues in upper left of Old Ice Box',
-            'Store spices in tin can',
-            'Collect and store all matches, candles and soap in tins',
-            'Empty batteries from flash lights and leave on table at foot of stairs',
-            'Burn Papers – collect and return all baskets',
-            'Take trash and recycling to Dump – check current schedule for hours',
-            'Scrub out and let dry kitchen trash barrels – then place new bags in each barrel (otherwise stuff gets thrown in without bags and we have to clean again)',
-            'Scrub out refrigerator, empty out ice dishes. Turn off refrigerator and prop doors open',
-            'Wash and put away all dishes, silver and pots and pans. Leave drain in sink and wipe off all counters',
-            'Dump out all water jugs',
-            'Turn off gas water heater',
-            'Close all windows',
-          ]} />
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'contacts',
     icon: Phone,
     title: 'Key Contacts',
     color: 'text-green-600 dark:text-green-400',
     bg: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30',
+    defaultOpen: true,
     content: (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         {[
@@ -403,7 +395,7 @@ export default function GuidePage() {
 
       <div className="space-y-3">
         {sections.map((s) => (
-          <GuideSection key={s.id} section={s} />
+          <GuideSection key={s.id} section={s} defaultOpen={s.defaultOpen} />
         ))}
       </div>
 
