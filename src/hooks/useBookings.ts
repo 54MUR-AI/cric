@@ -51,11 +51,12 @@ export function useBookings() {
         if (token) {
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
           const resp = await fetch(
-            `${supabaseUrl}/rest/v1/bookings?select=id,cabin_id,start_date,end_date,user_id,room,guests,notes,created_at&order=start_date&_cb=${Date.now()}`,
+            `${supabaseUrl}/rest/v1/bookings?select=id,cabin_id,start_date,end_date,user_id,room,guests,notes,created_at&order=start_date`,
             {
               headers: {
                 apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
                 Authorization: `Bearer ${token}`,
+                'Cache-Control': 'no-cache, no-store',
               },
               cache: 'no-store',
             },
