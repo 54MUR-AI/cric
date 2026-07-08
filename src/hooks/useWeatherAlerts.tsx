@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { useToast } from '../components/ui/Toast'
 import { useAuth } from './useAuth'
 import { sendPushToAll } from './usePushNotifications'
