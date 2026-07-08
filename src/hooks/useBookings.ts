@@ -38,50 +38,27 @@ export function useBookings() {
       const cached = await db.bookings.orderBy('start_date').toArray()
       if (cached.length) setBookings(cached)
 
-      const { data, error } = await supabase
+      const { data: bookingsData, error } = await supabase
         .from('bookings')
         .select('*')
         .order('start_date')
       if (error) throw error
 
-      let rawCount = -1
-      try {
-        const session = await supabase.auth.getSession()
-        const token = session?.data?.session?.access_token
-        if (token) {
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-          const resp = await fetch(
-            `${supabaseUrl}/rest/v1/bookings?select=id,cabin_id,start_date,end_date,user_id,room,guests,notes,created_at&order=start_date`,
-            {
-              headers: {
-                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${token}`,
-                'Cache-Control': 'no-cache, no-store',
-              },
-              cache: 'no-store',
-            },
-          )
-          if (resp.ok) {
-            const raw = await resp.json()
-            rawCount = raw.length
-            if (data) {
-              const rawIds = new Set(raw.map(r => r.id))
-              const sdkIds = new Set(data.map(d => d.id))
-              const missing = raw.filter(r => !sdkIds.has(r.id))
-              setDebug(`sdk:${data.length} raw:${rawCount} miss:${missing.map(m => m.cabin_id).join(',')}`)
-            }
-          }
-        }
-      } catch {}
+      const { data: cabinsData } = await supabase
+        .from('cabins')
+        .select('*')
 
-      if (data && rawCount === -1) {
-        setDebug(`sdk:${data.length} raw:err`)
-      }
+      const cabinMap = new Map((cabinsData ?? []).map(c => [c.id, c]))
 
-      if (data) {
-        setBookings(data)
-        db.bookings.bulkPut(data)
+      if (bookingsData) {
+        const merged = bookingsData.map(b => ({
+          ...b,
+          cabins: cabinMap.get(b.cabin_id) ? { name: cabinMap.get(b.cabin_id).name, color: cabinMap.get(b.cabin_id).color } : undefined,
+        }))
+        setBookings(merged)
+        db.bookings.bulkPut(merged)
         localStorage.setItem(CACHE_KEY, String(Date.now()))
+        setDebug(`B:${merged.length}`)
       }
     } catch (err: any) {
       const msg = err?.message || 'Unknown error'
@@ -127,7 +104,11 @@ export function useBookings() {
         .select('*')
         .eq('id', data.id)
         .single()
-      if (full) { setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking created') }
+      if (full) {
+        const { data: cabin } = await supabase.from('cabins').select('name, color').eq('id', full.cabin_id).single()
+        if (cabin) full.cabins = cabin
+        setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking created')
+      }
     }
     return data
   }
@@ -147,7 +128,11 @@ export function useBookings() {
       .select('*')
       .eq('id', id)
       .single()
-    if (full) { setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full); toast.success('Booking updated') }
+    if (full) {
+      const { data: cabin } = await supabase.from('cabins').select('name, color').eq('id', full.cabin_id).single()
+      if (cabin) full.cabins = cabin
+      setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full); toast.success('Booking updated')
+    }
     return full
   }
 
