@@ -1,47 +1,34 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { RADAR_API, RADAR_TILES } from '../../lib/map/constants'
+
+const NEXRAD_URL = 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png'
 
 export default function RadarLayer() {
   const map = useMap()
-  const [timestamps, setTimestamps] = useState([])
-  const [currentIdx, setCurrentIdx] = useState(0)
   const layerRef = useRef(null)
   const timerRef = useRef(null)
 
-  useEffect(() => {
-    fetch(RADAR_API).then(r => r.json()).then(d => {
-      const past = d.radar.past?.map(f => f.time) || []
-      setTimestamps(past)
-      setCurrentIdx(past.length - 1)
-    }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    if (timestamps.length === 0) return
-    const ts = timestamps[currentIdx]
+  function refresh() {
     if (layerRef.current) {
-      layerRef.current.setUrl(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`)
-    } else {
-      const layer = L.tileLayer(`${RADAR_TILES}/${ts}/256/{z}/{x}/{y}/2/1_1.png`, {
-        opacity: 0.5, attribution: 'RainViewer', minZoom: 6, maxNativeZoom: 12, maxZoom: 21, transparent: true,
-      })
-      layer.on('tileerror', () => {
-        if (!layerRef.current) return
-        clearInterval(timerRef.current)
-        layerRef.current.removeFrom(map)
-        layerRef.current = null
-      })
-      layer.addTo(map)
-      layerRef.current = layer
+      layerRef.current.setUrl(`${NEXRAD_URL}?_t=${Date.now()}`)
     }
-  }, [currentIdx, timestamps, map])
+  }
 
   useEffect(() => {
-    timerRef.current = setInterval(() => setCurrentIdx(prev => Math.max(0, prev - 1)), 1500)
-    return () => clearInterval(timerRef.current)
-  }, [timestamps])
+    const layer = L.tileLayer(`${NEXRAD_URL}?_t=${Date.now()}`, {
+      opacity: 0.5, attribution: 'Iowa State Mesonet / NOAA NEXRAD', transparent: true,
+    })
+    layer.addTo(map)
+    layerRef.current = layer
+
+    timerRef.current = setInterval(refresh, 300000)
+    return () => {
+      clearInterval(timerRef.current)
+      layer.removeFrom(map)
+      layerRef.current = null
+    }
+  }, [map])
 
   return null
 }

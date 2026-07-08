@@ -1,7 +1,5 @@
 export const CRANBERRY_LAKE: [number, number] = [44.2228, -74.8344]
 export const CHAIR_ROCK_ISLAND: [number, number] = [44.14722, -74.81194]
-export const RADAR_API = 'https://api.rainviewer.com/public/weather-maps.json'
-export const RADAR_TILES = 'https://tilecache.rainviewer.com/v2/radar'
 export const ESRI_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 export const ESRI_TOPO = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
 export const ESRI_ATTR = '&copy; <a href="https://www.esri.com/">Esri</a>'
