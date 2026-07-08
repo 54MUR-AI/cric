@@ -280,6 +280,20 @@ const sections = [
         <p><strong>15hp:</strong> Must be in <strong>neutral</strong> before starting (starting in gear can strip the rewind). Short pull only — if you pull the handle all the way out it will get stuck and need finagling to rewind.</p>
         <p><strong>Boating safety:</strong> Proof of passing a boating safety class required for operators.</p>
         <p><strong>Propane fee:</strong> $6/night per adult (first 7 days), $3/night per adult (additional nights). No charge for young kids.</p>
+        <div>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Closing Checklist</h4>
+          <Checklist id="boats-closing" items={[
+            '15 HP – clean out! Tie up in Boathouse',
+            'Guide Boat – Tie up in Boathouse',
+            'Make sure they are tied and bumpers out so they cannot bump – there may be hurricanes when wind comes in all directions',
+            'Close outside Boathouse doors and fasten from inside',
+            'Lock land-side padlock',
+            'Blue Canoe – pull upon shore beside other boats and turn over',
+            'Put away paddles, boat cushions and life vests in downstairs bedroom closet',
+            'Birch-bark and Rec Canoes – put across beds in downstairs bedroom',
+            'Yellow Kayak – put in living room (remember Porch Furniture has to come inside too)',
+          ]} />
+        </div>
       </div>
     ),
   },
@@ -292,26 +306,12 @@ const sections = [
     content: (
       <div className="space-y-5 text-sm">
         <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Boats in Boathouse</h4>
-          <Checklist id="bat-boathouse" items={[
-            '15 HP – clean out! Tie up in Boathouse',
-            'Guide Boat – Tie up in Boathouse',
-            'Make sure they are tied and bumpers out so they cannot bump – there may be hurricanes when wind comes in all directions',
-            'Close outside Boathouse doors and fasten from inside',
-            'Lock land-side padlock',
-          ]} />
-        </div>
-        <div>
-          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Other Boats and Front Porch</h4>
+          <h4 className="font-medium text-stone-800 dark:text-stone-200 mb-2">Front Porch</h4>
           <Checklist id="bat-porch" items={[
-            'Blue Canoe – pull upon shore beside other boats and turn over',
             'Put away living room rugs (beat outside first) in tin closet',
-            'Put away paddles, boat cushions and life vests in downstairs bedroom closet',
             'Hammock – take down and put on toy chest',
             'Bike – put at foot of stairs',
             'Porch Furniture – place in living room (leave large table outside by door) – Leave out two rockers and small round table to enjoy last look at lake before leaving',
-            'Birch-bark and Rec Canoes – put across beds in downstairs bedroom',
-            'Yellow Kayak – put in living room (remember Porch Furniture has to come inside too)',
           ]} />
         </div>
         <div>
