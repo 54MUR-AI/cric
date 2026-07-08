@@ -25,9 +25,16 @@ interface Album {
   created_at?: string
 }
 
+interface ExifData {
+  takenAt?: string | null
+  latitude?: number | null
+  longitude?: number | null
+}
+
 interface UploadOptions {
   caption?: string
   album_id?: string
+  exif?: ExifData
 }
 
 const PHOTO_SERVER_URL = import.meta.env.VITE_PHOTO_SERVER_URL
@@ -84,15 +91,21 @@ export function usePhotos() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  const uploadPhoto = useCallback(async (file: File, { caption, album_id }: UploadOptions = {}): Promise<Photo> => {
+  const uploadPhoto = useCallback(async (file: File, { caption, album_id, exif: exifData }: UploadOptions = {}): Promise<Photo> => {
     let takenAt: string | null = null; let latitude: number | null = null; let longitude: number | null = null
-    try {
-      const exif = await exifr.parse(file, ['DateTimeOriginal', 'latitude', 'longitude'])
-      if (exif?.DateTimeOriginal) takenAt = exif.DateTimeOriginal.toISOString()
-      if (Number.isFinite(exif?.latitude) && Number.isFinite(exif?.longitude)) {
-        latitude = exif.latitude; longitude = exif.longitude
-      }
-    } catch {}
+    if (exifData) {
+      takenAt = exifData.takenAt ?? null
+      latitude = exifData.latitude ?? null
+      longitude = exifData.longitude ?? null
+    } else {
+      try {
+        const exif = await exifr.parse(file, ['DateTimeOriginal', 'latitude', 'longitude'])
+        if (exif?.DateTimeOriginal) takenAt = exif.DateTimeOriginal.toISOString()
+        if (Number.isFinite(exif?.latitude) && Number.isFinite(exif?.longitude)) {
+          latitude = exif.latitude; longitude = exif.longitude
+        }
+      } catch {}
+    }
 
     const ext = file.name.split('.').pop()
     const fileName = `${crypto.randomUUID()}.${ext}`

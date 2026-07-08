@@ -7,6 +7,7 @@ import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { resizeImage } from '../lib/resizeImage'
 import { vibrate } from '../lib/haptics'
 import { supabase } from '../lib/supabase'
+import exifr from 'exifr'
 import LightboxDialog from '../components/ui/LightboxDialog'
 
 function groupByDate(photos) {
@@ -55,9 +56,19 @@ export default function PhotosPage() {
     setUploadProgress(10)
     const prog = setInterval(() => setUploadProgress(p => Math.min(p + 15, 85)), 400)
     try {
+      let exif
+      try {
+        const parsed = await exifr.parse(uploadFile, ['DateTimeOriginal', 'latitude', 'longitude'])
+        exif = {
+          takenAt: parsed?.DateTimeOriginal?.toISOString() ?? null,
+          latitude: parsed?.latitude ?? null,
+          longitude: parsed?.longitude ?? null,
+        }
+      } catch {}
+      setUploadProgress(20)
       const optimized = await resizeImage(uploadFile)
       setUploadProgress(30)
-      await uploadPhoto(optimized, { caption: uploadCaption || undefined, album_id: uploadAlbumId || undefined })
+      await uploadPhoto(optimized, { caption: uploadCaption || undefined, album_id: uploadAlbumId || undefined, exif })
       clearInterval(prog)
       setUploadProgress(100)
       vibrate([10, 20, 10])
