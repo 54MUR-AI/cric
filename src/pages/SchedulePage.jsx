@@ -32,8 +32,8 @@ function fmtInput(d) {
 }
 
 export default function SchedulePage() {
-  const { bookings, loading: loadingB, createBooking, updateBooking, deleteBooking, refetch } = useBookings()
-  const { cabins, loading: loadingC } = useCabins()
+  const { bookings, loading: loadingB, error: errorB, createBooking, updateBooking, deleteBooking, refetch } = useBookings()
+  const { cabins, loading: loadingC, error: errorC } = useCabins()
   const { user, isAdmin } = useAuth()
   const { copy } = useShare()
   const [showForm, setShowForm] = useState(false)
@@ -185,6 +185,8 @@ export default function SchedulePage() {
 
   if (loadingB || loadingC) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
 
+  const syncError = errorB || errorC
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -199,6 +201,13 @@ export default function SchedulePage() {
           </div>
         ))}
       </div>
+
+      {syncError && (
+        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          Sync error: {syncError}
+          <button onClick={refetch} className="ml-2 underline hover:no-underline">Retry</button>
+        </div>
+      )}
 
       <button
         onClick={() => {

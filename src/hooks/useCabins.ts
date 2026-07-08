@@ -20,11 +20,13 @@ const CACHE_TTL = 300_000
 export function useCabins() {
   const [cabins, setCabins] = useState<Cabin[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const toast = useToast()
   const channelRef = useRef<any>(null)
 
   async function fetchCabins() {
     try {
+      setError(null)
       const cached = await db.cabins.orderBy('sort_order').toArray()
       if (cached.length) setCabins(cached)
 
@@ -35,8 +37,10 @@ export function useCabins() {
         db.cabins.bulkPut(data)
         localStorage.setItem(CACHE_KEY, String(Date.now()))
       }
-    } catch (err) {
-      console.error('Failed to fetch cabins:', err)
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error'
+      console.error('Failed to fetch cabins:', msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -86,5 +90,5 @@ export function useCabins() {
     catch { setCabins(current); toast.error('Failed to delete cabin') }
   }
 
-  return { cabins, loading, createCabin, updateCabin, deleteCabin, refetch: fetchCabins }
+  return { cabins, loading, error, createCabin, updateCabin, deleteCabin, refetch: fetchCabins }
 }

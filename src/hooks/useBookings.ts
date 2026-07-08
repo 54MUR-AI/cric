@@ -26,11 +26,13 @@ const CACHE_TTL = 60_000
 export function useBookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const toast = useToast()
   const channelRef = useRef<any>(null)
 
   async function fetchBookings() {
     try {
+      setError(null)
       const cached = await db.bookings.orderBy('start_date').toArray()
       if (cached.length) setBookings(cached)
 
@@ -44,8 +46,10 @@ export function useBookings() {
         db.bookings.bulkPut(data)
         localStorage.setItem(CACHE_KEY, String(Date.now()))
       }
-    } catch (err) {
-      console.error('Failed to fetch bookings:', err)
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error'
+      console.error('Failed to fetch bookings:', msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -106,5 +110,5 @@ export function useBookings() {
     return full
   }
 
-  return { bookings, loading, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
+  return { bookings, loading, error, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
 }
