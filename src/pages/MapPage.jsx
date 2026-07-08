@@ -149,6 +149,12 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     }
   }, [toast, onLightningStrike])
 
+  const handleAllClear = useCallback(() => {
+    const msg = 'No lightning detected in the last 30 minutes — all clear.'
+    toast.success(msg, 8000)
+    sendSystemNotification('Lightning All Clear', msg)
+  }, [toast])
+
   const handleStrikeNearbyRef = useRef(handleStrikeNearby)
   handleStrikeNearbyRef.current = handleStrikeNearby
 
@@ -386,7 +392,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
           {showRadar && <RadarLayer />}
-          {showLightning && <LightningLayer center={cabinCenter} onStrikeNearby={handleStrikeNearby} />}
+          {showLightning && <LightningLayer center={cabinCenter} onStrikeNearby={handleStrikeNearby} onAllClear={handleAllClear} />}
           {measuring && <MeasureLayer points={measurePoints} onAddPoint={(latlng) => setMeasurePoints(prev => [...prev, latlng])} />}
           {showForecast && <ForecastPopup latlng={forecastLatLng} data={forecastData} loading={forecastLoading} onClose={() => { setForecastLatLng(null); setForecastData(null) }} />}
           {showPhotos && <PhotosLayer photos={photos} />}

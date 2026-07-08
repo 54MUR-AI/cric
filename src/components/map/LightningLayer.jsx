@@ -52,13 +52,17 @@ function buildIcon() {
   return c
 }
 
-export default function LightningLayer({ center, onStrikeNearby }) {
+const ALL_CLEAR_MS = 30 * 60 * 1000
+
+export default function LightningLayer({ center, onStrikeNearby, onAllClear }) {
   const map = useMap()
   const markersRef = useRef(new Map())
   const strikeTimesRef = useRef(new Map())
   const knownIdsRef = useRef(new Set())
   const alertThrottleRef = useRef(0)
   const cancelledRef = useRef(false)
+  const lastNearbyStrikeRef = useRef(0)
+  const allClearTimerRef = useRef(null)
 
   const centerLat = center?.[0] ?? 44.14722
   const centerLon = center?.[1] ?? -74.81194
@@ -116,10 +120,22 @@ export default function LightningLayer({ center, onStrikeNearby }) {
             img.onload = () => { if (parent) parent.replaceChild(img, canvas) }
           }
 
-          // proximity alert
-          if (onStrikeNearby) {
-            const dist = haversineKm(centerLat, centerLon, lat, lon)
-            if (dist <= PROXIMITY_KM) {
+          // proximity alert + all-clear timer
+          const dist = haversineKm(centerLat, centerLon, lat, lon)
+          if (dist <= PROXIMITY_KM) {
+            lastNearbyStrikeRef.current = Date.now()
+
+            if (allClearTimerRef.current) {
+              clearTimeout(allClearTimerRef.current)
+            }
+            allClearTimerRef.current = setTimeout(() => {
+              if (Date.now() - lastNearbyStrikeRef.current >= ALL_CLEAR_MS) {
+                onAllClear?.()
+              }
+              allClearTimerRef.current = null
+            }, ALL_CLEAR_MS)
+
+            if (onStrikeNearby) {
               const now2 = Date.now()
               if (now2 - alertThrottleRef.current > 300000) {
                 alertThrottleRef.current = now2
@@ -148,6 +164,10 @@ export default function LightningLayer({ center, onStrikeNearby }) {
     return () => {
       cancelledRef.current = true
       clearInterval(interval)
+      if (allClearTimerRef.current) {
+        clearTimeout(allClearTimerRef.current)
+        allClearTimerRef.current = null
+      }
       for (const [id, marker] of markersRef.current) {
         map.removeLayer(marker)
       }
@@ -155,7 +175,7 @@ export default function LightningLayer({ center, onStrikeNearby }) {
       strikeTimesRef.current.clear()
       knownIdsRef.current.clear()
     }
-  }, [map, onStrikeNearby, centerLat, centerLon])
+  }, [map, onStrikeNearby, onAllClear, centerLat, centerLon])
 
   // blink animation loop (opacity toggle for recent strikes)
   useEffect(() => {
