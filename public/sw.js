@@ -1,4 +1,8 @@
-const CACHE = 'cric-v1'
+const CACHE = 'cric-v2'
+const STATIC_EXT = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.woff', '.woff2', '.ttf', '.ico', '.json']
+
+// Inject manifest placeholder
+const ignored = self.__WB_MANIFEST
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -7,7 +11,11 @@ self.addEventListener('install', (event) => {
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  )
 })
 
 self.addEventListener('message', (event) => {
@@ -16,19 +24,36 @@ self.addEventListener('message', (event) => {
   }
 })
 
-// Inject manifest placeholder
-const ignored = self.__WB_MANIFEST
-
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url)
+
+  // Never cache cross-origin requests (e.g. Supabase API / photo server)
+  if (url.origin !== self.location.origin) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }))
+    return
+  }
+
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' }).catch(() => caches.match('/index.html'))
     )
     return
   }
-  event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request, { cache: 'no-store' }))
-  )
+
+  if (event.request.method === 'GET' && STATIC_EXT.some(ext => url.pathname.endsWith(ext))) {
+    event.respondWith(
+      caches.match(event.request).then(cached =>
+        cached || fetch(event.request).then(res => {
+          const clone = res.clone()
+          caches.open(CACHE).then(cache => cache.put(event.request, clone))
+          return res
+        })
+      )
+    )
+    return
+  }
+
+  event.respondWith(fetch(event.request, { cache: 'no-store' }))
 })
 
 self.addEventListener('push', (event) => {
