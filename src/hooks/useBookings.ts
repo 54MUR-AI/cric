@@ -144,5 +144,5 @@ export function useBookings() {
     return full
   }
 
-  return { bookings, loading, error, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
+  return { bookings, loading, error, debug, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
 }
