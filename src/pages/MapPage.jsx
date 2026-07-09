@@ -231,8 +231,8 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     const { error: upErr } = await supabase.storage.from('photos').upload(path, file)
     if (upErr) { toast?.error('Upload failed'); return }
     const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
-    const { error: updErr } = await supabase.from('map_pins').update({ image_url: publicUrl }).eq('id', pin.id)
-    if (updErr) { toast?.error('Failed to save photo'); return }
+    const { data: updated, error: updErr } = await supabase.from('map_pins').update({ image_url: publicUrl }).eq('id', pin.id).select('id')
+    if (updErr || !updated?.length) { toast?.error('Failed to save photo'); return }
     toast?.success('Photo added')
     refreshPins()
   }
