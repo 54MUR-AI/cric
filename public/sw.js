@@ -29,9 +29,13 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
-  // Never cache cross-origin requests (e.g. Supabase API / photo server)
+  // Cross-origin (Supabase API / storage, Pi photo server): only bypass the HTTP
+  // cache for GET reads. Never intercept uploads/mutations — re-issuing a request
+  // with a body breaks the stream and fails the upload. Let those go natively.
   if (url.origin !== self.location.origin) {
-    event.respondWith(fetch(event.request, { cache: 'no-store' }))
+    if (event.request.method === 'GET') {
+      event.respondWith(fetch(event.request, { cache: 'no-store' }).catch(() => Response.error()))
+    }
     return
   }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Radio, Zap, Thermometer, Navigation, MapPin, ChevronLeft, Search, Maximize, Minimize, Crosshair, Ruler, Wifi, Droplets, Flame, CloudSun, Image, Loader } from 'lucide-react'
@@ -23,6 +23,7 @@ import MapClickHandler from '../components/map/MapClickHandler'
 import UserLocationMarker from '../components/map/UserLocationMarker'
 import LocateButton from '../components/map/LocateButton'
 import WindArrow from '../components/map/WindArrow'
+import CellCoverageLayer, { CARRIERS } from '../components/map/CellCoverageLayer'
 import PinPopupContent from '../components/map/PinPopupContent'
 import { CHAIR_ROCK_ISLAND, CRANBERRY_LAKE, PIN_COLORS, PIN_TYPE_LABELS, ESRI_SAT, ESRI_TOPO, ESRI_ATTR } from '../lib/map/constants'
 import { bearing, pinIcon } from '../lib/map/utils'
@@ -52,7 +53,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   const [showForecast, setShowForecast] = useState(false)
   const [showBathymetry, setShowBathymetry] = useState(true)
   const [showFireDanger, setShowFireDanger] = useState(true)
-  const [showCellCoverage, setShowCellCoverage] = useState(false)
+  const [cellCarriers, setCellCarriers] = useState({ att: false, verizon: false, tmobile: false, uscellular: false })
   const [fireDanger, setFireDanger] = useState(null)
   const [notifyPerm, setNotifyPerm] = useState(Notification.permission)
   const [baseLayer, setBaseLayer] = useState('satellite')
@@ -166,6 +167,9 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
 
   const cabinMap = useMemo(() => Object.fromEntries(cabins.map(c => [c.id, c])), [cabins])
 
+  const enabledCarriers = useMemo(() => Object.keys(cellCarriers).filter(k => cellCarriers[k]), [cellCarriers])
+  const toggleCarrier = (key) => setCellCarriers(prev => ({ ...prev, [key]: !prev[key] }))
+
   const filteredPins = useMemo(() => {
     let list = pins
     if (searchQuery.trim()) { const q = searchQuery.toLowerCase(); list = list.filter(p => p.label.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)) }
@@ -225,10 +229,11 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     if (!file) return
     const ext = file.name.split('.').pop(); const fileName = `pin_${pin.id}_${Date.now()}.${ext}`; const path = `pin_photos/${fileName}`
     const { error: upErr } = await supabase.storage.from('photos').upload(path, file)
-    if (upErr && toast) { toast.error('Upload failed'); return }
-    if (upErr) return
+    if (upErr) { toast?.error('Upload failed'); return }
     const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
-    await supabase.from('map_pins').update({ image_url: publicUrl }).eq('id', pin.id)
+    const { error: updErr } = await supabase.from('map_pins').update({ image_url: publicUrl }).eq('id', pin.id)
+    if (updErr) { toast?.error('Failed to save photo'); return }
+    toast?.success('Photo added')
     refreshPins()
   }
 
@@ -255,7 +260,6 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
       label: 'Map Features', items: [
         { key: 'showTrails', label: 'Trails', icon: Navigation, activeColor: 'text-emerald-500' },
         { key: 'showBathymetry', label: 'Bathymetry', icon: Droplets, activeColor: 'text-cyan-500' },
-        { key: 'showCellCoverage', label: 'Cell Coverage', icon: Wifi, activeColor: 'text-violet-500' },
       ]
     },
     {
@@ -265,8 +269,8 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
       ]
     },
   ]
-  const valMap = { showRadar, showStations, showTrails, showPins, showLightning, showForecast, showPhotos, showBathymetry, showFireDanger, showCellCoverage }
-  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning, showForecast: setShowForecast, showPhotos: setShowPhotos, showBathymetry: setShowBathymetry, showFireDanger: setShowFireDanger, showCellCoverage: setShowCellCoverage }
+  const valMap = { showRadar, showStations, showTrails, showPins, showLightning, showForecast, showPhotos, showBathymetry, showFireDanger }
+  const setterMap = { showRadar: setShowRadar, showStations: setShowStations, showTrails: setShowTrails, showPins: setShowPins, showLightning: setShowLightning, showForecast: setShowForecast, showPhotos: setShowPhotos, showBathymetry: setShowBathymetry, showFireDanger: setShowFireDanger }
 
   const mapHeight = compact ? 'min-h-[250px] h-[250px] md:min-h-[400px] md:h-[400px]' : 'min-h-[450px]'
   const mapStyle = compact ? {} : { height: 'calc(100vh - 280px)' }
@@ -307,6 +311,22 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
           </div>
         </div>
       ))}
+      <div>
+        <div className="flex items-center gap-1.5 mb-1">
+          <Wifi className={`h-3 w-3 ${enabledCarriers.length ? 'text-violet-500' : 'text-stone-400'}`} />
+          <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">Cell Coverage</h5>
+        </div>
+        <div className="space-y-1">
+          {Object.entries(CARRIERS).map(([key, { label, color }]) => (
+            <label key={key} className="flex items-center gap-2 cursor-pointer py-1 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+              <input type="checkbox" aria-label={`Toggle ${label} coverage`} checked={cellCarriers[key]} onChange={() => toggleCarrier(key)} className="accent-stone-800 dark:accent-stone-200" />
+              <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+              {label}
+            </label>
+          ))}
+          <p className="text-[10px] text-stone-400 dark:text-stone-500 pt-0.5">FCC 4G LTE data coverage (May 2021)</p>
+        </div>
+      </div>
       <div>
         <h5 className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-1">Tools</h5>
         <div className="space-y-1">
@@ -362,6 +382,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
         <div>Marine Warnings: NWS</div>
         <div>Bathymetry: OpenTopoMap</div>
         <div>Fire Danger: NWS</div>
+        <div>Cell Coverage: FCC LTE</div>
         <div className="mt-1" role="status" aria-live="polite">
           {stationsLoading ? <span className="inline-block h-3 w-16 bg-stone-200 dark:bg-stone-700 rounded animate-pulse align-middle" /> : `${stations.length} stations`}
           <span className="mx-1">&middot;</span>
@@ -403,9 +424,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
               <Popup maxWidth={260} autoPanPadding={[50, 50]}><div className="text-xs space-y-1"><div className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" style={{ color: fireDanger.color }} /><strong className="text-stone-800 dark:text-stone-200">{fireDanger.rating}</strong></div><div className="text-stone-500 dark:text-stone-400">{fireDanger.description}</div></div></Popup>
             </Marker>
           )}
-          {showCellCoverage && pins.filter(p => p.type === 'cell').map(pin => (
-            <Circle key={`cell-${pin.id}`} center={[pin.latitude, pin.longitude]} radius={500} pathOptions={{ color: '#8b5cf6', weight: 1, fillColor: '#8b5cf6', fillOpacity: 0.08, dashArray: '4' }} />
-          ))}
+          {enabledCarriers.length > 0 && <CellCoverageLayer carriers={enabledCarriers} />}
 
           {showStations && stations.map((s) => (
             <WindArrow key={s.stationIdentifier} name={s.name} lat={s.latitude} lon={s.longitude} speed={s.observation?.windSpeed?.value} direction={s.observation?.windDirection?.value} temp={s.observation?.temperature?.value} />
