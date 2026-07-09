@@ -400,7 +400,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
           {showBathymetry && <><BathymetryLayer /><TileLayer attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>' url="https://tile.opentopomap.org/{z}/{x}/{y}.png" opacity={0.45} /></>}
           {showFireDanger && fireDanger && (
             <Marker position={[44.14722, -74.81194]} icon={L.divIcon({ className: '', html: '', iconSize: [0, 0] })}>
-              <Popup><div className="text-xs space-y-1"><div className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" style={{ color: fireDanger.color }} /><strong className="text-stone-800 dark:text-stone-200">{fireDanger.rating}</strong></div><div className="text-stone-500 dark:text-stone-400">{fireDanger.description}</div></div></Popup>
+              <Popup maxWidth={260} autoPanPadding={[50, 50]}><div className="text-xs space-y-1"><div className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" style={{ color: fireDanger.color }} /><strong className="text-stone-800 dark:text-stone-200">{fireDanger.rating}</strong></div><div className="text-stone-500 dark:text-stone-400">{fireDanger.description}</div></div></Popup>
             </Marker>
           )}
           {showCellCoverage && pins.filter(p => p.type === 'cell').map(pin => (
@@ -413,7 +413,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
 
           {showPins && filteredPins.map((pin) => (
             <Marker key={pin.id} position={[pin.latitude, pin.longitude]} icon={pinIcon(pin.type, pin.label, pin.cabin_id ? cabinMap[pin.cabin_id]?.color : null)}>
-              <Popup>
+              <Popup maxWidth={260} autoPanPadding={[50, 50]}>
                 <PinPopupContent pin={pin} cabin={pin.cabin_id ? cabinMap[pin.cabin_id] : null} nextBooking={getNextBooking(pin.cabin_id)} admin={isAdmin} onEdit={handleEditPin} onDelete={deletePin} onPhotoUpload={handlePhotoUpload} />
               </Popup>
             </Marker>
@@ -422,7 +422,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
           {newPinLatLng && <Marker position={[newPinLatLng.lat, newPinLatLng.lng]} icon={L.divIcon({ className: '', html: '<div style="background:#e11d48;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">+</div>', iconSize: [20, 20], iconAnchor: [10, 10] })} />}
 
           <Marker position={CRANBERRY_LAKE} icon={L.divIcon({ className: '', html: '<div style="background:#059669;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">CL</div>', iconSize: [24, 24], iconAnchor: [12, 12] })}>
-            <Popup><strong>Cranberry Lake</strong><br/>St. Lawrence County, NY</Popup>
+            <Popup maxWidth={260} autoPanPadding={[50, 50]}><strong>Cranberry Lake</strong><br/>St. Lawrence County, NY</Popup>
           </Marker>
           {trackingEnabled && <UserLocationMarker position={userLocation} accuracy={locationAccuracy} />}
           {trackingEnabled && <LocateButton position={userLocation} />}
