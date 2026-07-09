@@ -49,9 +49,9 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   const [showPins, setShowPins] = useState(true)
   const [showLightning, setShowLightning] = useState(true)
   const [showPhotos, setShowPhotos] = useState(false)
-  const [showForecast, setShowForecast] = useState(false)
-  const [showBathymetry, setShowBathymetry] = useState(false)
-  const [showFireDanger, setShowFireDanger] = useState(false)
+  const [showForecast, setShowForecast] = useState(true)
+  const [showBathymetry, setShowBathymetry] = useState(true)
+  const [showFireDanger, setShowFireDanger] = useState(true)
   const [showCellCoverage, setShowCellCoverage] = useState(false)
   const [fireDanger, setFireDanger] = useState(null)
   const [notifyPerm, setNotifyPerm] = useState(Notification.permission)
@@ -388,7 +388,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
       )}
 
       <div ref={mapRef} className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative z-0 ${mapHeight}`} style={mapStyle}>
-        <MapContainer center={CHAIR_ROCK_ISLAND} zoom={14} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : measuring ? { cursor: 'crosshair' } : {}}>
+        <MapContainer center={CHAIR_ROCK_ISLAND} zoom={17} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : measuring ? { cursor: 'crosshair' } : {}}>
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} onMapClickGeneral={handleMapClickGeneral} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}
