@@ -12,6 +12,8 @@ const LAKE_STATS = {
   pdfUrl: 'https://dec.ny.gov/sites/default/files/cbrylkmap.pdf',
 }
 
+const MAX_BATHY_ZOOM = 17
+
 export default function BathymetryLayer() {
   const map = useMap()
   const ctrlRef = useRef(null)
@@ -63,7 +65,29 @@ export default function BathymetryLayer() {
     ctrl.addTo(map)
     ctrlRef.current = ctrl
 
+    // OpenTopoMap bathymetry tiles only exist up to zoom 17. Gracefully hide the
+    // overlay (and info box) beyond that instead of requesting missing tiles.
+    const tileLayer = L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+      opacity: 0.45,
+      maxNativeZoom: MAX_BATHY_ZOOM,
+      maxZoom: 21,
+    })
     const container = ctrl.getContainer()
+
+    const updateVisibility = () => {
+      const beyond = map.getZoom() > MAX_BATHY_ZOOM
+      if (beyond) {
+        if (map.hasLayer(tileLayer)) map.removeLayer(tileLayer)
+        container.style.display = 'none'
+      } else {
+        if (!map.hasLayer(tileLayer)) tileLayer.addTo(map)
+        container.style.display = ''
+      }
+    }
+    updateVisibility()
+    map.on('zoomend', updateVisibility)
+
     const body = container.querySelector('#bathy-body')
     const chevron = container.querySelector('#bathy-chevron')
 
@@ -74,7 +98,11 @@ export default function BathymetryLayer() {
       chevron.style.transform = expanded.current ? 'rotate(90deg)' : 'rotate(0deg)'
     })
 
-    return () => { ctrl.remove() }
+    return () => {
+      map.off('zoomend', updateVisibility)
+      if (map.hasLayer(tileLayer)) map.removeLayer(tileLayer)
+      ctrl.remove()
+    }
   }, [map])
 
   return null

@@ -418,7 +418,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
           {measuring && <MeasureLayer points={measurePoints} onAddPoint={(latlng) => setMeasurePoints(prev => [...prev, latlng])} />}
           {showForecast && <ForecastPopup latlng={forecastLatLng} data={forecastData} loading={forecastLoading} onClose={() => { setForecastLatLng(null); setForecastData(null) }} />}
           {showPhotos && <PhotosLayer photos={photos} />}
-          {showBathymetry && <><BathymetryLayer /><TileLayer attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>' url="https://tile.opentopomap.org/{z}/{x}/{y}.png" opacity={0.45} /></>}
+          {showBathymetry && <BathymetryLayer />}
           {showFireDanger && fireDanger && (
             <Marker position={[44.14722, -74.81194]} icon={L.divIcon({ className: '', html: '', iconSize: [0, 0] })}>
               <Popup maxWidth={260} autoPanPadding={[50, 50]}><div className="text-xs space-y-1"><div className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" style={{ color: fireDanger.color }} /><strong className="text-stone-800 dark:text-stone-200">{fireDanger.rating}</strong></div><div className="text-stone-500 dark:text-stone-400">{fireDanger.description}</div></div></Popup>
