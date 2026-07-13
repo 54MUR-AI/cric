@@ -363,7 +363,6 @@ const sections = [
           ['Brett Blackmer (electrician)', '315-408-5917'],
           ['Jon Davenport (carpenter)', '315-854-5631'],
           ['Nick Lamarre (tree guy)', '518-578-0980'],
-          ['Bill Smith (former boat — unreliable)', '315-790-7512'],
           ['Battleborn (battery support)', '775-622-3448'],
           ['Neil (solar/battery)', '603-819-1058'],
           ['Sarge Boss (south shore — boats)', '941-276-5382'],
