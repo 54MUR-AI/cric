@@ -40,6 +40,7 @@ const sections = [
           <li>Loon Lodge — kitchen</li>
           <li>Near the propane tanks</li>
         </ul>
+        <p className="mt-2"><strong>Water Pump on Buck Island</strong> — Bill Bragdon (<a href="tel:+14842221354" className="text-emerald-700 dark:text-emerald-400 hover:underline">484-222-1354</a>) is the contact for the water pump on Buck Island.</p>
         <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">No fire department can reach the island directly. Prevention is critical. Never leave stoves, candles, or propane appliances unattended.</p>
       </div>
     ),
@@ -52,7 +53,7 @@ const sections = [
     bg: 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-900/30',
     content: (
       <div className="text-sm text-stone-700 dark:text-stone-300 space-y-2">
-        <p><strong>First aid kits</strong> are in Main House kitchen and Toad Hall bathroom.</p>
+        <p><strong>First aid kits</strong> are in Main House kitchen, Main House 1st floor bathroom, and Toad Hall bathroom.</p>
         <p><strong>For serious emergencies:</strong> Transport via boat to Cranberry Lake town (45 min), then drive or call ambulance.</p>
         <div className="mt-2 p-3 rounded bg-white/50 dark:bg-stone-800/50">
           <p className="font-medium">Clifton-Fine Hospital</p>

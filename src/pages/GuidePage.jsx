@@ -358,7 +358,7 @@ const sections = [
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         {[
           ['Mike Hanley (boats)', '315-806-9899'],
-          ['Matt Hamill (pontoon access)', '603-548-6429'],
+          ['Matt Hamill (handyman)', '603-548-6429'],
           ['Dean Kerr (plumber)', '315-408-4363'],
           ['Brett Blackmer (electrician)', '315-408-5917'],
           ['Jon Davenport (carpenter)', '315-854-5631'],
@@ -366,6 +366,10 @@ const sections = [
           ['Bill Smith (former boat — unreliable)', '315-790-7512'],
           ['Battleborn (battery support)', '775-622-3448'],
           ['Neil (solar/battery)', '603-819-1058'],
+          ['Sarge Boss (south shore — boats)', '941-276-5382'],
+          ['Bob Safford (wild cliff point)', '610-715-4951'],
+          ['Jimi Gardener (south shore — carpenter/boats)', '518-450-8689'],
+          ['Bill Bragdon (buck — carpenter)', '484-222-1354'],
           ['Birch\'s Lakeside (boat slip/propane)', '315-848-4500'],
           ['PJ Birchenough (propane deliver)', '814-440-1025'],
           ['Tripp Fuel & Propane', '315-287-1245'],
