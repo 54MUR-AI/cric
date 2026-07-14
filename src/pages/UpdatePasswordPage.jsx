@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
@@ -11,12 +11,35 @@ export default function UpdatePasswordPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [ready, setReady] = useState(false)
+  const readyRef = useRef(false)
 
   useEffect(() => {
+    let cancelled = false
+
+    const check = () => {
+      if (cancelled || readyRef.current) return
+      readyRef.current = true
+      setReady(true)
+      setError('')
+    }
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) setReady(true)
-      else setError('No reset token found. Use the link from your email.')
+      if (cancelled) return
+      if (data?.session) check()
     })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) check()
+    })
+
+    const timeout = setTimeout(() => {
+      if (!cancelled && !readyRef.current) {
+        setError('No reset token found. Use the link from your email.')
+      }
+    }, 8000)
+
+    return () => { cancelled = true; subscription.unsubscribe(); clearTimeout(timeout) }
   }, [])
 
   async function handleSubmit(e) {
