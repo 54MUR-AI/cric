@@ -16,7 +16,6 @@ interface AuthContextValue {
   role: string
   isAdmin: boolean
   loading: boolean
-  signIn: (email: string) => Promise<void>
   signInWithPassword: (email: string, password: string) => Promise<{ user: User | null }>
   signOut: () => Promise<void>
 }
@@ -87,11 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }
 
-  async function signIn(email: string) {
-    const { error } = await supabase.auth.signInWithOtp({ email })
-    if (error) throw error
-  }
-
   async function signInWithPassword(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
@@ -105,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = role === 'super_admin'
 
   return (
-    <AuthContext.Provider value={{ user, profile, role, isAdmin, loading, signIn, signInWithPassword, signOut }}>
+    <AuthContext.Provider value={{ user, profile, role, isAdmin, loading, signInWithPassword, signOut }}>
       {children}
     </AuthContext.Provider>
   )
