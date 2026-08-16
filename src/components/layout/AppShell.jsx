@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import KeyboardShortcutHelp from '../ui/KeyboardShortcutHelp'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -57,6 +57,8 @@ function PullToRefresh({ onRefresh }) {
 
 export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === '1')
+  useEffect(() => { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0') }, [collapsed])
   const [refreshKey, setRefreshKey] = useState(0)
   const location = useLocation()
   useSync()
@@ -118,7 +120,7 @@ export default function AppShell() {
           <button onClick={dismiss} className="text-emerald-300 hover:text-white shrink-0"><X className="h-4 w-4" /></button>
         </div>
       )}
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={collapsed} onToggleCollapsed={() => setCollapsed(c => !c)} />
       <KeyboardShortcutHelp open={showKeys} onClose={() => setShowKeys(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="md:hidden flex items-center justify-between bg-emerald-900 text-stone-100 px-4 py-3">
