@@ -12,6 +12,7 @@ interface Cabin {
   sort_order?: number
   rooms?: string[]
   max_occupancy?: number
+  booking_authority_id?: string
   improvements?: CabinImprovement[]
   created_at?: string
 }

@@ -8,10 +8,13 @@ import { formatDate } from '../lib/utils'
 import { useShare } from '../lib/share'
 import { useBookings } from '../hooks/useBookings'
 import { useCabins } from '../hooks/useCabins'
+import { useProfiles } from '../hooks/useProfiles'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { notifyBookingAuthority } from '../hooks/usePushNotifications'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { useToast } from '../components/ui/Toast'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { TripModal } from './BoatSchedulePage'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -32,10 +35,12 @@ function fmtInput(d) {
 }
 
 export default function SchedulePage() {
-  const { bookings, loading: loadingB, error: errorB, createBooking, updateBooking, deleteBooking, refetch } = useBookings()
+  const { bookings, loading: loadingB, error: errorB, createBooking, updateBooking, deleteBooking, setBookingStatus, refetch } = useBookings()
   const { cabins, loading: loadingC, error: errorC } = useCabins()
+  const { profiles } = useProfiles()
   const { user, isAdmin } = useAuth()
   const { copy } = useShare()
+  const toast = useToast()
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -46,6 +51,9 @@ export default function SchedulePage() {
   const [error, setError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
   const [conflicts, setConflicts] = useState(null)
+
+  const profileById = {}
+  for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
 
   useEscapeKey(() => setShowForm(false), showForm)
   useEscapeKey(() => { setSelectedEvent(null); setEditing(false) }, !!selectedEvent)
@@ -76,22 +84,24 @@ export default function SchedulePage() {
   const [showTripModal, setShowTripModal] = useState(false)
   const [editTrip, setEditTrip] = useState(null)
 
-  const events = bookings.map((b) => {
-    const s = toLocalDate(b.start_date)
-    const e = toLocalDate(b.end_date)
-    e.setHours(23, 59)
-    const title = b.room
-      ? `${b.cabins?.name} — ${b.room}${b.guests ? ` (${b.guests})` : ''}`
-      : `${b.cabins?.name}${b.guests ? ` — ${b.guests}` : ''}`
-    return {
-      id: b.id,
-      title,
-      start: s,
-      end: e,
-      resource: b,
-      allDay: true,
-    }
-  })
+  const events = bookings
+    .filter((b) => b.status !== 'rejected')
+    .map((b) => {
+      const s = toLocalDate(b.start_date)
+      const e = toLocalDate(b.end_date)
+      e.setHours(23, 59)
+      const title = b.room
+        ? `${b.cabins?.name} — ${b.room}${b.guests ? ` (${b.guests})` : ''}`
+        : `${b.cabins?.name}${b.guests ? ` — ${b.guests}` : ''}`
+      return {
+        id: b.id,
+        title,
+        start: s,
+        end: e,
+        resource: b,
+        allDay: true,
+      }
+    })
 
   function handleSelectSlot({ start, end }) {
     const endDay = new Date(new Date(end).getTime() - 86400000)
@@ -143,8 +153,9 @@ export default function SchedulePage() {
           guests: formData.guests || null,
           notes: formData.notes || null,
         }))
-        const { error } = await supabase.from('bookings').insert(rows).select()
+        const { data: roomRows, error } = await supabase.from('bookings').insert(rows).select()
         if (error) throw error
+        if (roomRows?.length) notifyBookingAuthority(roomRows[0].id).catch(() => {})
         refetch()
         setShowForm(false)
       } catch (err) {
@@ -174,6 +185,16 @@ export default function SchedulePage() {
   async function handleDelete(id) {
     if (confirmCancel) await deleteBooking(id)
     setConfirmCancel(null)
+  }
+
+  async function handleDecide(id, status) {
+    try {
+      await setBookingStatus(id, status)
+      toast.success(status === 'confirmed' ? 'Booking confirmed' : 'Booking rejected')
+      setSelectedEvent(null)
+    } catch (err) {
+      toast.error(err.message || 'Failed to update booking')
+    }
   }
 
   async function fetchTrips() {
@@ -243,14 +264,20 @@ export default function SchedulePage() {
           popup
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
-          eventPropGetter={(event) => ({
-            style: {
-              backgroundColor: event.resource.cabins?.color || '#3b82f6',
-              borderColor: event.resource.cabins?.color || '#3b82f6',
-              borderRadius: '4px',
-              fontSize: '0.8rem',
-            },
-          })}
+          eventPropGetter={(event) => {
+            const color = event.resource.cabins?.color || '#3b82f6'
+            const requested = event.resource.status === 'requested'
+            return {
+              style: {
+                backgroundColor: requested ? 'rgba(245, 158, 11, 0.22)' : color,
+                borderColor: color,
+                borderStyle: requested ? 'dashed' : 'solid',
+                color: requested ? '#92400e' : '#ffffff',
+                borderRadius: '4px',
+                fontSize: '0.8rem',
+              },
+            }
+          }}
           style={{ height: 'calc(100vh - 300px)', minHeight: 400, maxHeight: 800 }}
         />
       </div>
@@ -316,6 +343,17 @@ export default function SchedulePage() {
                   ))}
                 </select>
               </div>
+              {(() => {
+                const sel = cabins.find(c => c.id === formData.cabin_id)
+                if (sel?.booking_authority_id) {
+                  return (
+                    <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-2.5 text-xs text-amber-800 dark:text-amber-300">
+                      This booking starts as a <strong>request</strong>. {profileById[sel.booking_authority_id] || 'The booking authority'} must confirm it before it is finalized.
+                    </div>
+                  )
+                }
+                return null
+              })()}
               {cabins.find(c => c.id === formData.cabin_id)?.has_rooms && (
                 <div>
                   <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">Rooms</label>
@@ -404,11 +442,27 @@ export default function SchedulePage() {
                   {selectedEvent.room && <> · {selectedEvent.room}</>}
                 </p>
                 {selectedEvent.notes && <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">{selectedEvent.notes}</p>}
+                <div className="flex items-center gap-2 mb-4 flex-wrap">
+                  {selectedEvent.status === 'requested' ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 text-xs font-medium">Requested</span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-medium">Confirmed</span>
+                  )}
+                  {selectedEvent.status === 'requested' && selectedEvent.cabins?.booking_authority_id && (
+                    <span className="text-xs text-stone-400 dark:text-stone-500">pending confirmation by {profileById[selectedEvent.cabins.booking_authority_id] || 'the authority'}</span>
+                  )}
+                </div>
                 <div className="flex gap-2 justify-between items-center">
                   <button onClick={() => copy(`${selectedEvent.cabins?.name}: ${formatDate(selectedEvent.start_date)} – ${formatDate(selectedEvent.end_date)}${selectedEvent.guests ? ` — ${selectedEvent.guests}` : ''}`, 'Booking copied')} className="inline-flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors">
                     <Share2 className="h-3 w-3" /> Share
                   </button>
                   <div className="flex gap-2">
+                    {selectedEvent.status === 'requested' && (isAdmin || selectedEvent.cabins?.booking_authority_id === user?.id) && (
+                      <>
+                        <Button variant="secondary" onClick={() => handleDecide(selectedEvent.id, 'rejected')}>Reject</Button>
+                        <Button onClick={() => handleDecide(selectedEvent.id, 'confirmed')}>Confirm</Button>
+                      </>
+                    )}
                     {(selectedEvent.user_id === user?.id || isAdmin) && (
                       <Button variant="secondary" onClick={() => { setEditData({ end_date: selectedEvent.end_date, guests: selectedEvent.guests || '', notes: selectedEvent.notes || '' }); setEditing(true) }}>Edit</Button>
                     )}

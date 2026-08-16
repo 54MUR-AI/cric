@@ -133,6 +133,21 @@ export async function sendPushToAll(payload: PushPayload) {
   }
 }
 
+// Server-side target: resolves the cabin's booking authority and pushes to them.
+export async function notifyBookingAuthority(bookingId: string) {
+  const token = await getAccessToken()
+  if (!token) return
+
+  await fetch(`${SUPABASE_FUNCTIONS_URL}/notify-booking-authority`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ booking_id: bookingId }),
+  })
+}
+
 async function saveSubscription(sub: PushSubscription) {
   const subJSON = sub.toJSON()
   if (!subJSON.endpoint || !subJSON.keys) return

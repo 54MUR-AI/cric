@@ -6,6 +6,7 @@ import { Pencil, Plus, History, MapPin, Trash2, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useCabins } from '../hooks/useCabins'
 import { useMapPins } from '../hooks/useMapPins'
+import { useProfiles } from '../hooks/useProfiles'
 import { CRANBERRY_LAKE } from '../lib/map/constants'
 import { haversineKm, bearing } from '../lib/map/utils'
 
@@ -26,6 +27,7 @@ export default function CabinsPage() {
   const { isAdmin } = useAuth()
   const { cabins, loading, createCabin, updateCabin, addImprovement, deleteImprovement } = useCabins()
   const { pins } = useMapPins()
+  const { profiles } = useProfiles()
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [formData, setFormData] = useState({ name: '', description: '', color: '#3b82f6' })
@@ -41,6 +43,9 @@ export default function CabinsPage() {
       pinsByCabin[p.cabin_id] = p
     }
   }
+
+  const profileById = {}
+  for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -109,6 +114,25 @@ export default function CabinsPage() {
                     </div>
                   )}
                 </div>
+
+                {isAdmin && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <label className="text-xs text-stone-500 dark:text-stone-400 shrink-0">Booking authority</label>
+                    <select
+                      value={cabin.booking_authority_id || ''}
+                      onChange={(e) => updateCabin(cabin.id, { booking_authority_id: e.target.value || null })}
+                      className="flex-1 min-w-0 rounded border border-stone-300 dark:border-stone-600 px-2 py-1 text-xs bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200"
+                    >
+                      <option value="">None</option>
+                      {profiles.map(p => <option key={p.id} value={p.id}>{p.display_name || p.email || 'Unknown'}</option>)}
+                    </select>
+                  </div>
+                )}
+                {!isAdmin && cabin.booking_authority_id && (
+                  <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
+                    Bookings confirmed by <span className="font-medium text-stone-600 dark:text-stone-300">{profileById[cabin.booking_authority_id] || 'the authority'}</span>
+                  </p>
+                )}
 
                 {pin && (
                   <div className="mt-3 flex gap-3 items-start rounded-md border border-stone-100 dark:border-stone-800 p-2">

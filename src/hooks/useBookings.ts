@@ -2,10 +2,12 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
+import { notifyBookingAuthority } from './usePushNotifications'
 
 interface CabinInfo {
   name: string
   color?: string
+  booking_authority_id?: string
 }
 
 interface Booking {
@@ -16,6 +18,7 @@ interface Booking {
   end_date: string
   guests?: string
   room?: string
+  status?: string
   created_at?: string
   cabins?: CabinInfo
 }
@@ -52,7 +55,11 @@ export function useBookings() {
       if (bookingsData) {
         const merged = bookingsData.map(b => ({
           ...b,
-          cabins: cabinMap.get(b.cabin_id) ? { name: cabinMap.get(b.cabin_id).name, color: cabinMap.get(b.cabin_id).color } : undefined,
+          cabins: cabinMap.get(b.cabin_id) ? {
+            name: cabinMap.get(b.cabin_id).name,
+            color: cabinMap.get(b.cabin_id).color,
+            booking_authority_id: cabinMap.get(b.cabin_id).booking_authority_id,
+          } : undefined,
         }))
         setBookings(merged)
         db.bookings.bulkPut(merged)
@@ -93,7 +100,7 @@ export function useBookings() {
   }, [])
 
   async function createBooking(booking: Partial<Booking>) {
-    const { data, error } = await supabase.from('bookings').insert(booking).select().single()
+    const { data, error } = await supabase.from('bookings').insert({ ...booking, status: 'requested' }).select().single()
     if (error) throw error
     if (data) {
       const { data: full } = await supabase
@@ -102,9 +109,10 @@ export function useBookings() {
         .eq('id', data.id)
         .single()
       if (full) {
-        const { data: cabin } = await supabase.from('cabins').select('name, color').eq('id', full.cabin_id).single()
+        const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
         if (cabin) full.cabins = cabin
-        setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking created')
+        setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking requested')
+        notifyBookingAuthority(full.id).catch(() => {})
       }
     }
     return data
@@ -126,12 +134,28 @@ export function useBookings() {
       .eq('id', id)
       .single()
     if (full) {
-      const { data: cabin } = await supabase.from('cabins').select('name, color').eq('id', full.cabin_id).single()
+      const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
       if (cabin) full.cabins = cabin
       setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full); toast.success('Booking updated')
     }
     return full
   }
 
-  return { bookings, loading, error, createBooking, updateBooking, deleteBooking, refetch: fetchBookings }
+  async function setBookingStatus(id: string, status: string) {
+    const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
+    if (error) throw error
+    const { data: full } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (full) {
+      const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
+      if (cabin) full.cabins = cabin
+      setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full)
+    }
+    return full
+  }
+
+  return { bookings, loading, error, createBooking, updateBooking, deleteBooking, setBookingStatus, refetch: fetchBookings }
 }

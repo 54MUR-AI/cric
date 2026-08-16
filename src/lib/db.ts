@@ -8,6 +8,7 @@ interface Cabin {
   sort_order?: number
   rooms?: string[]
   max_occupancy?: number
+  booking_authority_id?: string
   created_at?: string
 }
 
@@ -27,6 +28,7 @@ interface Booking {
   end_date: string
   guests?: string
   room?: string
+  status?: string
   created_at?: string
   cabins?: { name: string; color?: string }
 }
