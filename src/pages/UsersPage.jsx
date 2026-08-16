@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, supabaseImplicit, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabase'
+import { supabase, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ui/Toast'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -44,7 +44,7 @@ export default function UsersPage() {
   async function sendReset(email) {
     if (!email) { toast.error('No email on file for this user'); return }
     setSendingReset(email)
-    const { error } = await supabaseImplicit.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}update-password`,
     })
     setSendingReset(null)

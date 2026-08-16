@@ -7,15 +7,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables')
 }
 
+// Implicit flow: auth links (password recovery, etc.) carry tokens in the URL
+// hash instead of a PKCE ?code= that can only be exchanged in the browser that
+// triggered the reset. This keeps resets working when the link is opened on
+// another device/browser.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  global: { headers: { 'Cache-Control': 'no-cache, no-store' } },
-})
-
-// Password-recovery links are generated with the implicit flow so the reset URL
-// carries tokens in the hash (#access_token=...&type=recovery) instead of a PKCE
-// ?code=... that can only be exchanged in the browser that triggered the reset.
-// This keeps resets working when the link is opened on another device/browser.
-export const supabaseImplicit = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { flowType: 'implicit' },
   global: { headers: { 'Cache-Control': 'no-cache, no-store' } },
 })

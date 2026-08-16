@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { createClient } from '@supabase/supabase-js'
 import Button from '../components/ui/Button'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export default function UpdatePasswordPage() {
   const navigate = useNavigate()
@@ -29,11 +25,9 @@ export default function UpdatePasswordPage() {
     }
 
     async function recoverFromURL() {
-      const hash = window.location.hash
-      const search = window.location.search
-
-      // Case 1: implicit flow — tokens in URL hash
+      // Implicit flow — tokens in URL hash
       // #access_token=xxx&refresh_token=yyy&type=recovery&expires_in=3600
+      const hash = window.location.hash
       if (hash && hash.includes('type=recovery')) {
         const h = new URLSearchParams(hash.replace(/^#/, ''))
         const accessToken = h.get('access_token')
@@ -44,29 +38,6 @@ export default function UpdatePasswordPage() {
             refresh_token: refreshToken,
           })
           if (!err) return check()
-        }
-      }
-
-      // Case 2: PKCE flow — code in URL query params
-      // ?code=xxx
-      if (search) {
-        const q = new URLSearchParams(search)
-        const code = q.get('code')
-        if (code) {
-          // First try with the default PKCE client (works when the
-          // same browser triggered the reset)
-          const { error: err1 } = await supabase.auth.exchangeCodeForSession(code)
-          if (!err1) return check()
-
-          // If that failed (likely missing PKCE verifier when an admin
-          // triggered the reset for another user), try with an implicit-
-          // flow client so the code exchange request is sent without a
-          // code_verifier. The server may accept it depending on config.
-          const implicitClient = createClient(supabaseUrl, supabaseAnonKey, {
-            auth: { flowType: 'implicit' },
-          })
-          const { error: err2 } = await implicitClient.auth.exchangeCodeForSession(code)
-          if (!err2) return check()
         }
       }
     }
