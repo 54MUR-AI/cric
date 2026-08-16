@@ -1,24 +1,15 @@
-import { useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import Button from './Button'
 import { useFocusTrap } from './useFocusTrap'
+import ModalOverlay from './ModalOverlay'
 
 export default function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', cancelLabel = 'Cancel', variant = 'danger', onConfirm, onCancel }) {
   const trapRef = useFocusTrap(open)
 
-  useEffect(() => {
-    if (!open) return
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') onCancel?.()
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [open, onCancel])
-
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div ref={trapRef} className="w-full max-w-sm rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30 mx-4" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <ModalOverlay onClose={onCancel} overlayClass="z-[9999]" ariaLabel={title || 'Confirm'}>
+      <div ref={trapRef} className="max-w-sm max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
         <div className="flex items-start gap-3">
           <div className="rounded-full bg-rose-100 dark:bg-rose-900/30 p-2 shrink-0">
             <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
@@ -33,6 +24,6 @@ export default function ConfirmDialog({ open, title, message, confirmLabel = 'De
           <Button variant={variant} onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

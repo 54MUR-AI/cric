@@ -1,6 +1,7 @@
 import { useEscapeKey } from './useEscapeKey'
 import { useFocusTrap } from './useFocusTrap'
 import { KEY_BINDINGS } from '../../lib/useKeyBindings'
+import ModalOverlay from './ModalOverlay'
 
 export default function KeyboardShortcutHelp({ open, onClose }) {
   useEscapeKey(() => onClose?.(), open)
@@ -10,8 +11,8 @@ export default function KeyboardShortcutHelp({ open, onClose }) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 dark:bg-black/60" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" onClick={onClose}>
-      <div ref={ref} className="bg-white dark:bg-stone-900 rounded-xl shadow-2xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700 max-w-sm w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <ModalOverlay onClose={onClose} overlayClass="z-[1000]" ariaLabel="Keyboard shortcuts">
+      <div ref={ref} className="max-w-sm max-h-[92dvh] overflow-y-auto overflow-x-hidden bg-white dark:bg-stone-900 rounded-t-2xl sm:rounded-2xl shadow-2xl dark:shadow-black/30 border border-stone-200 dark:border-stone-700" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-stone-200 dark:border-stone-700 flex items-center justify-between">
           <h2 className="text-base font-bold text-stone-800 dark:text-stone-200">Keyboard Shortcuts</h2>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 text-lg leading-none">&times;</button>
@@ -41,6 +42,6 @@ export default function KeyboardShortcutHelp({ open, onClose }) {
           <p className="text-[11px] text-stone-400 dark:text-stone-500">Press <kbd className="font-mono font-semibold text-stone-500 dark:text-stone-400">?</kbd> anytime to show this help</p>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

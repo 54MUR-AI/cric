@@ -3,6 +3,7 @@ import { supabase, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabas
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ui/Toast'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import ModalOverlay from '../components/ui/ModalOverlay'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { useOfficers } from '../lib/OfficersContext'
 import { Trash2, Mail, Plus, X, UserPlus, Check, PencilLine, Search } from 'lucide-react'
@@ -180,8 +181,8 @@ export default function UsersPage() {
       </div>
 
       {showAddOfficer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAddOfficer(false)}>
-          <div className="w-full max-w-sm rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowAddOfficer(false)}>
+          <div className="w-full max-w-sm max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-stone-800 dark:text-stone-200">Assign Director</h3>
               <button onClick={() => setShowAddOfficer(false)}><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
@@ -208,12 +209,12 @@ export default function UsersPage() {
               <Button size="sm" onClick={addOfficer} disabled={!newOfficer.profile_id}>Assign</Button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {showAddUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAddUser(false)}>
-          <div className="w-full max-w-sm rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowAddUser(false)}>
+          <div className="w-full max-w-sm max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-stone-800 dark:text-stone-200">Add User</h3>
               <button onClick={() => setShowAddUser(false)}><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
@@ -239,7 +240,7 @@ export default function UsersPage() {
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">

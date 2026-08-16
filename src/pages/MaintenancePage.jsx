@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
 import SwipeToDelete from '../components/ui/SwipeToDelete'
+import ModalOverlay from '../components/ui/ModalOverlay'
 import { useConfirm } from '../components/ui/useConfirm'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { formatDate } from '../lib/utils'
@@ -90,8 +91,8 @@ export default function MaintenancePage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-lg rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowForm(false)}>
+          <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-4">New Maintenance Task</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -118,12 +119,12 @@ export default function MaintenancePage() {
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {selectedTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedTask(null)}>
-          <div className="w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setSelectedTask(null)}>
+          <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{selectedTask.title}</h2>
@@ -159,7 +160,7 @@ export default function MaintenancePage() {
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
       {ConfirmDialog}
     </div>

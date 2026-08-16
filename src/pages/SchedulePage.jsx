@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase'
 import { notifyBookingAuthority, notifyBookingRequester } from '../hooks/usePushNotifications'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import ModalOverlay from '../components/ui/ModalOverlay'
 import { useToast } from '../components/ui/Toast'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { TripModal } from './BoatSchedulePage'
@@ -327,8 +328,8 @@ export default function SchedulePage() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowForm(false)}>
+          <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-4">New Booking</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -428,12 +429,12 @@ export default function SchedulePage() {
               )}
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setSelectedEvent(null); setEditing(false) }}>
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay onClose={() => { setSelectedEvent(null); setEditing(false) }}>
+          <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             {!editing ? (
               <>
                 <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">{selectedEvent.cabins?.name}{selectedEvent.room ? ` — ${selectedEvent.room}` : ''}</h2>
@@ -494,7 +495,7 @@ export default function SchedulePage() {
               </form>
             )}
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       <ConfirmDialog

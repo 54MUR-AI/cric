@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/ui/Button'
+import ModalOverlay from '../components/ui/ModalOverlay'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { Pencil, Plus, History, MapPin, Trash2, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -186,8 +187,8 @@ export default function CabinsPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowForm(false)}>
+          <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{editing ? 'Edit Cabin' : 'Add Cabin'}</h2>
               <button onClick={() => setShowForm(false)} className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"><X className="h-4 w-4" /></button>
@@ -211,7 +212,7 @@ export default function CabinsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

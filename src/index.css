@@ -175,3 +175,16 @@ html { scroll-behavior: smooth; }
 .rbc-month-view .rbc-header { padding: 2px 0; font-size: 0.65rem; }
 .rbc-month-view .rbc-row { min-height: 0; }
 .rbc-month-row { min-height: 0; }
+
+/* Calendar "+N more" popup: keep inside the viewport on small screens */
+.rbc-overlay {
+  max-width: min(92vw, 320px);
+  max-height: 70vh;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+.rbc-overlay-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}

@@ -4,6 +4,7 @@ import { usePhotos } from '../hooks/usePhotos'
 import { useShare } from '../lib/share'
 import { useConfirm } from '../components/ui/useConfirm'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
+import ModalOverlay from '../components/ui/ModalOverlay'
 import { resizeImage } from '../lib/resizeImage'
 import { vibrate } from '../lib/haptics'
 import { supabase } from '../lib/supabase'
@@ -217,8 +218,8 @@ export default function PhotosPage() {
       )}
 
       {showUpload && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => { if (!uploading) { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }}} role="dialog" aria-label="Upload photo">
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
+        <ModalOverlay onClose={() => { if (!uploading) { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }}} ariaLabel="Upload photo">
+          <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-stone-800 dark:text-stone-200">Upload Photo</h3>
               {!uploading && <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>}
@@ -256,12 +257,12 @@ export default function PhotosPage() {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {showAlbumForm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setShowAlbumForm(false)} role="dialog" aria-label="Create album">
-          <div className="w-full max-w-sm rounded-lg bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30" onClick={e => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowAlbumForm(false)} ariaLabel="Create album">
+          <div className="w-full max-w-sm max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-stone-800 dark:text-stone-200">New Album</h3>
               <button onClick={() => setShowAlbumForm(false)} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
@@ -272,7 +273,7 @@ export default function PhotosPage() {
               <button onClick={handleCreateAlbum} className="rounded-md px-3 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300">Create</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
       {ConfirmDialog}
     </div>

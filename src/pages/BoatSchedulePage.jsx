@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
+import ModalOverlay from '../components/ui/ModalOverlay'
 import { useToast } from '../components/ui/Toast'
 
 const TRIP_DURATION = 45
@@ -45,8 +46,8 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white dark:bg-stone-800 rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <ModalOverlay onClose={onClose}>
+      <div className="bg-white dark:bg-stone-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md max-h-[92dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-stone-200 dark:border-stone-700">
           <h3 className="font-semibold text-stone-800 dark:text-stone-200">{trip ? 'Edit Trip' : 'New Boat Trip'}</h3>
           <button onClick={onClose} className="p-1 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"><X className="h-4 w-4" /></button>
@@ -97,7 +98,7 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}
       />
-    </div>
+    </ModalOverlay>
   )
 }
 
