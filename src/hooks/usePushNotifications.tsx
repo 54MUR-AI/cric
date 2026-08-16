@@ -148,6 +148,21 @@ export async function notifyBookingAuthority(bookingId: string) {
   })
 }
 
+// Server-side target: notifies the booking's requester when the authority confirms/rejects.
+export async function notifyBookingRequester(bookingId: string, status: 'confirmed' | 'rejected') {
+  const token = await getAccessToken()
+  if (!token) return
+
+  await fetch(`${SUPABASE_FUNCTIONS_URL}/notify-booking-requester`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ booking_id: bookingId, status }),
+  })
+}
+
 async function saveSubscription(sub: PushSubscription) {
   const subJSON = sub.toJSON()
   if (!subJSON.endpoint || !subJSON.keys) return

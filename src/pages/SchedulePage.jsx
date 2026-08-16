@@ -11,7 +11,7 @@ import { useCabins } from '../hooks/useCabins'
 import { useProfiles } from '../hooks/useProfiles'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { notifyBookingAuthority } from '../hooks/usePushNotifications'
+import { notifyBookingAuthority, notifyBookingRequester } from '../hooks/usePushNotifications'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
@@ -191,6 +191,7 @@ export default function SchedulePage() {
     try {
       await setBookingStatus(id, status)
       toast.success(status === 'confirmed' ? 'Booking confirmed' : 'Booking rejected')
+      notifyBookingRequester(id, status).catch(() => {})
       setSelectedEvent(null)
     } catch (err) {
       toast.error(err.message || 'Failed to update booking')
