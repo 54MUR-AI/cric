@@ -52,6 +52,8 @@ interface MaintenanceCategory {
   id: string
   name: string
   sort_order?: number
+  cabin_id?: string
+  dock_id?: string
 }
 
 interface MaintenanceComment {
@@ -155,6 +157,14 @@ interface BoatTrip {
   profiles?: { display_name: string }
 }
 
+interface Dock {
+  id: string
+  name: string
+  is_active?: boolean
+  sort_order?: number
+  created_at?: string
+}
+
 class CricDatabase extends Dexie {
   cabins!: Table<Cabin, string>
   cabin_improvements!: Table<CabinImprovement, string>
@@ -172,6 +182,7 @@ class CricDatabase extends Dexie {
   profiles!: Table<Profile, string>
   officers!: Table<Officer, string>
   boat_trips!: Table<BoatTrip, string>
+  docks!: Table<Dock, string>
 
   constructor() {
     super('cric')
@@ -307,9 +318,29 @@ class CricDatabase extends Dexie {
       officers: 'id, profile_id, title, sort_order',
       boat_trips: 'id, trip_date, departure_time, created_by',
     })
+
+    this.version(8).stores({
+      cabins: 'id, name, sort_order',
+      cabin_improvements: 'id, cabin_id, year, created_at',
+      bookings: 'id, cabin_id, room, start_date, end_date',
+      maintenance_tasks: 'id, status, category_id, due_date, created_at',
+      maintenance_categories: 'id, name, sort_order',
+      maintenance_comments: 'id, task_id, created_at',
+      meetings: 'id, date',
+      meeting_agenda_items: 'id, meeting_id, sort_order',
+      map_pins: 'id, type, label',
+      photos: 'id, album_id, taken_at, created_at',
+      photo_albums: 'id, name',
+      weather_cache: '++id, key',
+      pending_changes: '++id, table, action, payload, created_at',
+      profiles: 'id',
+      officers: 'id, profile_id, title, sort_order',
+      boat_trips: 'id, trip_date, departure_time, created_by',
+      docks: 'id, name, sort_order',
+    })
   }
 }
 
 const db = new CricDatabase()
 export default db
-export type { Cabin, CabinImprovement, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip }
+export type { Cabin, CabinImprovement, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip, Dock }

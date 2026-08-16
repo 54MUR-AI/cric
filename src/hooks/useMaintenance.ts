@@ -30,6 +30,8 @@ interface Category {
   id: string
   name: string
   sort_order?: number
+  cabin_id?: string
+  dock_id?: string
 }
 
 export function useMaintenance() {

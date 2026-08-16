@@ -25,6 +25,7 @@ export async function refreshAll() {
     syncTable('officers', supabase.from('officers').select('*').order('sort_order')),
     syncTable('profiles', supabase.from('profiles').select('*').order('display_name')),
     syncTable('boat_trips', supabase.from('boat_trips').select('*').order('trip_date').order('departure_time')),
+    syncTable('docks', supabase.from('docks').select('*').order('sort_order').order('name')),
   ])
 }
 

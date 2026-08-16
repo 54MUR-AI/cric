@@ -8,7 +8,7 @@ import ModalOverlay from '../components/ui/ModalOverlay'
 import { useConfirm } from '../components/ui/useConfirm'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { formatDate } from '../lib/utils'
-import { Plus, MessageCircle } from 'lucide-react'
+import { Plus, MessageCircle, CheckCircle2 } from 'lucide-react'
 
 export default function MaintenancePage() {
   const { tasks, categories, loading, createTask, updateTask, deleteTask } = useMaintenance()
@@ -17,6 +17,7 @@ export default function MaintenancePage() {
   const [showForm, setShowForm] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [formData, setFormData] = useState({ category_id: '', title: '', description: '', due_date: '' })
+  const [filterCategory, setFilterCategory] = useState('')
 
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
@@ -59,6 +60,19 @@ export default function MaintenancePage() {
 
   if (loading) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
 
+  const generalCategories = categories.filter((c) => !c.cabin_id && !c.dock_id)
+  const cabinCategories = categories.filter((c) => !!c.cabin_id)
+  const dockCategories = categories.filter((c) => !!c.dock_id)
+  const categoryOptions = (
+    <>
+      {cabinCategories.length > 0 && <optgroup label="Cabins">{cabinCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>}
+      {dockCategories.length > 0 && <optgroup label="Docks">{dockCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>}
+      {generalCategories.length > 0 && <optgroup label="General">{generalCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>}
+    </>
+  )
+  const visibleTasks = filterCategory ? tasks.filter((t) => t.category_id === filterCategory) : tasks
+  const selectedTaskCategory = selectedTask ? categories.find((c) => c.id === selectedTask.category_id) : null
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -68,8 +82,18 @@ export default function MaintenancePage() {
         </Button>
       </div>
 
+      <select
+        value={filterCategory}
+        onChange={(e) => setFilterCategory(e.target.value)}
+        className="w-full sm:w-64 rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200"
+        aria-label="Filter by category"
+      >
+        <option value="">All categories</option>
+        {categoryOptions}
+      </select>
+
       <div className="space-y-2">
-        {tasks.map((task) => (
+        {visibleTasks.map((task) => (
           <SwipeToDelete key={task.id} onDelete={async () => { if (await confirm({ title: 'Delete Task', message: 'Are you sure you want to delete this task?' })) { deleteTask(task.id); setSelectedTask(null) } }}>
             <div className="rounded-lg bg-white dark:bg-stone-900 p-4 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 flex items-center justify-between cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors" onClick={() => openTask(task)}>
               <div className="flex-1 min-w-0">
@@ -87,7 +111,7 @@ export default function MaintenancePage() {
             </div>
           </SwipeToDelete>
         ))}
-        {tasks.length === 0 && <p className="text-sm text-stone-400 dark:text-stone-500 text-center py-8">No maintenance tasks yet</p>}
+        {visibleTasks.length === 0 && <p className="text-sm text-stone-400 dark:text-stone-500 text-center py-8">No maintenance tasks yet</p>}
       </div>
 
       {showForm && (
@@ -98,7 +122,7 @@ export default function MaintenancePage() {
               <div>
                 <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Category</label>
                 <select value={formData.category_id} onChange={(e) => setFormData({ ...formData, category_id: e.target.value })} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm" required>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categoryOptions}
                 </select>
               </div>
               <div>
@@ -133,6 +157,12 @@ export default function MaintenancePage() {
             </div>
             <div className="space-y-2 text-sm text-stone-600 dark:text-stone-400 mb-4">
               <p><span className="font-medium">Category:</span> {selectedTask.maintenance_categories?.name}</p>
+              {selectedTaskCategory?.cabin_id && (
+                <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  Completing this task records an improvement in the cabin's history.
+                </p>
+              )}
               {selectedTask.description && <p><span className="font-medium">Description:</span> {selectedTask.description}</p>}
               {selectedTask.due_date && <p><span className="font-medium">Due:</span> {formatDate(selectedTask.due_date)}</p>}
             </div>
