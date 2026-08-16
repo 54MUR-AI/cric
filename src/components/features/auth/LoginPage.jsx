@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../../hooks/useAuth'
-import { supabase } from '../../../lib/supabase'
+import { supabaseImplicit } from '../../../lib/supabase'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -28,8 +28,8 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+    const { error } = await supabaseImplicit.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}update-password`,
     })
     setLoading(false)
     if (error) { setError(error.message); return }

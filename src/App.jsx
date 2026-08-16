@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { supabase } from './lib/supabase'
 import AppShell from './components/layout/AppShell'
 import LoginPage from './components/features/auth/LoginPage'
 import ErrorBoundary from './components/ui/ErrorBoundary'
@@ -34,6 +35,17 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function RecoveryRedirect() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') navigate('/update-password', { replace: true })
+    })
+    return () => subscription.unsubscribe()
+  }, [navigate])
+  return null
+}
+
 export default function App() {
   const { user, loading } = useAuth()
 
@@ -49,6 +61,7 @@ export default function App() {
 
   return (
     <OfficersProvider>
+      <RecoveryRedirect />
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/update-password" element={<Suspense fallback={<PageFallback />}><UpdatePasswordPage /></Suspense>} />
