@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
+import type { CabinImprovement } from '../lib/db'
 
 interface Cabin {
   id: string
@@ -11,6 +12,7 @@ interface Cabin {
   sort_order?: number
   rooms?: string[]
   max_occupancy?: number
+  improvements?: CabinImprovement[]
   created_at?: string
 }
 
@@ -31,11 +33,22 @@ export function useCabins() {
       const cached = await db.cabins.orderBy('sort_order').toArray()
       if (cached.length) setCabins(cached)
 
-      const { data, error } = await supabase.from('cabins').select('*').order('sort_order').order('name')
-      if (error) throw error
+      const [cabinRes, improvementRes] = await Promise.all([
+        supabase.from('cabins').select('*').order('sort_order').order('name'),
+        supabase.from('cabin_improvements').select('*').order('year', { ascending: false }),
+      ])
+      if (cabinRes.error) throw cabinRes.error
+      if (improvementRes.error) throw improvementRes.error
+
+      const improvements = improvementRes.data || []
+      const data = (cabinRes.data || []).map((cabin: any) => ({
+        ...cabin,
+        improvements: improvements.filter((i: any) => i.cabin_id === cabin.id),
+      }))
       if (data) {
         setCabins(data)
         db.cabins.bulkPut(data)
+        db.cabin_improvements.bulkPut(improvements)
         localStorage.setItem(CACHE_KEY, String(Date.now()))
       }
     } catch (err: any) {
@@ -63,6 +76,7 @@ export function useCabins() {
     channelRef.current = supabase
       .channel('cabins-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cabins' }, () => fetchCabins())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cabin_improvements' }, () => fetchCabins())
       .subscribe()
 
     return () => {
@@ -82,7 +96,11 @@ export function useCabins() {
     const original = cabins.find(c => c.id === id)
     setCabins((current) => current.map((c) => (c.id === id ? { ...c, ...updates } : c)))
     const { data } = await supabase.from('cabins').update(updates).eq('id', id).select().single()
-    if (data) { setCabins((current) => current.map((c) => (c.id === id ? data : c))); db.cabins.put(data); toast.success('Cabin updated') }
+    if (data) {
+      setCabins((current) => current.map((c) => (c.id === id ? { ...data, improvements: original?.improvements } : c)))
+      db.cabins.put({ ...data, improvements: original?.improvements })
+      toast.success('Cabin updated')
+    }
     else setCabins((current) => current.map((c) => (c.id === id ? original! : c)))
     return data
   }
@@ -94,5 +112,32 @@ export function useCabins() {
     catch { setCabins(current); toast.error('Failed to delete cabin') }
   }
 
-  return { cabins, loading, error, createCabin, updateCabin, deleteCabin, refetch: fetchCabins }
+  async function addImprovement(cabinId: string, year: number, description: string) {
+    const { data, error } = await supabase
+      .from('cabin_improvements')
+      .insert({ cabin_id: cabinId, year, description })
+      .select()
+      .single()
+    if (error) { toast.error(error.message); throw error }
+    if (data) {
+      db.cabin_improvements.put(data)
+      setCabins((current) => current.map((c) => c.id === cabinId
+        ? { ...c, improvements: [...(c.improvements || []), data].sort((a, b) => b.year - a.year) }
+        : c))
+      toast.success('Improvement added')
+    }
+    return data
+  }
+
+  async function deleteImprovement(id: string, cabinId: string) {
+    const { error } = await supabase.from('cabin_improvements').delete().eq('id', id)
+    if (error) { toast.error(error.message); return }
+    db.cabin_improvements.delete(id)
+    setCabins((current) => current.map((c) => c.id === cabinId
+      ? { ...c, improvements: (c.improvements || []).filter((i) => i.id !== id) }
+      : c))
+    toast.info('Improvement deleted')
+  }
+
+  return { cabins, loading, error, createCabin, updateCabin, deleteCabin, addImprovement, deleteImprovement, refetch: fetchCabins }
 }

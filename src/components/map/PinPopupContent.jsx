@@ -33,6 +33,7 @@ export default function PinPopupContent({ pin, cabin, nextBooking, admin, onDele
         {cabin && <><span className="text-stone-300 dark:text-stone-600">&middot;</span><span className="inline-flex items-center gap-0.5 text-stone-500 dark:text-stone-400"><span className="inline-block w-2 h-2 rounded-full" style={{ background: cabin.color }} />{cabin.name}</span></>}
       </div>
       {pin.description && <div className="text-stone-500 dark:text-stone-400">{pin.description}</div>}
+      {!pin.description && cabin?.description && <div className="text-stone-500 dark:text-stone-400">{cabin.description}</div>}
       <div className="text-stone-400 dark:text-stone-500">{dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`} {dir} of landing</div>
 
       {cabin && (
@@ -40,6 +41,18 @@ export default function PinPopupContent({ pin, cabin, nextBooking, admin, onDele
           <Link to="/cabins" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
           <Link to="/schedule" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
           {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.guests || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
+          {cabin.improvements && cabin.improvements.length > 0 && (
+            <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 space-y-0.5">
+              <div className="text-stone-500 dark:text-stone-400 font-medium">Improvements ({cabin.improvements.length})</div>
+              {cabin.improvements.slice(0, 2).map((imp) => (
+                <div key={imp.id} className="flex gap-2 text-stone-400 dark:text-stone-500">
+                  <span className="font-medium shrink-0">{imp.year}</span>
+                  <span className="line-clamp-1">{imp.description}</span>
+                </div>
+              ))}
+              {cabin.improvements.length > 2 && <div className="text-stone-400 dark:text-stone-500">+{cabin.improvements.length - 2} more</div>}
+            </div>
+          )}
         </div>
       )}
 

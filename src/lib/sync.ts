@@ -14,6 +14,7 @@ export async function syncTable(table: string, query: any) {
 export async function refreshAll() {
   await Promise.allSettled([
     syncTable('cabins', supabase.from('cabins').select('*').order('sort_order').order('name')),
+    syncTable('cabin_improvements', supabase.from('cabin_improvements').select('*').order('year')),
     syncTable('bookings', supabase.from('bookings').select('*').order('start_date')),
     syncTable('maintenance_tasks', supabase.from('maintenance_tasks').select('*').order('created_at', { ascending: false })),
     syncTable('maintenance_categories', supabase.from('maintenance_categories').select('*').order('sort_order').order('name')),

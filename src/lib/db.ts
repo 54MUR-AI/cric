@@ -11,6 +11,14 @@ interface Cabin {
   created_at?: string
 }
 
+interface CabinImprovement {
+  id: string
+  cabin_id: string
+  year: number
+  description: string
+  created_at?: string
+}
+
 interface Booking {
   id: string
   cabin_id: string
@@ -147,6 +155,7 @@ interface BoatTrip {
 
 class CricDatabase extends Dexie {
   cabins!: Table<Cabin, string>
+  cabin_improvements!: Table<CabinImprovement, string>
   bookings!: Table<Booking, string>
   maintenance_tasks!: Table<MaintenanceTask, string>
   maintenance_categories!: Table<MaintenanceCategory, string>
@@ -277,9 +286,28 @@ class CricDatabase extends Dexie {
         if (!booking.room) booking.room = null
       })
     })
+
+    this.version(7).stores({
+      cabins: 'id, name, sort_order',
+      cabin_improvements: 'id, cabin_id, year, created_at',
+      bookings: 'id, cabin_id, room, start_date, end_date',
+      maintenance_tasks: 'id, status, category_id, due_date, created_at',
+      maintenance_categories: 'id, name, sort_order',
+      maintenance_comments: 'id, task_id, created_at',
+      meetings: 'id, date',
+      meeting_agenda_items: 'id, meeting_id, sort_order',
+      map_pins: 'id, type, label',
+      photos: 'id, album_id, taken_at, created_at',
+      photo_albums: 'id, name',
+      weather_cache: '++id, key',
+      pending_changes: '++id, table, action, payload, created_at',
+      profiles: 'id',
+      officers: 'id, profile_id, title, sort_order',
+      boat_trips: 'id, trip_date, departure_time, created_by',
+    })
   }
 }
 
 const db = new CricDatabase()
 export default db
-export type { Cabin, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip }
+export type { Cabin, CabinImprovement, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip }
