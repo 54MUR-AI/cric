@@ -96,7 +96,12 @@ export function useCabins() {
   async function updateCabin(id: string, updates: Partial<Cabin>) {
     const original = cabins.find(c => c.id === id)
     setCabins((current) => current.map((c) => (c.id === id ? { ...c, ...updates } : c)))
-    const { data } = await supabase.from('cabins').update(updates).eq('id', id).select().single()
+    const { data, error } = await supabase.from('cabins').update(updates).eq('id', id).select().single()
+    if (error) {
+      setCabins((current) => current.map((c) => (c.id === id ? original! : c)))
+      toast.error(error.message)
+      return null
+    }
     if (data) {
       setCabins((current) => current.map((c) => (c.id === id ? { ...data, improvements: original?.improvements } : c)))
       db.cabins.put({ ...data, improvements: original?.improvements })

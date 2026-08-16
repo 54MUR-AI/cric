@@ -5,6 +5,7 @@ import ModalOverlay from '../components/ui/ModalOverlay'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
 import { Pencil, Plus, History, MapPin, Trash2, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useOfficers } from '../lib/OfficersContext'
 import { useCabins } from '../hooks/useCabins'
 import { useMapPins } from '../hooks/useMapPins'
 import { useProfiles } from '../hooks/useProfiles'
@@ -25,7 +26,8 @@ function formatDistance(lat, lon) {
 }
 
 export default function CabinsPage() {
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
+  const { officers } = useOfficers()
   const { cabins, loading, createCabin, updateCabin, addImprovement, deleteImprovement } = useCabins()
   const { pins } = useMapPins()
   const { profiles } = useProfiles()
@@ -47,6 +49,9 @@ export default function CabinsPage() {
 
   const profileById = {}
   for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
+
+  const isSecretary = officers.some(o => o.title === 'Secretary' && o.profile_id === user?.id)
+  const canManageAuthority = isAdmin || isSecretary
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -116,7 +121,7 @@ export default function CabinsPage() {
                   )}
                 </div>
 
-                {isAdmin && (
+                {canManageAuthority && (
                   <div className="mt-3 flex items-center gap-2">
                     <label className="text-xs text-stone-500 dark:text-stone-400 shrink-0">Booking authority</label>
                     <select
@@ -129,7 +134,7 @@ export default function CabinsPage() {
                     </select>
                   </div>
                 )}
-                {!isAdmin && cabin.booking_authority_id && (
+                {!canManageAuthority && cabin.booking_authority_id && (
                   <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
                     Bookings confirmed by <span className="font-medium text-stone-600 dark:text-stone-300">{profileById[cabin.booking_authority_id] || 'the authority'}</span>
                   </p>
