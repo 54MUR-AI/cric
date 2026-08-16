@@ -37,7 +37,7 @@ export default function CabinsPage() {
 
   const pinsByCabin = {}
   for (const p of pins) {
-    if (p.type === 'cabin' && p.cabin_id) {
+    if (p.cabin_id) {
       pinsByCabin[p.cabin_id] = p
     }
   }
