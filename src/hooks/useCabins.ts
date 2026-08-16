@@ -130,7 +130,7 @@ export function useCabins() {
       setCabins((current) => current.map((c) => c.id === cabinId
         ? { ...c, improvements: [...(c.improvements || []), data].sort((a, b) => b.year - a.year) }
         : c))
-      toast.success('Improvement added')
+      toast.success('Maintenance added')
     }
     return data
   }
@@ -142,7 +142,7 @@ export function useCabins() {
     setCabins((current) => current.map((c) => c.id === cabinId
       ? { ...c, improvements: (c.improvements || []).filter((i) => i.id !== id) }
       : c))
-    toast.info('Improvement deleted')
+    toast.info('Maintenance deleted')
   }
 
   return { cabins, loading, error, createCabin, updateCabin, deleteCabin, addImprovement, deleteImprovement, refetch: fetchCabins }

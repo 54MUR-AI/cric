@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import ModalOverlay from '../components/ui/ModalOverlay'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
-import { Pencil, Plus, History, MapPin, Trash2, X } from 'lucide-react'
+import { Pencil, Plus, History, MapPin, Trash2, X, Upload } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useOfficers } from '../lib/OfficersContext'
 import { useCabins } from '../hooks/useCabins'
 import { useMapPins } from '../hooks/useMapPins'
 import { useProfiles } from '../hooks/useProfiles'
+import { useCabinPhotos } from '../hooks/usePhotos'
+import CabinPhotoCarousel from '../components/cabins/CabinPhotoCarousel'
 import { CRANBERRY_LAKE } from '../lib/map/constants'
 import { haversineKm, bearing } from '../lib/map/utils'
 
@@ -37,8 +39,46 @@ export default function CabinsPage() {
   const [expandedCabin, setExpandedCabin] = useState(null)
   const [improvementForm, setImprovementForm] = useState({ year: new Date().getFullYear(), description: '' })
   const [improvementError, setImprovementError] = useState('')
+  const cabinPhotoHook = useCabinPhotos(cabins.map(c => c.id))
+  const [showUploadFor, setShowUploadFor] = useState(null)
+  const [uploadFiles, setUploadFiles] = useState([])
+  const [uploadCaptions, setUploadCaptions] = useState([])
+  const [uploadPreviews, setUploadPreviews] = useState([])
+  const [uploadError, setUploadError] = useState('')
 
   useEscapeKey(() => setShowForm(false), showForm)
+  useEscapeKey(() => closeUpload(), !!showUploadFor)
+
+  function closeUpload() {
+    if (cabinPhotoHook.uploading) return
+    setShowUploadFor(null)
+    setUploadFiles([])
+    setUploadCaptions([])
+    setUploadError('')
+    setUploadPreviews(prev => { for (const u of prev) URL.revokeObjectURL(u); return [] })
+  }
+
+  function handleFilePick(e) {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    if (!files.length) return
+    for (const u of uploadPreviews) URL.revokeObjectURL(u)
+    setUploadFiles(files)
+    setUploadPreviews(files.map(f => URL.createObjectURL(f)))
+    setUploadCaptions(files.map(f => f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()))
+    setUploadError('')
+  }
+
+  async function handleReplaceUpload() {
+    if (!showUploadFor || !uploadFiles.length) return
+    setUploadError('')
+    try {
+      await cabinPhotoHook.replaceCabinPhotos(showUploadFor, uploadFiles, uploadCaptions)
+      closeUpload()
+    } catch {
+      setUploadError('Upload failed. Please try again.')
+    }
+  }
 
   const pinsByCabin = {}
   for (const p of pins) {
@@ -78,7 +118,7 @@ export default function CabinsPage() {
     try {
       await addImprovement(cabinId, year, description)
       setImprovementForm({ year: new Date().getFullYear(), description: '' })
-    } catch { setImprovementError('Failed to add improvement') }
+    } catch { setImprovementError('Failed to add maintenance') }
   }
 
   if (loading) return <div className="text-stone-500 dark:text-stone-400">Loading...</div>
@@ -152,18 +192,25 @@ export default function CabinsPage() {
                     </div>
                   </div>
                 )}
+
+                <CabinPhotoCarousel
+                  photos={cabinPhotoHook.photosByCabin[cabin.id] || []}
+                  isAdmin={isAdmin}
+                  onUpload={() => { setUploadFiles([]); setUploadCaptions([]); setUploadError(''); setShowUploadFor(cabin.id) }}
+                  onDelete={(photo) => cabinPhotoHook.deleteCabinPhoto(photo)}
+                />
               </div>
 
               <div className="border-t border-stone-100 dark:border-stone-800">
                 <button onClick={() => setExpandedCabin(isExpanded ? null : cabin.id)} className="flex items-center gap-1.5 w-full px-4 py-2 text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
                   <History className="h-3.5 w-3.5" />
-                  Improvement History ({improvements.length})
+                  Maintenance History ({improvements.length})
                   <span className="ml-auto">{isExpanded ? '▲' : '▼'}</span>
                 </button>
                 {isExpanded && (
                   <div className="px-4 pb-3 space-y-1">
                     {improvements.length === 0 && (
-                      <p className="text-xs text-stone-400 dark:text-stone-500 py-1">No improvements recorded yet.</p>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 py-1">No maintenance recorded yet.</p>
                     )}
                     {improvements.map((imp) => (
                       <div key={imp.id} className="flex items-center gap-3 text-xs text-stone-600 dark:text-stone-400 py-1">
@@ -177,7 +224,7 @@ export default function CabinsPage() {
                     {isAdmin && (
                       <div className="flex gap-2 pt-2 border-t border-stone-100 dark:border-stone-800">
                         <input type="number" value={improvementForm.year} min="1900" max="2100" onChange={(e) => setImprovementForm(f => ({ ...f, year: e.target.value }))} className="w-20 rounded border border-stone-300 dark:border-stone-600 px-2 py-1 text-xs bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" aria-label="Year" />
-                        <input type="text" placeholder="Description" value={improvementForm.description} onChange={(e) => setImprovementForm(f => ({ ...f, description: e.target.value }))} className="flex-1 rounded border border-stone-300 dark:border-stone-600 px-2 py-1 text-xs bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" aria-label="Improvement description" />
+                        <input type="text" placeholder="Description" value={improvementForm.description} onChange={(e) => setImprovementForm(f => ({ ...f, description: e.target.value }))} className="flex-1 rounded border border-stone-300 dark:border-stone-600 px-2 py-1 text-xs bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" aria-label="Maintenance description" />
                         <button onClick={() => handleAddImprovement(cabin.id)} className="rounded px-2 py-1 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 shrink-0">Add</button>
                       </div>
                     )}
@@ -215,6 +262,55 @@ export default function CabinsPage() {
                 <Button type="submit">{editing ? 'Save' : 'Add'}</Button>
               </div>
             </form>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {showUploadFor && (
+        <ModalOverlay onClose={closeUpload} ariaLabel="Upload room photos">
+          <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Room Photos</h3>
+              {!cabinPhotoHook.uploading && <button onClick={closeUpload} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>}
+            </div>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">
+              Uploading replaces the cabin's current room photos. Name each photo after the room (e.g. Kitchen, Bunk Room).
+            </p>
+            <label className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs cursor-pointer border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
+              <Upload className="h-3 w-3" /> Choose photos
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilePick} />
+            </label>
+            {uploadFiles.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {uploadFiles.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <img src={uploadPreviews[i]} alt="" className="w-12 h-12 object-cover rounded shrink-0" />
+                    <input
+                      type="text"
+                      value={uploadCaptions[i] || ''}
+                      onChange={(e) => setUploadCaptions(cs => cs.map((c, j) => (j === i ? e.target.value : c)))}
+                      placeholder="Room name"
+                      className="flex-1 min-w-0 rounded border border-stone-300 dark:border-stone-600 px-2 py-1.5 text-sm bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            {uploadError && <p className="text-xs text-rose-600 dark:text-rose-400 mt-3">{uploadError}</p>}
+            {cabinPhotoHook.uploading && (
+              <div className="mt-3 space-y-1">
+                <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+                  <div className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all duration-300 ease-out" style={{ width: `${cabinPhotoHook.progress}%` }} />
+                </div>
+                <p className="text-xs text-stone-400 dark:text-stone-500 text-right">{cabinPhotoHook.progress}%</p>
+              </div>
+            )}
+            <div className="flex gap-2 justify-end mt-4">
+              <button onClick={closeUpload} disabled={cabinPhotoHook.uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600 disabled:opacity-40">Cancel</button>
+              <button onClick={handleReplaceUpload} disabled={cabinPhotoHook.uploading || !uploadFiles.length} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
+                {cabinPhotoHook.uploading ? 'Uploading...' : 'Upload & Replace'}
+              </button>
+            </div>
           </div>
         </ModalOverlay>
       )}

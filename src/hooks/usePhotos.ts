@@ -3,6 +3,7 @@ import { supabase, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabas
 import exifr from 'exifr'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
+import { resizeImage } from '../lib/resizeImage'
 
 interface Photo {
   id: string
@@ -13,6 +14,7 @@ interface Photo {
   latitude?: number
   longitude?: number
   album_id?: string
+  cabin_id?: string
   uploaded_by?: string
   created_at?: string
 }
@@ -33,10 +35,93 @@ interface ExifData {
 interface UploadOptions {
   caption?: string
   album_id?: string
+  cabin_id?: string
   exif?: ExifData
 }
 
 const FUNCTIONS_URL = SUPABASE_FUNCTIONS_URL
+
+async function uploadPhotoCore(file: File, { caption, album_id, cabin_id, exif: exifData }: UploadOptions = {}): Promise<Photo> {
+  let takenAt: string | null = null; let latitude: number | null = null; let longitude: number | null = null
+  if (exifData) {
+    takenAt = exifData.takenAt ?? null
+    latitude = exifData.latitude ?? null
+    longitude = exifData.longitude ?? null
+  } else {
+    try {
+      const exif = await exifr.parse(file, ['DateTimeOriginal', 'latitude', 'longitude'])
+      if (exif?.DateTimeOriginal) takenAt = exif.DateTimeOriginal.toISOString()
+      if (Number.isFinite(exif?.latitude) && Number.isFinite(exif?.longitude)) {
+        latitude = exif.latitude; longitude = exif.longitude
+      }
+    } catch {}
+  }
+
+  const token = await getAccessToken()
+  if (!token) throw new Error('Not authenticated')
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+
+  let uploadResult: { storage_path: string; url: string; backend: string }
+  try {
+    const res = await fetch(`${FUNCTIONS_URL}/photo-upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+    uploadResult = await res.json()
+  } catch (err) {
+    console.error('Photo upload failed', err)
+    throw err
+  } finally {
+    clearTimeout(timeout)
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data, error } = await supabase
+    .from('photos')
+    .insert({
+      storage_path: uploadResult.storage_path,
+      url: uploadResult.url,
+      caption: caption || null,
+      taken_at: takenAt,
+      latitude, longitude,
+      album_id: album_id || null,
+      cabin_id: cabin_id || null,
+      uploaded_by: user?.id,
+    })
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('Photo DB insert failed; file may be orphaned on storage', error)
+    throw error
+  }
+
+  return data
+}
+
+async function deletePhotoCore(photo: Photo): Promise<void> {
+  const token = await getAccessToken()
+  if (!token) throw new Error('Not authenticated')
+
+  const res = await fetch(`${FUNCTIONS_URL}/photo-delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ photoId: photo.id, storagePath: photo.storage_path }),
+  })
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({}))
+    throw new Error((errJson as any).error || `Delete failed: ${res.status}`)
+  }
+}
 
 export function usePhotos() {
   const [photos, setPhotos] = useState<Photo[]>([])
@@ -74,69 +159,8 @@ export function usePhotos() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  const uploadPhoto = useCallback(async (file: File, { caption, album_id, exif: exifData }: UploadOptions = {}): Promise<Photo> => {
-    let takenAt: string | null = null; let latitude: number | null = null; let longitude: number | null = null
-    if (exifData) {
-      takenAt = exifData.takenAt ?? null
-      latitude = exifData.latitude ?? null
-      longitude = exifData.longitude ?? null
-    } else {
-      try {
-        const exif = await exifr.parse(file, ['DateTimeOriginal', 'latitude', 'longitude'])
-        if (exif?.DateTimeOriginal) takenAt = exif.DateTimeOriginal.toISOString()
-        if (Number.isFinite(exif?.latitude) && Number.isFinite(exif?.longitude)) {
-          latitude = exif.latitude; longitude = exif.longitude
-        }
-      } catch {}
-    }
-
-    const token = await getAccessToken()
-    if (!token) throw new Error('Not authenticated')
-
-    const formData = new FormData()
-    formData.append('file', file)
-
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
-
-    let uploadResult: { storage_path: string; url: string; backend: string }
-    try {
-      const res = await fetch(`${FUNCTIONS_URL}/photo-upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-        signal: controller.signal,
-      })
-      if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-      uploadResult = await res.json()
-    } catch (err) {
-      console.error('Photo upload failed', err)
-      throw err
-    } finally {
-      clearTimeout(timeout)
-    }
-
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const { data, error } = await supabase
-      .from('photos')
-      .insert({
-        storage_path: uploadResult.storage_path,
-        url: uploadResult.url,
-        caption: caption || null,
-        taken_at: takenAt,
-        latitude, longitude,
-        album_id: album_id || null,
-        uploaded_by: user?.id,
-      })
-      .select('*')
-      .single()
-
-    if (error) {
-      console.error('Photo DB insert failed; file may be orphaned on storage', error)
-      throw error
-    }
-
+  const uploadPhoto = useCallback(async (file: File, options: UploadOptions = {}): Promise<Photo> => {
+    const data = await uploadPhotoCore(file, options)
     setPhotos(prev => [data, ...prev])
     db.photos.put(data)
     toast.success('Photo uploaded')
@@ -145,18 +169,7 @@ export function usePhotos() {
 
   const deletePhoto = useCallback(async (photo: Photo) => {
     try {
-      const token = await getAccessToken()
-      if (!token) throw new Error('Not authenticated')
-
-      const res = await fetch(`${FUNCTIONS_URL}/photo-delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ photoId: photo.id, storagePath: photo.storage_path }),
-      })
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}))
-        throw new Error((errJson as any).error || `Delete failed: ${res.status}`)
-      }
+      await deletePhotoCore(photo)
       setPhotos(prev => prev.filter(p => p.id !== photo.id))
       db.photos.delete(photo.id)
       toast.info('Photo deleted')
@@ -167,4 +180,103 @@ export function usePhotos() {
   }, [toast])
 
   return { photos, albums, loading, uploadPhoto, deletePhoto, refresh: fetchAll }
+}
+
+export function useCabinPhotos(cabinIds: string[]) {
+  const toast = useToast()
+  const [photosByCabin, setPhotosByCabin] = useState<Record<string, Photo[]>>({})
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+
+  const apply = useCallback((rows: Photo[]) => {
+    const grouped: Record<string, Photo[]> = {}
+    for (const p of rows) {
+      if (!p.cabin_id) continue
+      if (!grouped[p.cabin_id]) grouped[p.cabin_id] = []
+      grouped[p.cabin_id].push(p)
+    }
+    for (const key of Object.keys(grouped)) {
+      grouped[key].sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''))
+    }
+    setPhotosByCabin(grouped)
+  }, [])
+
+  const cabinIdsKey = cabinIds.join(',')
+
+  const fetchCabinPhotos = useCallback(async () => {
+    const ids = cabinIdsKey ? cabinIdsKey.split(',') : []
+    if (!ids.length) { setLoading(false); return }
+    try {
+      const cached = await db.photos.where('cabin_id').anyOf(ids).toArray()
+      if (cached.length) apply(cached)
+    } catch (err) {
+      console.warn('Failed to read cabin photos from cache', err)
+    }
+    try {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .in('cabin_id', ids)
+        .order('created_at', { ascending: true })
+      if (!error && data) {
+        db.photos.bulkPut(data)
+        apply(data)
+      }
+    } catch (err) {
+      console.warn('Failed to load cabin photos from network', err)
+    }
+    setLoading(false)
+  }, [cabinIdsKey, apply])
+
+  useEffect(() => { fetchCabinPhotos() }, [fetchCabinPhotos])
+
+  const replaceCabinPhotos = useCallback(async (cabinId: string, files: File[], captions: (string | null)[]) => {
+    setUploading(true)
+    setProgress(5)
+    const oldPhotos = photosByCabin[cabinId] || []
+    let done = 0
+    const total = files.length + oldPhotos.length
+    const uploaded: Photo[] = []
+    try {
+      // Upload the new set first, then remove the previous year's photos
+      for (let i = 0; i < files.length; i++) {
+        const optimized = await resizeImage(files[i])
+        const photo = await uploadPhotoCore(optimized, {
+          cabin_id: cabinId,
+          caption: captions[i] || undefined,
+        })
+        uploaded.push(photo)
+        done++
+        setProgress(Math.round((done / total) * 90))
+      }
+      for (const old of oldPhotos) {
+        await deletePhotoCore(old)
+        done++
+        setProgress(Math.round((done / total) * 100))
+      }
+      setPhotosByCabin(prev => ({ ...prev, [cabinId]: uploaded }))
+      toast.success(`Uploaded ${uploaded.length} photo${uploaded.length === 1 ? '' : 's'}`)
+      return uploaded
+    } finally {
+      setUploading(false)
+      setProgress(0)
+    }
+  }, [photosByCabin, toast])
+
+  const deleteCabinPhoto = useCallback(async (photo: Photo) => {
+    try {
+      await deletePhotoCore(photo)
+      setPhotosByCabin(prev => ({
+        ...prev,
+        [photo.cabin_id || '']: (prev[photo.cabin_id || ''] || []).filter(p => p.id !== photo.id),
+      }))
+      toast.info('Photo deleted')
+    } catch (err) {
+      console.error('Failed to delete photo', err)
+      toast.error('Failed to delete photo')
+    }
+  }, [toast])
+
+  return { photosByCabin, loading, uploading, progress, replaceCabinPhotos, deleteCabinPhoto, refresh: fetchCabinPhotos }
 }

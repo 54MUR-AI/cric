@@ -160,7 +160,7 @@ export default function MaintenancePage() {
               {selectedTaskCategory?.cabin_id && (
                 <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  Completing this task records an improvement in the cabin's history.
+                  Completing this task records an entry in the cabin's maintenance history.
                 </p>
               )}
               {selectedTask.description && <p><span className="font-medium">Description:</span> {selectedTask.description}</p>}

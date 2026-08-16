@@ -43,7 +43,7 @@ export default function PinPopupContent({ pin, cabin, nextBooking, admin, onDele
           {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.guests || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
           {cabin.improvements && cabin.improvements.length > 0 && (
             <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 space-y-0.5">
-              <div className="text-stone-500 dark:text-stone-400 font-medium">Improvements ({cabin.improvements.length})</div>
+              <div className="text-stone-500 dark:text-stone-400 font-medium">Maintenance ({cabin.improvements.length})</div>
               {cabin.improvements.slice(0, 2).map((imp) => (
                 <div key={imp.id} className="flex gap-2 text-stone-400 dark:text-stone-500">
                   <span className="font-medium shrink-0">{imp.year}</span>

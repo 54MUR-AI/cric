@@ -105,6 +105,7 @@ interface Photo {
   latitude?: number
   longitude?: number
   album_id?: string
+  cabin_id?: string
   uploaded_by?: string
   created_at?: string
 }
@@ -330,6 +331,26 @@ class CricDatabase extends Dexie {
       meeting_agenda_items: 'id, meeting_id, sort_order',
       map_pins: 'id, type, label',
       photos: 'id, album_id, taken_at, created_at',
+      photo_albums: 'id, name',
+      weather_cache: '++id, key',
+      pending_changes: '++id, table, action, payload, created_at',
+      profiles: 'id',
+      officers: 'id, profile_id, title, sort_order',
+      boat_trips: 'id, trip_date, departure_time, created_by',
+      docks: 'id, name, sort_order',
+    })
+
+    this.version(9).stores({
+      cabins: 'id, name, sort_order',
+      cabin_improvements: 'id, cabin_id, year, created_at',
+      bookings: 'id, cabin_id, room, start_date, end_date',
+      maintenance_tasks: 'id, status, category_id, due_date, created_at',
+      maintenance_categories: 'id, name, sort_order',
+      maintenance_comments: 'id, task_id, created_at',
+      meetings: 'id, date',
+      meeting_agenda_items: 'id, meeting_id, sort_order',
+      map_pins: 'id, type, label',
+      photos: 'id, album_id, cabin_id, taken_at, created_at',
       photo_albums: 'id, name',
       weather_cache: '++id, key',
       pending_changes: '++id, table, action, payload, created_at',
