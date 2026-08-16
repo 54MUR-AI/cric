@@ -146,7 +146,6 @@ export default function CabinsPage() {
                       ? <img src={pin.image_url} alt="" className="w-16 h-16 object-cover rounded shrink-0" />
                       : <span className="w-16 h-16 rounded flex items-center justify-center bg-stone-100 dark:bg-stone-800 text-stone-300 dark:text-stone-600 shrink-0"><MapPin className="h-6 w-6" /></span>}
                     <div className="text-xs text-stone-500 dark:text-stone-400 space-y-0.5 min-w-0">
-                      <div className="text-stone-600 dark:text-stone-300 font-medium">{pin.label}</div>
                       {pin.description && <div className="truncate">{pin.description}</div>}
                       <div>{formatDistance(pin.latitude, pin.longitude)}</div>
                       <Link to="/map" className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium"><MapPin className="h-3 w-3" /> View on map</Link>
