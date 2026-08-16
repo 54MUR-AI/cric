@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
+import { escapeHtml } from '../../lib/map/utils'
 
 export default function PhotosLayer({ photos }) {
   const geotagged = useMemo(() => photos.filter(p => p.latitude != null && p.longitude != null), [photos])
@@ -8,7 +9,7 @@ export default function PhotosLayer({ photos }) {
   return geotagged.map(photo => (
     <Marker key={photo.id} position={[photo.latitude, photo.longitude]} icon={L.divIcon({
       className: '',
-      html: `<div style="width:32px;height:32px;border-radius:4px;overflow:hidden;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:pointer;"><img src="${photo.url}" alt="" style="width:100%;height:100%;object-fit:cover;" /></div>`,
+      html: `<div style="width:32px;height:32px;border-radius:4px;overflow:hidden;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);cursor:pointer;"><img src="${escapeHtml(photo.url)}" alt="" style="width:100%;height:100%;object-fit:cover;" /></div>`,
       iconSize: [32, 32], iconAnchor: [16, 16],
     })}>
       <Popup>

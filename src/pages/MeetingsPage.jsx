@@ -6,12 +6,14 @@ import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
 import { useEscapeKey } from '../components/ui/useEscapeKey'
+import { useToast } from '../components/ui/Toast'
 import { formatDate } from '../lib/utils'
 import { Plus, ChevronUp, ChevronDown, Search } from 'lucide-react'
 
 export default function MeetingsPage() {
   const { meetings, loading, createMeeting, deleteMeeting } = useMeetings()
   const { user, isAdmin } = useAuth()
+  const toast = useToast()
   const [selectedMeetingId, setSelectedMeetingId] = useState(null)
   const [meetingDetail, setMeetingDetail] = useState(null)
   const [showForm, setShowForm] = useState(false)

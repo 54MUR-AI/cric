@@ -1,6 +1,5 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
-
-const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
+import { authenticate, UA } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
@@ -8,20 +7,15 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   try {
-    const token = (req.headers.get('authorization') || '').replace('Bearer ', '')
-    if (!token) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
+    const auth = await authenticate(req)
+    if (!auth) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { ...cors, 'Content-Type': 'application/json' } })
+    }
+
+    const { photoId } = await req.json()
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-
-    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey, 'User-Agent': UA },
-    })
-    if (!userResp.ok) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
-    const user = await userResp.json()
-    if (!user?.id) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
-
-    const { photoId, storagePath } = await req.json()
 
     // Look up the photo and verify ownership server-side
     const photoResp = await fetch(`${supabaseUrl}/rest/v1/photos?id=eq.${photoId}&select=id,uploaded_by,storage_path,url`, {
@@ -29,12 +23,11 @@ Deno.serve(async (req: Request) => {
     })
     const photos = await photoResp.json()
     const photo = Array.isArray(photos) ? photos[0] : null
-    if (!photo) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers: cors })
+    if (!photo) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers: { ...cors, 'Content-Type': 'application/json' } })
 
-    const isOwner = photo.uploaded_by === user.id
-    const isAdmin = user.app_metadata?.role === 'super_admin'
-    if (!isOwner && !isAdmin) {
-      return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: cors })
+    const isOwner = photo.uploaded_by === auth.user.id
+    if (!isOwner && !auth.isAdmin) {
+      return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } })
     }
 
     const piUrl = Deno.env.get('PI_PHOTO_SERVER_URL')

@@ -1,8 +1,8 @@
 import { useEffect, useCallback, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
-const VAPID_PUBLIC_KEY = 'BNVy6avXiwCH62TDZqHCi11KaFll6AGVXyyuzVmMx18eHsAyDgzG0_Kxck4M3ixkUxSngN9XvejDd6hb9yIvF7o'
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BNVy6avXiwCH62TDZqHCi11KaFll6AGVXyyuzVmMx18eHsAyDgzG0_Kxck4M3ixkUxSngN9XvejDd6hb9yIvF7o'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -90,7 +90,7 @@ export function usePushNotifications() {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
-        await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint).eq('user_id', user?.id)
         await sub.unsubscribe()
       }
       setEnabled(false)
@@ -117,14 +117,10 @@ interface PushPayload {
 
 export async function sendPushToAll(payload: PushPayload) {
   try {
-    const functionUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
-      || 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1'
-
-    const { data: sessionData } = await supabase.auth.getSession()
-    const token = sessionData.session?.access_token
+    const token = await getAccessToken()
     if (!token) return
 
-    await fetch(`${functionUrl}/trigger-push`, {
+    await fetch(`${SUPABASE_FUNCTIONS_URL}/trigger-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -132,7 +128,9 @@ export async function sendPushToAll(payload: PushPayload) {
       },
       body: JSON.stringify(payload),
     })
-  } catch {}
+  } catch (err) {
+    console.error('Failed to send push to all:', err)
+  }
 }
 
 async function saveSubscription(sub: PushSubscription) {

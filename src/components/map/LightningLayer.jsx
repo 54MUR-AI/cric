@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { haversineKm } from '../../lib/map/utils'
+import { SUPABASE_FUNCTIONS_URL, getAccessToken } from '../../lib/supabase'
 
-const LIGHTNING_URL = 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1/intel-lightning'
+const LIGHTNING_URL = `${SUPABASE_FUNCTIONS_URL}/intel-lightning`
 const POLL_MS = 15_000
 const ROLLING_WINDOW_MS = 90_000
 const BLINK_DURATION_MS = 10_000
@@ -72,7 +73,9 @@ export default function LightningLayer({ center, onStrikeNearby, onAllClear }) {
 
     async function fetchStrikes() {
       try {
-        const r = await fetch(LIGHTNING_URL)
+        const token = await getAccessToken()
+        if (!token) return
+        const r = await fetch(LIGHTNING_URL, { headers: { Authorization: `Bearer ${token}` } })
         if (!r.ok || cancelledRef.current) return
         const data = await r.json()
         if (cancelledRef.current) return
@@ -151,6 +154,14 @@ export default function LightningLayer({ center, onStrikeNearby, onAllClear }) {
             map.removeLayer(marker)
             markersRef.current.delete(id)
             strikeTimesRef.current.delete(id)
+          }
+        }
+        // prune known strike ids that have fallen out of the rolling window
+        // so knownIdsRef doesn't grow unbounded during long sessions
+        for (const strikeId of knownIdsRef.current) {
+          const timeMs = strikeTimesRef.current.get(`lightning-${strikeId}`)
+          if (timeMs == null || (Date.now() - timeMs) > ROLLING_WINDOW_MS) {
+            knownIdsRef.current.delete(strikeId)
           }
         }
       } catch {

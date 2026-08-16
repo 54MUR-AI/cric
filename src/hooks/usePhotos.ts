@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabase'
 import exifr from 'exifr'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
@@ -36,13 +36,7 @@ interface UploadOptions {
   exif?: ExifData
 }
 
-const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
-  || 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1'
-
-async function getToken(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
+const FUNCTIONS_URL = SUPABASE_FUNCTIONS_URL
 
 export function usePhotos() {
   const [photos, setPhotos] = useState<Photo[]>([])
@@ -96,7 +90,7 @@ export function usePhotos() {
       } catch {}
     }
 
-    const token = await getToken()
+    const token = await getAccessToken()
     if (!token) throw new Error('Not authenticated')
 
     const formData = new FormData()
@@ -151,7 +145,7 @@ export function usePhotos() {
 
   const deletePhoto = useCallback(async (photo: Photo) => {
     try {
-      const token = await getToken()
+      const token = await getAccessToken()
       if (!token) throw new Error('Not authenticated')
 
       const res = await fetch(`${FUNCTIONS_URL}/photo-delete`, {

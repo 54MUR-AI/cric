@@ -1,14 +1,9 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { UA } from '../_shared/auth.ts'
 import webpush from 'npm:web-push@3.6.7'
 
 const NWS_ALERTS_URL = 'https://api.weather.gov/alerts/active?point=44.14722,-74.81194'
-const NWS_UA = '(cric.app, denali.2.foxtrot@gmail.com)'
-const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
-
-interface Subscription {
-  endpoint: string
-  keys: { p256dh: string; auth: string }
-}
+const NWS_UA = UA
 
 interface PushPayload {
   title: string
@@ -36,6 +31,7 @@ interface NwsResponse {
 }
 
 interface SubscriptionRow {
+  id: string
   endpoint: string
   p256dh_key: string
   auth_key: string
@@ -162,31 +158,49 @@ async function checkRecentActivity(): Promise<void> {
   })
 }
 
-async function getSubscriptions(serviceKey: string, supabaseUrl: string): Promise<Subscription[]> {
-  const resp = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh_key,auth_key`, {
+async function getSubscriptions(serviceKey: string, supabaseUrl: string): Promise<SubscriptionRow[]> {
+  const resp = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=id,endpoint,p256dh_key,auth_key`, {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
   })
   const rows: SubscriptionRow[] = await resp.json().catch(() => [])
-  return (rows || []).map((s: SubscriptionRow) => ({
-    endpoint: s.endpoint,
-    keys: { p256dh: s.p256dh_key, auth: s.auth_key },
-  }))
+  return rows || []
 }
 
-async function sendPush(subscriptions: Subscription[], payload: PushPayload): Promise<void> {
+async function sendPush(rows: SubscriptionRow[], payload: PushPayload): Promise<void> {
   const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')
   const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')
   if (!vapidPrivateKey || !vapidPublicKey) return
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+
   webpush.setVapidDetails('mailto:denali.2.foxtrot@gmail.com', vapidPublicKey, vapidPrivateKey)
 
-  await Promise.allSettled(
-    subscriptions.map((sub) =>
+  const results = await Promise.allSettled(
+    rows.map((s: SubscriptionRow) =>
       webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth } },
+        { endpoint: s.endpoint, keys: { p256dh: s.p256dh_key, auth: s.auth_key } },
         JSON.stringify(payload),
         { TTL: 86400, urgency: 'normal' },
       )
     ),
   )
+
+  // Prune dead subscriptions (404/410) so the table doesn't accumulate
+  // permanently-failing endpoints.
+  const deadIds = results
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => {
+      if (r.status !== 'rejected') return false
+      const code = (r.reason as any)?.statusCode
+      return code === 404 || code === 410
+    })
+    .map(({ i }) => rows[i].id)
+
+  if (deadIds.length) {
+    await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=in.(${deadIds.join(',')})`, {
+      method: 'DELETE',
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    }).catch(() => {})
+  }
 }

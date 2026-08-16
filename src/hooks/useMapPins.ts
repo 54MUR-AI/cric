@@ -44,8 +44,8 @@ export function useMapPins() {
         .order('label')
       if (error) throw error
       if (data) { setPins(data); db.map_pins.bulkPut(data) }
-    } catch {
-      setPins([])
+    } catch (err) {
+      console.warn('Failed to fetch map pins:', err)
     } finally {
       setLoading(false)
     }

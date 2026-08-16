@@ -1,4 +1,5 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { authenticate, UA } from "../_shared/auth.ts";
 
 interface Stroke {
   id: number;
@@ -17,6 +18,14 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const auth = await authenticate(req);
+    if (!auth) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
     const strokes = await collectStrokes(4_000);
 
     return new Response(

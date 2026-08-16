@@ -1,14 +1,5 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
-
-interface GoTrueUser {
-  id: string
-  email?: string
-  app_metadata?: Record<string, unknown>
-}
-
-interface ProfileRow {
-  is_admin?: boolean
-}
+import { authenticate, UA } from '../_shared/auth.ts'
 
 interface CreateUserInput {
   email: string
@@ -30,8 +21,6 @@ type RequestBody =
   | ({ action: 'setAdmin' } & SetAdminInput)
   | ({ action: 'deleteUser' } & DeleteUserInput)
 
-const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
-
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
   const cors = getCorsHeaders(origin)
@@ -41,42 +30,31 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization') || ''
-    const token = authHeader.replace('Bearer ', '')
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-
-    // Verify caller is super admin by checking their JWT
-    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey, 'User-Agent': UA },
-    })
-    if (!userResp.ok) {
+    const auth = await authenticate(req)
+    if (!auth) {
       return new Response(JSON.stringify({ error: 'unauthorized' }), {
         status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
-    const user = await userResp.json() as GoTrueUser
-
-    // Check if user has admin role in app_metadata or profiles
-    const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_admin`, {
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
-    })
-    const profiles = await profileResp.json() as ProfileRow[]
-    const profile = Array.isArray(profiles) ? profiles[0] : null
-    const isAdmin = profile?.is_admin || user?.app_metadata?.role === 'super_admin'
-
-    if (!isAdmin) {
+    if (!auth.isAdmin) {
       return new Response(JSON.stringify({ error: 'forbidden' }), {
         status: 403, headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
     const body = await req.json() as RequestBody
 
     switch (body.action) {
       case 'createUser': {
         const { email, password, display_name } = body
+        if (!email || !password) {
+          return new Response(JSON.stringify({ error: 'email and password are required' }), {
+            status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
+          })
+        }
         const createResp = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
           method: 'POST',
           headers: {
@@ -103,7 +81,7 @@ Deno.serve(async (req: Request) => {
         const { profile_id, grant } = body
 
         // Update profiles table
-        await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile_id}`, {
+        const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile_id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -116,9 +94,12 @@ Deno.serve(async (req: Request) => {
             role: grant ? 'super_admin' : 'member',
           }),
         })
+        if (!profileResp.ok) {
+          throw new Error(`profile update failed: ${profileResp.status}`)
+        }
 
         // Update app_metadata via GoTrue admin API
-        await fetch(`${supabaseUrl}/auth/v1/admin/users/${profile_id}`, {
+        const metaResp = await fetch(`${supabaseUrl}/auth/v1/admin/users/${profile_id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -130,6 +111,23 @@ Deno.serve(async (req: Request) => {
             app_metadata: { role: grant ? 'super_admin' : 'member' },
           }),
         })
+        if (!metaResp.ok) {
+          // Roll back the profiles update so the two sources don't drift
+          await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile_id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: serviceKey,
+              Authorization: `Bearer ${serviceKey}`,
+              'User-Agent': UA,
+            },
+            body: JSON.stringify({
+              is_admin: !grant,
+              role: grant ? 'member' : 'super_admin',
+            }),
+          }).catch(() => {})
+          throw new Error(`app_metadata update failed: ${metaResp.status}`)
+        }
 
         return new Response(JSON.stringify({ ok: true }), {
           headers: { ...cors, 'Content-Type': 'application/json' },

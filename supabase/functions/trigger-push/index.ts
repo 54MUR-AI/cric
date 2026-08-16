@@ -1,4 +1,5 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { authenticate, UA } from '../_shared/auth.ts'
 import webpush from 'npm:web-push@3.6.7'
 
 interface PushPayload {
@@ -10,12 +11,11 @@ interface PushPayload {
 }
 
 interface PushSubscriptionRow {
+  id: string
   endpoint: string
   p256dh_key: string
   auth_key: string
 }
-
-const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
@@ -26,31 +26,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization') || ''
-    const token = authHeader.replace('Bearer ', '')
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-
-    // Verify caller is super admin
-    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey, 'User-Agent': UA },
-    })
-    if (!userResp.ok) {
+    const auth = await authenticate(req)
+    if (!auth) {
       return new Response(JSON.stringify({ error: 'unauthorized' }), {
         status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
-    const user = await userResp.json()
-
-    const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_admin`, {
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
-    })
-    const profiles = await profileResp.json()
-    const profile = Array.isArray(profiles) ? profiles[0] : null
-    const isAdmin = profile?.is_admin || user?.app_metadata?.role === 'super_admin'
-
-    if (!isAdmin) {
+    if (!auth.isAdmin) {
       return new Response(JSON.stringify({ error: 'forbidden' }), {
         status: 403, headers: { ...cors, 'Content-Type': 'application/json' },
       })
@@ -58,8 +40,11 @@ Deno.serve(async (req: Request) => {
 
     const payload: PushPayload = await req.json()
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+
     // Fetch all subscriptions
-    const subsResp = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh_key,auth_key`, {
+    const subsResp = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?select=id,endpoint,p256dh_key,auth_key`, {
       headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
     })
     const subs = await subsResp.json()
@@ -71,10 +56,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const rows = subs as PushSubscriptionRow[]
-    const subscriptions = rows.map(s => ({
-      endpoint: s.endpoint,
-      keys: { p256dh: s.p256dh_key, auth: s.auth_key },
-    }))
 
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')
@@ -85,9 +66,9 @@ Deno.serve(async (req: Request) => {
     webpush.setVapidDetails('mailto:denali.2.foxtrot@gmail.com', vapidPublicKey, vapidPrivateKey)
 
     const results = await Promise.allSettled(
-      subscriptions.map((sub: any) =>
+      rows.map((s: PushSubscriptionRow) =>
         webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth } },
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh_key, auth: s.auth_key } },
           JSON.stringify(payload),
           { TTL: 86400, urgency: 'normal' },
         ),
@@ -96,7 +77,26 @@ Deno.serve(async (req: Request) => {
 
     const sent = results.filter(r => r.status === 'fulfilled').length
 
-    return new Response(JSON.stringify({ sent, total: subscriptions.length }), {
+    // Prune dead subscriptions (push services report 404/410 when the
+    // subscription no longer exists) so the table doesn't accumulate
+    // permanently-failing endpoints.
+    const deadIds = results
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => {
+        if (r.status !== 'rejected') return false
+        const code = (r.reason as any)?.statusCode
+        return code === 404 || code === 410
+      })
+      .map(({ i }) => rows[i].id)
+
+    if (deadIds.length) {
+      await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=in.(${deadIds.join(',')})`, {
+        method: 'DELETE',
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
+      }).catch(() => {})
+    }
+
+    return new Response(JSON.stringify({ sent, total: rows.length, pruned: deadIds.length }), {
       headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (err) {

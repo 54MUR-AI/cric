@@ -1,6 +1,5 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
-
-const UA = '(cric.app, denali.2.foxtrot@gmail.com)'
+import { authenticate, UA } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
@@ -8,24 +7,19 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   try {
-    const token = (req.headers.get('authorization') || '').replace('Bearer ', '')
-    if (!token) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-
-    const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey, 'User-Agent': UA },
-    })
-    if (!userResp.ok) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
-    const user = await userResp.json()
-    if (!user?.id) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: cors })
+    const auth = await authenticate(req)
+    if (!auth) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { ...cors, 'Content-Type': 'application/json' } })
+    }
 
     const form = await req.formData()
     const file = form.get('file')
     if (!(file instanceof File)) {
-      return new Response(JSON.stringify({ error: 'no file' }), { status: 400, headers: cors })
+      return new Response(JSON.stringify({ error: 'no file' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } })
     }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
     const piUrl = Deno.env.get('PI_PHOTO_SERVER_URL')
     const piKey = Deno.env.get('PI_PHOTO_SERVER_KEY')

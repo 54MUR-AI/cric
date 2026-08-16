@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ui/Toast'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -68,14 +68,12 @@ export default function UsersPage() {
   }
 
   async function callAdmin(action, payload) {
-    const { data: sessionData } = await supabase.auth.getSession()
-    const functionUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
-      || 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1'
-    const r = await fetch(`${functionUrl}/admin-operations`, {
+    const token = await getAccessToken()
+    const r = await fetch(`${SUPABASE_FUNCTIONS_URL}/admin-operations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionData.session?.access_token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ action, ...payload }),
     })

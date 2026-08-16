@@ -9,6 +9,15 @@ export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+export function escapeHtml(value: string): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function bearing(lat1: number, lon1: number, lat2: number, lon2: number): string {
   const dLon = (lon2 - lon1) * Math.PI / 180
   const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180)
@@ -23,7 +32,7 @@ export function pinIcon(type: string, label: string, cabinColor?: string): L.Div
   const svg = PIN_SVG[type] || PIN_SVG.other
   return L.divIcon({
     className: '',
-    html: `<svg viewBox="0 0 16 16" fill="${color}" width="24" height="24" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;" title="${label}">${svg}</svg>`,
+    html: `<svg viewBox="0 0 16 16" fill="${escapeHtml(color)}" width="24" height="24" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;" title="${escapeHtml(label)}">${svg}</svg>`,
     iconSize: [24, 24], iconAnchor: [12, 12],
   })
 }
