@@ -34,7 +34,9 @@ Deno.serve(async (req: Request) => {
     const piKey = Deno.env.get('PI_PHOTO_SERVER_KEY')
 
     // Delete the stored file
-    if (piUrl && piKey && photo.url?.includes(piUrl) && photo.storage_path) {
+    let piValid = false
+    try { if (piUrl && piKey && new URL(piUrl).protocol.startsWith('http')) piValid = true } catch {}
+    if (piValid && photo.url?.includes(piUrl!) && photo.storage_path) {
       try {
         await fetch(`${piUrl}/photos/${photo.storage_path}`, {
           method: 'DELETE',

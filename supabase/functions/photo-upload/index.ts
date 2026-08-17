@@ -25,7 +25,9 @@ Deno.serve(async (req: Request) => {
     const piKey = Deno.env.get('PI_PHOTO_SERVER_KEY')
 
     // Primary: Pi photo server (via Cloudflare Tunnel)
-    if (piUrl && piKey) {
+    let piValid = false
+    try { if (piUrl && piKey && new URL(piUrl).protocol.startsWith('http')) piValid = true } catch {}
+    if (piValid) {
       try {
         const piForm = new FormData()
         piForm.append('file', file)
