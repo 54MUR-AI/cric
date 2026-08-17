@@ -59,7 +59,10 @@ export function useMapPins() {
     const payload = { ...input, created_by: user?.id }
     const { data, queued } = await offlineInsert('map_pins', payload)
     if (data) {
-      setPins(prev => [...prev, data].sort((a, b) => a.label.localeCompare(b.label)))
+      setPins(prev => {
+        if (prev.some(p => p.id === data.id)) return prev
+        return [...prev, data].sort((a, b) => a.label.localeCompare(b.label))
+      })
       db.map_pins.put(data)
       toast.info(queued ? 'Pin queued — will sync when online' : 'Pin added')
     }

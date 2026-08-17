@@ -83,11 +83,20 @@ export function useMaintenance() {
           if (catData) full.maintenance_categories = catData
           const { data: assignData } = full.assigned_to ? await supabase.from('profiles').select('display_name').eq('id', full.assigned_to).single() : { data: null }
           if (assignData) full.assigned_to_profile = assignData
-          setTasks((prev) => [full, ...prev]); db.maintenance_tasks.put(full); toast.success('Task created')
+          setTasks((prev) => {
+            if (prev.some(t => t.id === full.id)) return prev
+            return [full, ...prev]
+          })
+          db.maintenance_tasks.put(full)
+          toast.success('Task created')
         }
       } else {
         const optimistic = { ...task, id: insertData.id } as MaintenanceTask
-        setTasks((prev) => [optimistic, ...prev]); db.maintenance_tasks.put(optimistic)
+        setTasks((prev) => {
+          if (prev.some(t => t.id === optimistic.id)) return prev
+          return [optimistic, ...prev]
+        })
+        db.maintenance_tasks.put(optimistic)
         toast.info('Task queued — will sync when online')
       }
     }

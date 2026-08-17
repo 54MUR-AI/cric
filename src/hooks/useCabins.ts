@@ -91,7 +91,11 @@ export function useCabins() {
   async function createCabin(cabin: Partial<Cabin>) {
     const { data, queued } = await offlineInsert('cabins', cabin)
     if (data) {
-      setCabins((prev) => [...prev, data]); db.cabins.put(data)
+      setCabins((prev) => {
+        if (prev.some(c => c.id === data.id)) return prev
+        return [...prev, data]
+      })
+      db.cabins.put(data)
       toast.info(queued ? 'Cabin creation queued — will sync when online' : 'Cabin created')
     }
     return data

@@ -113,13 +113,21 @@ export function useBookings() {
         if (full) {
           const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
           if (cabin) full.cabins = cabin
-          setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking requested')
+          setBookings((prev) => {
+            if (prev.some(b => b.id === full.id)) return prev
+            return [...prev, full]
+          })
+          db.bookings.put(full); toast.success('Booking requested')
           notifyBookingAuthority(full.id).catch(() => {})
         }
       } else {
         // Offline: optimistic record
         const optimistic = { ...booking, status: 'requested', id: data.id } as Booking
-        setBookings((prev) => [...prev, optimistic]); db.bookings.put(optimistic)
+        setBookings((prev) => {
+          if (prev.some(b => b.id === optimistic.id)) return prev
+          return [...prev, optimistic]
+        })
+        db.bookings.put(optimistic)
         toast.info('Booking queued — will sync when online')
       }
     }

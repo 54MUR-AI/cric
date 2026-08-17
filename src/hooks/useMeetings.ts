@@ -45,7 +45,11 @@ export function useMeetings() {
   async function createMeeting(meeting: Partial<Meeting>) {
     const { data, queued } = await offlineInsert('meetings', meeting)
     if (data) {
-      setMeetings((prev) => [data, ...prev]); db.meetings.put(data)
+      setMeetings((prev) => {
+        if (prev.some(m => m.id === data.id)) return prev
+        return [data, ...prev]
+      })
+      db.meetings.put(data)
       toast.info(queued ? 'Meeting queued — will sync when online' : 'Meeting created')
     }
     return data
