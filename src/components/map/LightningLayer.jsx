@@ -200,6 +200,8 @@ export default function LightningLayer({ center, onStrikeNearby, onAllClear }) {
         if (age < BLINK_DURATION_MS) {
           const show = (now % BLINK_PERIOD_MS < BLINK_PERIOD_MS / 2)
           el.style.opacity = show ? '1' : '0.3'
+        } else if (el.style.opacity !== '1') {
+          el.style.opacity = '1'
         }
       }
     }, BLINK_PERIOD_MS / 2)

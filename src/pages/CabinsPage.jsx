@@ -15,10 +15,10 @@ import { CRANBERRY_LAKE } from '../lib/map/constants'
 import { haversineKm, bearing } from '../lib/map/utils'
 
 const CABIN_DESCRIPTIONS = {
-  'Bat Manor': 'Named for its resident bat population. Rustic cabin with characteristic log construction.',
-  'Loon Lodge': 'Lakeside lodge with loft. Popular for its water views and proximity to the dock.',
-  'Toad Hall': 'Cozy cabin with modern updates including metal roof and new septic system.',
-  'The Bunkhouse': 'Simple bunkhouse with recent window and door replacements. Ideal for overflow guests.',
+  'Bat Manor': '6 bd (1 king, 1 full, 11 twin) · 2 ba · Full kitchen · Large dining/common area\nRustic log cabin with room for the whole crew. Wrap-around deck and character-rich interior with vaulted ceilings and exposed beams.',
+  'Loon Lodge': '2 bd + loft (3 queen, 2 twin) · 2 ba · Full kitchen · Small dining/common area\nLakeside lodge with water views and loft sleeping. Great for families who want to wake up to the lake.',
+  'Toad Hall': '2 bd · 1 ba · Full kitchen · Small dining/common area\nCozy and efficient with modern updates including metal roof and new septic system. A solid, well-maintained option.',
+  'The Bunkhouse': 'Studio with loft (3 queen in loft, 1 full, 2 twin) · 1 ba · Half kitchen (no oven) · Small dining area\nFunctional bunkhouse ideal for overflow guests. Recent window and door replacements keep it tight and dry.',
 }
 
 function formatDistance(lat, lon) {
@@ -150,7 +150,7 @@ export default function CabinsPage() {
                     <span className="inline-block h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: cabin.color }} />
                     <div>
                       <h3 className="font-medium text-stone-800 dark:text-stone-200 truncate">{cabinName}</h3>
-                      <p className="text-xs text-stone-400 dark:text-stone-500">{blurb}</p>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 whitespace-pre-wrap">{blurb}</p>
                     </div>
                   </div>
                   {isAdmin && (
