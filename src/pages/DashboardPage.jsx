@@ -187,7 +187,7 @@ export default function DashboardPage() {
     supabase.from('photos').select('id, url, thumbnail_url, caption').order('created_at', { ascending: false }).limit(8).then(({ data }) => setRecentPhotos(data || []))
     const today = new Date().toISOString().split('T')[0]
     Promise.all([
-      supabase.from('bookings').select('*').lte('start_date', today).gte('end_date', today).in('status', ['approved', 'requested']),
+      supabase.from('bookings').select('*').lte('start_date', today).gte('end_date', today).or('status.in.(approved,requested),status.is.null'),
       supabase.from('cabins').select('id, name, color, sort_order'),
       supabase.from('profiles').select('id, display_name'),
     ]).then(([bookingsRes, cabinsRes, profilesRes]) => {
