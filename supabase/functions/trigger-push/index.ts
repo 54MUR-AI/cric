@@ -1,5 +1,6 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { authenticate, UA } from '../_shared/auth.ts'
+import { sendEmail } from '../_shared/resend.ts'
 import webpush from 'npm:web-push@3.6.7'
 
 interface PushPayload {
@@ -96,7 +97,29 @@ Deno.serve(async (req: Request) => {
       }).catch(() => {})
     }
 
-    return new Response(JSON.stringify({ sent, total: rows.length, pruned: deadIds.length }), {
+    // Send email to all users with email_notifications enabled
+    let emailsSent = 0
+    try {
+      const profilesResp = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=email,email_notifications&email_notifications=is.true&email=not.is.null`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA } },
+      )
+      const profiles = await profilesResp.json()
+      if (Array.isArray(profiles) && profiles.length) {
+        const results = await Promise.allSettled(
+          profiles.map((p: { email: string }) =>
+            sendEmail(
+              p.email,
+              payload.title,
+              `<p>${payload.body || ''}</p><p><a href="https://chairrock.app/map">View on CRIC</a></p>`,
+            ),
+          ),
+        )
+        emailsSent = results.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value === true).length
+      }
+    } catch { /* best effort */ }
+
+    return new Response(JSON.stringify({ sent, total: rows.length, pruned: deadIds.length, emails_sent: emailsSent }), {
       headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (err) {

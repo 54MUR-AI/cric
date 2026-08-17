@@ -1,5 +1,6 @@
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { authenticate, UA } from '../_shared/auth.ts'
+import { sendEmail, shouldSendEmail } from '../_shared/resend.ts'
 import webpush from 'npm:web-push@3.6.7'
 
 interface SubRow {
@@ -73,11 +74,6 @@ Deno.serve(async (req: Request) => {
       { headers },
     )
     const subs: SubRow[] = await subsResp.json().catch(() => [])
-    if (!Array.isArray(subs) || !subs.length) {
-      return new Response(JSON.stringify({ sent: 0, total: 0 }), {
-        headers: { ...cors, 'Content-Type': 'application/json' },
-      })
-    }
 
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')
@@ -97,34 +93,48 @@ Deno.serve(async (req: Request) => {
       data: { url: '/schedule' },
     }
 
-    const results = await Promise.allSettled(
-      subs.map((s: SubRow) =>
-        webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh_key, auth: s.auth_key } },
-          JSON.stringify(payload),
-          { TTL: 86400, urgency: 'normal' },
+    let sent = 0
+    if (Array.isArray(subs) && subs.length) {
+      const results = await Promise.allSettled(
+        subs.map((s: SubRow) =>
+          webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh_key, auth: s.auth_key } },
+            JSON.stringify(payload),
+            { TTL: 86400, urgency: 'normal' },
+          ),
         ),
-      ),
-    )
+      )
+      sent = results.filter(r => r.status === 'fulfilled').length
+      const deadIds = results
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) => {
+          if (r.status !== 'rejected') return false
+          const code = (r.reason as any)?.statusCode
+          return code === 404 || code === 410
+        })
+        .map(({ i }) => subs[i].id)
 
-    const sent = results.filter(r => r.status === 'fulfilled').length
-    const deadIds = results
-      .map((r, i) => ({ r, i }))
-      .filter(({ r }) => {
-        if (r.status !== 'rejected') return false
-        const code = (r.reason as any)?.statusCode
-        return code === 404 || code === 410
-      })
-      .map(({ i }) => subs[i].id)
-
-    if (deadIds.length) {
-      await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=in.(${deadIds.join(',')})`, {
-        method: 'DELETE',
-        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
-      }).catch(() => {})
+      if (deadIds.length) {
+        await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=in.(${deadIds.join(',')})`, {
+          method: 'DELETE',
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'User-Agent': UA },
+        }).catch(() => {})
+      }
     }
 
-    return new Response(JSON.stringify({ sent, total: subs.length }), {
+    const { email, enabled } = await shouldSendEmail(supabaseUrl, serviceKey, booking.user_id, UA)
+    let emailSent = false
+    if (enabled && email) {
+      emailSent = await sendEmail(
+        email,
+        `Booking ${verb}: ${cabinName}`,
+        `<p>Your booking for <strong>${cabinName}</strong> has been <strong>${verb}</strong> by ${authorityName}.</p>
+         <p>${booking.guests || 'Your booking'} &middot; ${start}–${end}</p>
+         <p><a href="https://chairrock.app/schedule">View schedule</a></p>`,
+      )
+    }
+
+    return new Response(JSON.stringify({ sent, total: Array.isArray(subs) ? subs.length : 0, email_sent: emailSent }), {
       headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (err) {

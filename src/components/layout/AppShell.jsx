@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import KeyboardShortcutHelp from '../ui/KeyboardShortcutHelp'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, RotateCcw, RefreshCw, Bell, BellOff } from 'lucide-react'
+import { Menu, RotateCcw, RefreshCw, Bell, BellOff, Mail, MailX } from 'lucide-react'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 import OfflineIndicator from '../ui/OfflineIndicator'
@@ -12,6 +12,8 @@ import { useKeyBindings } from '../../lib/useKeyBindings'
 import { useInstallPrompt } from '../../lib/useInstallPrompt'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { useToast } from '../ui/Toast'
+import { useAuth } from '../../hooks/useAuth'
+import { supabase } from '../../lib/supabase'
 import { Download, X } from 'lucide-react'
 
 function PullToRefresh({ onRefresh }) {
@@ -67,6 +69,7 @@ export default function AppShell() {
   useKeyBindings(() => setShowKeys(true))
   const { showInstall, install, dismiss } = useInstallPrompt()
   const { supported, enabled, isBraveBrowser, toggle } = usePushNotifications()
+  const { profile, updateProfile } = useAuth()
   const toast = useToast()
 
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
@@ -96,6 +99,23 @@ export default function AppShell() {
       toast.error(`Failed: ${err.message}`)
     }
   }, [supported, enabled, isBraveBrowser, toggle, toast])
+
+  const emailEnabled = profile?.email_notifications !== false
+
+  const handleMailClick = useCallback(async () => {
+    if (!profile?.id) return
+    const next = !emailEnabled
+    const { error } = await supabase
+      .from('profiles')
+      .update({ email_notifications: next })
+      .eq('id', profile.id)
+    if (!error) {
+      updateProfile({ email_notifications: next })
+      toast.success(next ? 'Email notifications enabled' : 'Email notifications disabled')
+    } else {
+      toast.error('Failed to update email preference')
+    }
+  }, [profile, emailEnabled, toast, updateProfile])
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -128,17 +148,30 @@ export default function AppShell() {
             <Menu className="h-5 w-5" />
           </button>
           <span className="font-semibold text-sm">CRIC Manager</span>
-          <button
-            onClick={handleBellClick}
-            className="p-1 text-stone-300 hover:text-white transition-colors"
-            title={enabled ? 'Disable notifications' : 'Enable notifications'}
-          >
-            {enabled ? (
-              <Bell className="h-5 w-5 text-emerald-400" />
-            ) : (
-              <BellOff className="h-5 w-5" />
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleMailClick}
+              className="p-1 text-stone-300 hover:text-white transition-colors"
+              title={emailEnabled ? 'Disable email notifications' : 'Enable email notifications'}
+            >
+              {emailEnabled ? (
+                <Mail className="h-5 w-5 text-emerald-400" />
+              ) : (
+                <MailX className="h-5 w-5" />
+              )}
+            </button>
+            <button
+              onClick={handleBellClick}
+              className="p-1 text-stone-300 hover:text-white transition-colors"
+              title={enabled ? 'Disable notifications' : 'Enable notifications'}
+            >
+              {enabled ? (
+                <Bell className="h-5 w-5 text-emerald-400" />
+              ) : (
+                <BellOff className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </header>
         <header className="hidden md:flex items-center justify-end bg-emerald-900 text-stone-100 px-6 py-3">
           <div className="flex items-center gap-4">
@@ -147,6 +180,17 @@ export default function AppShell() {
                 <RotateCcw className="h-3 w-3" /> Update
               </button>
             )}
+            <button
+              onClick={handleMailClick}
+              className="p-2 text-stone-300 hover:text-white transition-colors"
+              title={emailEnabled ? 'Disable email notifications' : 'Enable email notifications'}
+            >
+              {emailEnabled ? (
+                <Mail className="h-5 w-5 text-emerald-400" />
+              ) : (
+                <MailX className="h-5 w-5" />
+              )}
+            </button>
             <button
               onClick={handleBellClick}
               className="p-2 text-stone-300 hover:text-white transition-colors"

@@ -8,6 +8,7 @@ interface Profile {
   display_name?: string
   email?: string
   is_admin?: boolean
+  email_notifications?: boolean
   created_at?: string
 }
 
@@ -19,6 +20,7 @@ interface AuthContextValue {
   loading: boolean
   signInWithPassword: (email: string, password: string) => Promise<{ user: User | null }>
   signOut: () => Promise<void>
+  updateProfile: (patch: Partial<Profile>) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -107,8 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = role === 'super_admin'
 
+  function updateProfile(patch: Partial<Profile>) {
+    setProfile(prev => prev ? { ...prev, ...patch } : prev)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, role, isAdmin, loading, signInWithPassword, signOut }}>
+    <AuthContext.Provider value={{ user, profile, role, isAdmin, loading, signInWithPassword, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )
