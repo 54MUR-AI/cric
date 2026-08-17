@@ -9,6 +9,21 @@ interface Profile {
   email?: string
   is_admin?: boolean
   email_notifications?: boolean
+  map_preferences?: {
+    center?: [number, number]
+    zoom?: number
+    baseLayer?: 'satellite' | 'map' | 'topo'
+    showRadar?: boolean
+    showStations?: boolean
+    showTrails?: boolean
+    showPins?: boolean
+    showLightning?: boolean
+    showPhotos?: boolean
+    showForecast?: boolean
+    showBathymetry?: boolean
+    showFireDanger?: boolean
+    cellCarriers?: { att?: boolean; verizon?: boolean; tmobile?: boolean; uscellular?: boolean }
+  } | null
   created_at?: string
 }
 

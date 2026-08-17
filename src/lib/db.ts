@@ -137,7 +137,25 @@ interface Profile {
   display_name?: string
   email?: string
   is_admin?: boolean
+  email_notifications?: boolean
+  map_preferences?: MapPreferences | null
   created_at?: string
+}
+
+interface MapPreferences {
+  center?: [number, number]
+  zoom?: number
+  baseLayer?: 'satellite' | 'map' | 'topo'
+  showRadar?: boolean
+  showStations?: boolean
+  showTrails?: boolean
+  showPins?: boolean
+  showLightning?: boolean
+  showPhotos?: boolean
+  showForecast?: boolean
+  showBathymetry?: boolean
+  showFireDanger?: boolean
+  cellCarriers?: { att?: boolean; verizon?: boolean; tmobile?: boolean; uscellular?: boolean }
 }
 
 interface Officer {
@@ -359,9 +377,29 @@ class CricDatabase extends Dexie {
       boat_trips: 'id, trip_date, departure_time, created_by',
       docks: 'id, name, sort_order',
     })
+
+    this.version(10).stores({
+      cabins: 'id, name, sort_order',
+      cabin_improvements: 'id, cabin_id, year, created_at',
+      bookings: 'id, cabin_id, room, start_date, end_date',
+      maintenance_tasks: 'id, status, category_id, due_date, created_at',
+      maintenance_categories: 'id, name, sort_order',
+      maintenance_comments: 'id, task_id, created_at',
+      meetings: 'id, date',
+      meeting_agenda_items: 'id, meeting_id, sort_order',
+      map_pins: 'id, type, label',
+      photos: 'id, album_id, cabin_id, taken_at, created_at',
+      photo_albums: 'id, name',
+      weather_cache: '++id, key',
+      pending_changes: '++id, table, action, payload, created_at',
+      profiles: 'id',
+      officers: 'id, profile_id, title, sort_order',
+      boat_trips: 'id, trip_date, departure_time, created_by',
+      docks: 'id, name, sort_order',
+    })
   }
 }
 
 const db = new CricDatabase()
 export default db
-export type { Cabin, CabinImprovement, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip, Dock }
+export type { Cabin, CabinImprovement, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip, Dock, MapPreferences }

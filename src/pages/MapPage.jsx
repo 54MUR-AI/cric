@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Radio, Zap, Thermometer, Navigation, MapPin, ChevronLeft, Search, Maximize, Minimize, Crosshair, Ruler, Wifi, Droplets, Flame, CloudSun, Image, Loader } from 'lucide-react'
@@ -28,8 +28,37 @@ import PinPopupContent from '../components/map/PinPopupContent'
 import { CHAIR_ROCK_ISLAND, CRANBERRY_LAKE, PIN_COLORS, PIN_TYPE_LABELS, ESRI_SAT, ESRI_TOPO, ESRI_ATTR } from '../lib/map/constants'
 import { bearing, pinIcon } from '../lib/map/utils'
 
+const DEFAULT_PREFS = {
+  center: CHAIR_ROCK_ISLAND,
+  zoom: 17,
+  baseLayer: 'satellite',
+  showRadar: true,
+  showStations: true,
+  showTrails: true,
+  showPins: true,
+  showLightning: true,
+  showPhotos: false,
+  showForecast: false,
+  showBathymetry: true,
+  showFireDanger: true,
+  cellCarriers: { att: false, verizon: false, tmobile: false, uscellular: false },
+}
+
+function MapEvents({ onMoveEnd }) {
+  useMapEvents({
+    moveend(e) {
+      const map = e.target
+      const center = map.getCenter()
+      const zoom = map.getZoom()
+      onMoveEnd([center.lat, center.lng], zoom)
+    },
+  })
+  return null
+}
+
 export default function MapPage({ compact, onLightningStrike } = {}) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, profile, updateProfile } = useAuth()
+  const prefs = compact ? null : (profile?.map_preferences || null)
   const { stations, loading: stationsLoading } = useWeatherStations()
   const { pins, loading: pinsLoading, addPin, updatePin, deletePin, refresh: refreshPins } = useMapPins()
   const { photos } = usePhotos()
@@ -44,19 +73,19 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
     return [lat, lon]
   }, [cabinCenterKey])
 
-  const [showRadar, setShowRadar] = useState(true)
-  const [showStations, setShowStations] = useState(true)
-  const [showTrails, setShowTrails] = useState(true)
-  const [showPins, setShowPins] = useState(true)
-  const [showLightning, setShowLightning] = useState(true)
-  const [showPhotos, setShowPhotos] = useState(false)
-  const [showForecast, setShowForecast] = useState(false)
-  const [showBathymetry, setShowBathymetry] = useState(true)
-  const [showFireDanger, setShowFireDanger] = useState(true)
-  const [cellCarriers, setCellCarriers] = useState({ att: false, verizon: false, tmobile: false, uscellular: false })
+  const [showRadar, setShowRadar] = useState(prefs?.showRadar ?? DEFAULT_PREFS.showRadar)
+  const [showStations, setShowStations] = useState(prefs?.showStations ?? DEFAULT_PREFS.showStations)
+  const [showTrails, setShowTrails] = useState(prefs?.showTrails ?? DEFAULT_PREFS.showTrails)
+  const [showPins, setShowPins] = useState(prefs?.showPins ?? DEFAULT_PREFS.showPins)
+  const [showLightning, setShowLightning] = useState(prefs?.showLightning ?? DEFAULT_PREFS.showLightning)
+  const [showPhotos, setShowPhotos] = useState(prefs?.showPhotos ?? DEFAULT_PREFS.showPhotos)
+  const [showForecast, setShowForecast] = useState(prefs?.showForecast ?? DEFAULT_PREFS.showForecast)
+  const [showBathymetry, setShowBathymetry] = useState(prefs?.showBathymetry ?? DEFAULT_PREFS.showBathymetry)
+  const [showFireDanger, setShowFireDanger] = useState(prefs?.showFireDanger ?? DEFAULT_PREFS.showFireDanger)
+  const [cellCarriers, setCellCarriers] = useState(prefs?.cellCarriers ?? DEFAULT_PREFS.cellCarriers)
   const [fireDanger, setFireDanger] = useState(null)
   const [notifyPerm, setNotifyPerm] = useState(Notification.permission)
-  const [baseLayer, setBaseLayer] = useState('satellite')
+  const [baseLayer, setBaseLayer] = useState(prefs?.baseLayer ?? DEFAULT_PREFS.baseLayer)
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [editingPin, setEditingPin] = useState(null)
   const [newPinLatLng, setNewPinLatLng] = useState(null)
@@ -103,6 +132,39 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
 
   const toast = useToast()
   const lastLightningAlertRef = useRef(0)
+
+  // Debounced save of map preferences to Supabase (full-page mode only)
+  const saveTimerRef = useRef(null)
+  const mapCenterRef = useRef(prefs?.center ?? CHAIR_ROCK_ISLAND)
+  const mapZoomRef = useRef(prefs?.zoom ?? 17)
+
+  const savePreferences = useCallback(() => {
+    if (compact || !profile?.id) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      const prefs = {
+        center: mapCenterRef.current,
+        zoom: mapZoomRef.current,
+        baseLayer,
+        showRadar, showStations, showTrails, showPins, showLightning,
+        showPhotos, showForecast, showBathymetry, showFireDanger,
+        cellCarriers,
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({ map_preferences: prefs })
+        .eq('id', profile.id)
+      if (!error) updateProfile({ map_preferences: prefs })
+    }, 500)
+  }, [compact, profile?.id, baseLayer, showRadar, showStations, showTrails, showPins, showLightning, showPhotos, showForecast, showBathymetry, showFireDanger, cellCarriers, updateProfile])
+
+  const handleMoveEnd = useCallback((center, zoom) => {
+    mapCenterRef.current = center
+    mapZoomRef.current = zoom
+    savePreferences()
+  }, [savePreferences])
+
+  useEffect(() => { savePreferences() }, [baseLayer, showRadar, showStations, showTrails, showPins, showLightning, showPhotos, showForecast, showBathymetry, showFireDanger, cellCarriers, savePreferences])
 
   useEffect(() => {
     if (notifyPerm !== 'granted' && Notification.permission === 'default') Notification.requestPermission().then(p => setNotifyPerm(p))
@@ -409,7 +471,8 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
       )}
 
       <div ref={mapRef} className={`rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm dark:shadow-black/20 relative z-0 ${mapHeight}`} style={mapStyle}>
-        <MapContainer center={CHAIR_ROCK_ISLAND} zoom={17} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : measuring ? { cursor: 'crosshair' } : {}}>
+        <MapContainer center={compact ? CHAIR_ROCK_ISLAND : (prefs?.center ?? CHAIR_ROCK_ISLAND)} zoom={compact ? 17 : (prefs?.zoom ?? 17)} minZoom={8} maxZoom={21} className="h-full w-full" zoomControl={false} style={isAddingPin ? { cursor: 'crosshair' } : measuring ? { cursor: 'crosshair' } : {}}>
+          {!compact && <MapEvents onMoveEnd={handleMoveEnd} />}
           <MapClickHandler active={isAddingPin} onMapClick={handleMapClick} onMapClickGeneral={handleMapClickGeneral} />
           <TileLayer key={baseLayer} attribution={baseLayer !== 'map' ? ESRI_ATTR : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'} url={baseLayer === 'satellite' ? ESRI_SAT : baseLayer === 'topo' ? ESRI_TOPO : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} maxZoom={baseLayer === 'map' ? 19 : 21} />
           {showTrails && <TileLayer attribution='&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>' url="https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png" opacity={0.7} />}

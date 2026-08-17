@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, LogOut, X, Moon, Sun, Ship, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight,
+  LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, LogOut, X, Moon, Sun, Ship, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Map,
 } from 'lucide-react'
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '../../lib/constants'
 import { useAuth } from '../../hooks/useAuth'
 import { useDarkMode } from '../../lib/useDarkMode'
 import { useOfficers } from '../../lib/OfficersContext'
 
-const iconMap = { LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, Ship, AlertTriangle }
+const iconMap = { LayoutDashboard, Calendar, Wrench, FileText, Home, Users, BookOpen, ScrollText, Image, Ship, AlertTriangle, Map }
 
 function DarkModeToggle({ collapsed }) {
   const { dark, toggle } = useDarkMode()

@@ -6,6 +6,7 @@ interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
+  { to: '/map', label: 'Map', icon: 'Map' },
   { to: '/schedule', label: 'Schedule', icon: 'Calendar' },
   { to: '/emergency', label: 'Emergency', icon: 'AlertTriangle' },
   { to: '/cabins', label: 'Cabins', icon: 'Home' },
