@@ -187,13 +187,13 @@ export default function DashboardPage() {
     supabase.from('photos').select('id, url, thumbnail_url, caption').order('created_at', { ascending: false }).limit(8).then(({ data }) => setRecentPhotos(data || []))
     const today = new Date().toISOString().split('T')[0]
     Promise.all([
-      supabase.from('bookings').select('*').lte('start_date', today).gte('end_date', today).or('status.in.(approved,requested),status.is.null'),
+      supabase.from('bookings').select('*').lte('start_date', today).gte('end_date', today),
       supabase.from('cabins').select('id, name, color, sort_order'),
       supabase.from('profiles').select('id, display_name'),
     ]).then(([bookingsRes, cabinsRes, profilesRes]) => {
       const cabinMap = new Map((cabinsRes.data ?? []).map(c => [c.id, c]))
       const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, p.display_name]))
-      const merged = (bookingsRes.data ?? []).map(b => ({
+      const merged = (bookingsRes.data ?? []).filter(b => b.status !== 'rejected').map(b => ({
         ...b,
         cabins: cabinMap.get(b.cabin_id) ? { name: cabinMap.get(b.cabin_id).name, color: cabinMap.get(b.cabin_id).color, sort_order: cabinMap.get(b.cabin_id).sort_order } : undefined,
         profiles: b.user_id && profMap.has(b.user_id) ? { display_name: profMap.get(b.user_id) } : undefined,
