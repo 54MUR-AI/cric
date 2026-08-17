@@ -50,7 +50,6 @@ export default function CabinsPage() {
   useEscapeKey(() => closeUpload(), !!showUploadFor)
 
   function closeUpload() {
-    if (cabinPhotoHook.uploading) return
     setShowUploadFor(null)
     setUploadFiles([])
     setUploadCaptions([])

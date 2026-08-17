@@ -64,7 +64,7 @@ async function uploadPhotoCore(file: File, { caption, album_id, cabin_id, exif: 
   formData.append('file', file)
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 15000)
+  const timeout = setTimeout(() => controller.abort(), 30000)
 
   let uploadResult: { storage_path: string; url: string; backend: string }
   try {
@@ -262,11 +262,13 @@ export function useCabinPhotos(cabinIds: string[]) {
           caption: captions[i] || undefined,
         })
         uploaded.push(photo)
+        db.photos.put(photo)
         done++
         setProgress(Math.round((done / total) * 90))
       }
       for (const old of oldPhotos) {
         await deletePhotoCore(old)
+        db.photos.delete(old.id)
         done++
         setProgress(Math.round((done / total) * 100))
       }
@@ -282,6 +284,7 @@ export function useCabinPhotos(cabinIds: string[]) {
   const deleteCabinPhoto = useCallback(async (photo: Photo) => {
     try {
       await deletePhotoCore(photo)
+      db.photos.delete(photo.id)
       setPhotosByCabin(prev => ({
         ...prev,
         [photo.cabin_id || '']: (prev[photo.cabin_id || ''] || []).filter(p => p.id !== photo.id),
