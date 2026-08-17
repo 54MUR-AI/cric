@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
+import { offlineInsert, offlineUpdate, offlineDelete } from '../lib/offlineWrite'
 import { useToast } from '../components/ui/Toast'
 import { notifyBookingAuthority } from './usePushNotifications'
 
@@ -100,19 +101,26 @@ export function useBookings() {
   }, [])
 
   async function createBooking(booking: Partial<Booking>) {
-    const { data, error } = await supabase.from('bookings').insert({ ...booking, status: 'requested' }).select().single()
-    if (error) throw error
+    const { data, queued } = await offlineInsert('bookings', { ...booking, status: 'requested' })
     if (data) {
-      const { data: full } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', data.id)
-        .single()
-      if (full) {
-        const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
-        if (cabin) full.cabins = cabin
-        setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking requested')
-        notifyBookingAuthority(full.id).catch(() => {})
+      if (!queued) {
+        // Online: fetch full record with joins
+        const { data: full } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('id', data.id)
+          .single()
+        if (full) {
+          const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
+          if (cabin) full.cabins = cabin
+          setBookings((prev) => [...prev, full]); db.bookings.put(full); toast.success('Booking requested')
+          notifyBookingAuthority(full.id).catch(() => {})
+        }
+      } else {
+        // Offline: optimistic record
+        const optimistic = { ...booking, status: 'requested', id: data.id } as Booking
+        setBookings((prev) => [...prev, optimistic]); db.bookings.put(optimistic)
+        toast.info('Booking queued — will sync when online')
       }
     }
     return data
@@ -121,40 +129,39 @@ export function useBookings() {
   async function deleteBooking(id: string) {
     const current = bookings
     setBookings((prev) => prev.filter((b) => b.id !== id))
-    try { await supabase.from('bookings').delete().eq('id', id); db.bookings.delete(id); toast.info('Booking cancelled') }
-    catch { setBookings(current); toast.error('Failed to cancel booking') }
+    try {
+      const { queued } = await offlineDelete('bookings', id)
+      db.bookings.delete(id)
+      toast.info(queued ? 'Booking removal queued — will sync when online' : 'Booking cancelled')
+    } catch { setBookings(current); toast.error('Failed to cancel booking') }
   }
 
   async function updateBooking(id: string, updates: Partial<Booking>) {
-    const { error } = await supabase.from('bookings').update(updates).eq('id', id)
-    if (error) throw error
-    const { data: full } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('id', id)
-      .single()
-    if (full) {
-      const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
-      if (cabin) full.cabins = cabin
-      setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full); toast.success('Booking updated')
+    const { data, queued } = await offlineUpdate('bookings', id, updates)
+    if (!queued && data) {
+      const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', data.cabin_id).single()
+      if (cabin) data.cabins = cabin
+      setBookings((prev) => prev.map((b) => b.id === id ? data : b)); db.bookings.put(data); toast.success('Booking updated')
+    } else if (queued) {
+      setBookings((prev) => prev.map((b) => b.id === id ? { ...b, ...updates } : b))
+      db.bookings.bulkPut(bookings.map(b => b.id === id ? { ...b, ...updates } : b))
+      toast.info('Booking update queued — will sync when online')
     }
-    return full
+    return data
   }
 
   async function setBookingStatus(id: string, status: string) {
-    const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
-    if (error) throw error
-    const { data: full } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('id', id)
-      .single()
-    if (full) {
-      const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', full.cabin_id).single()
-      if (cabin) full.cabins = cabin
-      setBookings((prev) => prev.map((b) => b.id === id ? full : b)); db.bookings.put(full)
+    const { data, queued } = await offlineUpdate('bookings', id, { status })
+    if (!queued && data) {
+      const { data: cabin } = await supabase.from('cabins').select('name, color, booking_authority_id').eq('id', data.cabin_id).single()
+      if (cabin) data.cabins = cabin
+      setBookings((prev) => prev.map((b) => b.id === id ? data : b)); db.bookings.put(data)
+    } else if (queued) {
+      setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status } : b))
+      db.bookings.bulkPut(bookings.map(b => b.id === id ? { ...b, status } : b))
+      toast.info('Status update queued — will sync when online')
     }
-    return full
+    return data
   }
 
   return { bookings, loading, error, createBooking, updateBooking, deleteBooking, setBookingStatus, refetch: fetchBookings }

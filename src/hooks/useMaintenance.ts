@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
+import { offlineInsert, offlineUpdate, offlineDelete } from '../lib/offlineWrite'
 import { useToast } from '../components/ui/Toast'
 
 interface CategoryRef {
@@ -70,22 +71,27 @@ export function useMaintenance() {
   useEffect(() => { fetchData() }, [])
 
   async function createTask(task: Partial<MaintenanceTask>) {
-    const { data, error } = await supabase.from('maintenance_tasks').insert(task).select().single()
-    if (error) throw error
-    if (data) {
-      const { data: full } = await supabase
-        .from('maintenance_tasks')
-        .select('*')
-        .eq('id', data.id).single()
-      if (full) {
-        const { data: catData } = await supabase.from('maintenance_categories').select('name').eq('id', full.category_id).single()
-        if (catData) full.maintenance_categories = catData
-        const { data: assignData } = full.assigned_to ? await supabase.from('profiles').select('display_name').eq('id', full.assigned_to).single() : { data: null }
-        if (assignData) full.assigned_to_profile = assignData
-        setTasks((prev) => [full, ...prev]); db.maintenance_tasks.put(full); toast.success('Task created')
+    const { data: insertData, queued } = await offlineInsert('maintenance_tasks', task)
+    if (insertData) {
+      if (!queued) {
+        const { data: full } = await supabase
+          .from('maintenance_tasks')
+          .select('*')
+          .eq('id', insertData.id).single()
+        if (full) {
+          const { data: catData } = await supabase.from('maintenance_categories').select('name').eq('id', full.category_id).single()
+          if (catData) full.maintenance_categories = catData
+          const { data: assignData } = full.assigned_to ? await supabase.from('profiles').select('display_name').eq('id', full.assigned_to).single() : { data: null }
+          if (assignData) full.assigned_to_profile = assignData
+          setTasks((prev) => [full, ...prev]); db.maintenance_tasks.put(full); toast.success('Task created')
+        }
+      } else {
+        const optimistic = { ...task, id: insertData.id } as MaintenanceTask
+        setTasks((prev) => [optimistic, ...prev]); db.maintenance_tasks.put(optimistic)
+        toast.info('Task queued — will sync when online')
       }
     }
-    return data
+    return insertData
   }
 
   async function updateTask(id: string, updates: Partial<MaintenanceTask>) {
@@ -95,17 +101,23 @@ export function useMaintenance() {
       if (match) db.maintenance_tasks.put(match)
       return updated
     })
-    const { data } = await supabase.from('maintenance_tasks').update(updates).eq('id', id).select().single()
-    if (data) { setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t))); db.maintenance_tasks.put({ ...(tasks.find(t => t.id === id) || {}), ...data }); toast.success('Task updated') }
-    else { fetchData(); toast.error('Failed to update task') }
+    const { data, queued } = await offlineUpdate('maintenance_tasks', id, updates)
+    if (queued) {
+      toast.info('Task update queued — will sync when online')
+    } else if (data) {
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t))); db.maintenance_tasks.put({ ...(tasks.find(t => t.id === id) || {}), ...data }); toast.success('Task updated')
+    } else { fetchData(); toast.error('Failed to update task') }
     return data
   }
 
   async function deleteTask(id: string) {
     const prev = tasks
     setTasks((prev) => prev.filter((t) => t.id !== id))
-    try { await supabase.from('maintenance_tasks').delete().eq('id', id); db.maintenance_tasks.delete(id); toast.info('Task deleted') }
-    catch { setTasks(prev); toast.error('Failed to delete task') }
+    try {
+      const { queued } = await offlineDelete('maintenance_tasks', id)
+      db.maintenance_tasks.delete(id)
+      toast.info(queued ? 'Task deletion queued — will sync when online' : 'Task deleted')
+    } catch { setTasks(prev); toast.error('Failed to delete task') }
   }
 
   return { tasks, categories, loading, createTask, updateTask, deleteTask, refetch: fetchData }

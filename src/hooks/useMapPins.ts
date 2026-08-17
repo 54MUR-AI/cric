@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
+import { offlineInsert, offlineUpdate, offlineDelete } from '../lib/offlineWrite'
 import { useToast } from '../components/ui/Toast'
 
 interface CabinRef {
@@ -56,15 +57,12 @@ export function useMapPins() {
   const addPin = useCallback(async (input: PinInput) => {
     const { data: { user } } = await supabase.auth.getUser()
     const payload = { ...input, created_by: user?.id }
-    const { data, error } = await supabase
-      .from('map_pins')
-      .insert(payload)
-      .select('*')
-      .single()
-    if (error) throw error
-    setPins(prev => [...prev, data].sort((a, b) => a.label.localeCompare(b.label)))
-    db.map_pins.put(data)
-    toast.success('Pin added')
+    const { data, queued } = await offlineInsert('map_pins', payload)
+    if (data) {
+      setPins(prev => [...prev, data].sort((a, b) => a.label.localeCompare(b.label)))
+      db.map_pins.put(data)
+      toast.info(queued ? 'Pin queued — will sync when online' : 'Pin added')
+    }
     return data
   }, [toast])
 
@@ -72,16 +70,17 @@ export function useMapPins() {
     const originalPin = pins.find(p => p.id === id)
     if (!originalPin) return
     setPins(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
-    const { data, error } = await supabase.from('map_pins').update(updates).eq('id', id).select('*').single()
-    if (error) {
+    const { data, queued } = await offlineUpdate('map_pins', id, updates)
+    if (queued) {
+      db.map_pins.put({ ...originalPin, ...updates })
+      toast.info('Pin update queued — will sync when online')
+    } else if (data) {
+      setPins(prev => prev.map(p => p.id === id ? data : p))
+      db.map_pins.put(data)
+      toast.success('Pin updated')
+    } else {
       setPins(prev => prev.map(p => p.id === id ? originalPin : p))
-      console.error('Pin update error:', error)
-      toast.error('Failed to update pin')
-      return
     }
-    setPins(prev => prev.map(p => p.id === id ? data : p))
-    db.map_pins.put(data)
-    toast.success('Pin updated')
     return data
   }, [pins, toast])
 
@@ -89,14 +88,14 @@ export function useMapPins() {
     const deletedPin = pins.find(p => p.id === id)
     if (!deletedPin) return
     setPins(prev => prev.filter(p => p.id !== id))
-    const { error } = await supabase.from('map_pins').delete().eq('id', id)
-    if (error) {
-      setPins(prev => [...prev, deletedPin].sort((a, b) => a.label.localeCompare(b.label)))
-      toast.error('Failed to delete pin')
-      return
+    const { queued } = await offlineDelete('map_pins', id)
+    if (queued) {
+      db.map_pins.delete(id)
+      toast.info('Pin deletion queued — will sync when online')
+    } else {
+      db.map_pins.delete(id)
+      toast.info('Pin deleted')
     }
-    db.map_pins.delete(id)
-    toast.info('Pin deleted')
   }, [pins, toast])
 
   return { pins, loading, addPin, updatePin, deletePin, refresh: fetchPins }

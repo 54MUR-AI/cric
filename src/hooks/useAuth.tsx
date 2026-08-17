@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import db from '../lib/db'
 import type { User } from '@supabase/supabase-js'
 
 interface Profile {
@@ -61,6 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function fetchProfile(userId: string) {
+    // Seed from Dexie for instant offline render
+    try {
+      const cached = await db.profiles.get(userId)
+      if (cached) setProfile(cached)
+    } catch { /* ignore */ }
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -70,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error
       if (data) {
         setProfile(data)
+        db.profiles.put(data)
       } else {
         // Profile doesn't exist yet (trigger race), create it
         const { data: newProfile, error: insertError } = await supabase
@@ -79,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .single()
         if (insertError) throw insertError
         setProfile(newProfile)
+        db.profiles.put(newProfile)
       }
     } catch (err) {
       console.warn('Failed to fetch/create profile', err)

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import { useToast } from '../components/ui/Toast'
 import { useAuth } from './useAuth'
 import { sendPushToAll } from './usePushNotifications'
+import db from '../lib/db'
 
 interface WeatherAlert {
   id: string
@@ -48,6 +49,12 @@ export function WeatherAlertsProvider({ children }: { children: ReactNode }) {
     let precipThrottle = 0
 
     async function checkAlerts() {
+      // Seed from cache for instant/offline render
+      try {
+        const cached = await db.weather_cache.where('key').equals('nws_alerts').first()
+        if (cached?.data) setAlerts(cached.data)
+      } catch { /* ignore */ }
+
       try {
         const r = await fetch(NWS_ALERTS_URL, { headers: { 'User-Agent': UA } })
         if (!r.ok) return
@@ -68,10 +75,19 @@ export function WeatherAlertsProvider({ children }: { children: ReactNode }) {
         }))
 
         setAlerts(mapped)
+        db.weather_cache.put({ key: 'nws_alerts', data: mapped, ts: Date.now() })
       } catch { /* ignore */ }
     }
 
     async function checkPrecipitation() {
+      // Seed from cache on first run
+      try {
+        const cached = await db.weather_cache.where('key').equals('precipitation_alert').first()
+        if (cached?.data && Date.now() - cached.ts < 600000) {
+          if (cached.data.active) setPrecipitationAlert(cached.data.message)
+        }
+      } catch { /* ignore */ }
+
       try {
         const r = await fetch(OPEN_METEO_URL)
         if (!r.ok || cancelled) return
@@ -86,14 +102,16 @@ export function WeatherAlertsProvider({ children }: { children: ReactNode }) {
           precipClearStreakRef.current = 0
           if (Date.now() - precipThrottle > 300000) {
             precipThrottle = Date.now()
-            setPrecipitationAlert('Heavy rain or thunderstorm detected — active weather nearby.')
+            const msg = 'Heavy rain or thunderstorm detected — active weather nearby.'
+            setPrecipitationAlert(msg)
+            db.weather_cache.put({ key: 'precipitation_alert', data: { active: true, message: msg }, ts: Date.now() })
             if (isAdminRef.current) sendPushToAll({ tag: 'precipitation' })
           }
         } else if (precipClearStreakRef.current < 2 && precipitationAlertRef.current) {
-          // Require two consecutive clear checks (~10 min) before auto-clearing
           precipClearStreakRef.current += 1
           if (precipClearStreakRef.current >= 2) {
             setPrecipitationAlert(null)
+            db.weather_cache.put({ key: 'precipitation_alert', data: { active: false }, ts: Date.now() })
           }
         }
       } catch { /* ignore */ }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import db from '../lib/db'
+import { offlineInsert, offlineUpdate, offlineDelete } from '../lib/offlineWrite'
 import { useToast } from '../components/ui/Toast'
 
 interface ProfileRef {
@@ -42,25 +43,34 @@ export function useMeetings() {
   useEffect(() => { fetchMeetings() }, [])
 
   async function createMeeting(meeting: Partial<Meeting>) {
-    const { data, error } = await supabase.from('meetings').insert(meeting).select().single()
-    if (error) throw error
-    if (data) { setMeetings((prev) => [data, ...prev]); db.meetings.put(data); toast.success('Meeting created') }
+    const { data, queued } = await offlineInsert('meetings', meeting)
+    if (data) {
+      setMeetings((prev) => [data, ...prev]); db.meetings.put(data)
+      toast.info(queued ? 'Meeting queued — will sync when online' : 'Meeting created')
+    }
     return data
   }
 
   async function updateMeeting(id: string, updates: Partial<Meeting>) {
     setMeetings((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)))
-    const { data, error } = await supabase.from('meetings').update(updates).eq('id', id).select().single()
-    if (error) { fetchMeetings(); throw error }
-    if (data) { setMeetings((prev) => prev.map((m) => (m.id === id ? { ...m, ...data } : m))); db.meetings.put({ ...meetings.find(m => m.id === id), ...data }); toast.success('Meeting updated') }
+    const { data, queued } = await offlineUpdate('meetings', id, updates)
+    if (queued) {
+      db.meetings.put({ ...meetings.find(m => m.id === id), ...updates })
+      toast.info('Meeting update queued — will sync when online')
+    } else if (data) {
+      setMeetings((prev) => prev.map((m) => (m.id === id ? { ...m, ...data } : m))); db.meetings.put({ ...meetings.find(m => m.id === id), ...data }); toast.success('Meeting updated')
+    } else { fetchMeetings(); throw new Error('Update failed') }
     return data
   }
 
   async function deleteMeeting(id: string) {
     const current = meetings
     setMeetings((prev) => prev.filter((m) => m.id !== id))
-    try { await supabase.from('meetings').delete().eq('id', id); db.meetings.delete(id); toast.info('Meeting deleted') }
-    catch { setMeetings(current); toast.error('Failed to delete meeting') }
+    try {
+      const { queued } = await offlineDelete('meetings', id)
+      db.meetings.delete(id)
+      toast.info(queued ? 'Meeting deletion queued — will sync when online' : 'Meeting deleted')
+    } catch { setMeetings(current); toast.error('Failed to delete meeting') }
   }
 
   async function getMeetingWithItems(id: string): Promise<(Meeting & { agenda_items: AgendaItem[] }) | null> {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Ship, Plus, X, ChevronLeft, ChevronRight, DollarSign, Users, Clock, MapPin, AlertTriangle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import db from '../lib/db'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -115,6 +116,18 @@ export default function BoatSchedulePage() {
   }, [])
 
   async function fetchTrips() {
+    // Seed from Dexie for instant offline render
+    try {
+      const [cachedTrips, cachedProfiles] = await Promise.all([
+        db.boat_trips.orderBy('trip_date').toArray(),
+        db.profiles.toArray(),
+      ])
+      if (cachedTrips.length) {
+        const profMap = new Map(cachedProfiles.map(p => [p.id, { display_name: p.display_name }]))
+        setTrips(cachedTrips.map(t => ({ ...t, profiles: profMap.get(t.created_by) ?? null })))
+      }
+    } catch { /* ignore */ }
+
     const [tripsRes, profilesRes] = await Promise.all([
       supabase.from('boat_trips').select('*').order('trip_date').order('departure_time'),
       supabase.from('profiles').select('id, display_name'),
@@ -122,6 +135,8 @@ export default function BoatSchedulePage() {
     const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
     const merged = (tripsRes.data ?? []).map(t => ({ ...t, profiles: profMap.get(t.created_by) ?? null }))
     setTrips(merged)
+    // Cache for offline
+    if (tripsRes.data) db.boat_trips.bulkPut(tripsRes.data)
   }
 
   const upcoming = trips.filter(t => t.trip_date >= today)
