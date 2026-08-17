@@ -167,6 +167,21 @@ export function usePhotos() {
     return data
   }, [toast])
 
+  const deleteAlbum = useCallback(async (albumId: string) => {
+    try {
+      const { error } = await supabase.from('photo_albums').delete().eq('id', albumId)
+      if (error) throw error
+      setAlbums(prev => prev.filter(a => a.id !== albumId))
+      setPhotos(prev => prev.map(p => p.album_id === albumId ? { ...p, album_id: undefined } : p))
+      db.photo_albums.delete(albumId)
+      db.photos.where('album_id').equals(albumId).modify({ album_id: undefined })
+      toast.info('Album deleted')
+    } catch (err) {
+      console.error('Failed to delete album', err)
+      toast.error('Failed to delete album')
+    }
+  }, [toast])
+
   const deletePhoto = useCallback(async (photo: Photo) => {
     try {
       await deletePhotoCore(photo)
@@ -179,7 +194,7 @@ export function usePhotos() {
     }
   }, [toast])
 
-  return { photos, albums, loading, uploadPhoto, deletePhoto, refresh: fetchAll }
+  return { photos, albums, loading, uploadPhoto, deletePhoto, deleteAlbum, refresh: fetchAll }
 }
 
 export function useCabinPhotos(cabinIds: string[]) {

@@ -24,7 +24,7 @@ function groupByDate(photos) {
 }
 
 export default function PhotosPage() {
-  const { photos, albums, loading, uploadPhoto, deletePhoto, refresh } = usePhotos()
+  const { photos, albums, loading, uploadPhoto, deletePhoto, deleteAlbum, refresh } = usePhotos()
   const { user, isAdmin } = useAuth()
   const { confirm, ConfirmDialog } = useConfirm()
   const { copy, share } = useShare()
@@ -43,44 +43,48 @@ export default function PhotosPage() {
   useEffect(() => { setGroups(groupByDate(filtered)) }, [filtered])
 
   const [showUpload, setShowUpload] = useState(false)
-  const [uploadFile, setUploadFile] = useState(null)
+  const [uploadFiles, setUploadFiles] = useState([])
   const [uploadCaption, setUploadCaption] = useState('')
   const [uploadAlbumId, setUploadAlbumId] = useState(albumFilter || '')
   const [uploadProgress, setUploadProgress] = useState(0)
-  const uploadPreview = uploadFile ? URL.createObjectURL(uploadFile) : null
+  const [uploadCount, setUploadCount] = useState({ done: 0, total: 0 })
+  const uploadPreview = uploadFiles.length === 1 ? URL.createObjectURL(uploadFiles[0]) : null
 
   useEscapeKey(() => setLightbox(null), !!lightbox)
   useEscapeKey(() => { if (!uploading) { setShowUpload(false) } }, showUpload)
   useEscapeKey(() => setShowAlbumForm(false), showAlbumForm)
 
   const doUpload = useCallback(async () => {
-    if (!uploadFile) return
+    if (!uploadFiles.length) return
     setUploading(true)
-    setUploadProgress(10)
-    const prog = setInterval(() => setUploadProgress(p => Math.min(p + 15, 85)), 400)
+    setUploadProgress(0)
+    setUploadCount({ done: 0, total: uploadFiles.length })
     try {
-      let exif
-      try {
-        const parsed = await exifr.parse(uploadFile, ['DateTimeOriginal', 'latitude', 'longitude'])
-        exif = {
-          takenAt: parsed?.DateTimeOriginal?.toISOString() ?? null,
-          latitude: parsed?.latitude ?? null,
-          longitude: parsed?.longitude ?? null,
-        }
-      } catch {}
-      setUploadProgress(20)
-      const optimized = await resizeImage(uploadFile)
-      setUploadProgress(30)
-      await uploadPhoto(optimized, { caption: uploadCaption || undefined, album_id: uploadAlbumId || undefined, exif })
-      clearInterval(prog)
+      for (let i = 0; i < uploadFiles.length; i++) {
+        const f = uploadFiles[i]
+        setUploadCount(prev => ({ ...prev, done: i }))
+        setUploadProgress(Math.round((i / uploadFiles.length) * 90))
+        let exif
+        try {
+          const parsed = await exifr.parse(f, ['DateTimeOriginal', 'latitude', 'longitude'])
+          exif = {
+            takenAt: parsed?.DateTimeOriginal?.toISOString() ?? null,
+            latitude: parsed?.latitude ?? null,
+            longitude: parsed?.longitude ?? null,
+          }
+        } catch {}
+        const optimized = await resizeImage(f)
+        await uploadPhoto(optimized, { caption: uploadCaption || undefined, album_id: uploadAlbumId || undefined, exif })
+      }
       setUploadProgress(100)
+      setUploadCount(prev => ({ ...prev, done: prev.total }))
       vibrate([10, 20, 10])
-      setTimeout(() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }, 400)
-    } catch { clearInterval(prog); setUploadProgress(0) } finally { setUploading(false) }
-  }, [uploadPhoto, uploadFile, uploadCaption, uploadAlbumId])
+      setTimeout(() => { setShowUpload(false); setUploadFiles([]); setUploadCaption(''); setUploadProgress(0); setUploadCount({ done: 0, total: 0 }) }, 400)
+    } catch { setUploadProgress(0); setUploadCount({ done: 0, total: 0 }) } finally { setUploading(false) }
+  }, [uploadPhoto, uploadFiles, uploadCaption, uploadAlbumId])
 
-  const handleFilePick = (e) => { const f = e.target.files?.[0]; if (f) { setUploadFile(f); setShowUpload(true) }; e.target.value = '' }
-  const handleDrop = async (e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) { setUploadFile(f); setShowUpload(true) } }
+  const handleFilePick = (e) => { const files = Array.from(e.target.files || []); if (files.length) { setUploadFiles(files); setShowUpload(true) }; e.target.value = '' }
+  const handleDrop = async (e) => { e.preventDefault(); setDragOver(false); const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')); if (files.length) { setUploadFiles(files); setShowUpload(true) } }
 
   const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const clearSelection = () => setSelected(new Set())
@@ -100,6 +104,12 @@ export default function PhotosPage() {
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('photo_albums').insert({ name: albumName.trim(), created_by: user?.id })
     setAlbumName(''); setShowAlbumForm(false); refresh()
+  }
+
+  const handleDeleteAlbum = async (albumId, albumName) => {
+    if (!await confirm({ title: 'Delete Album', message: `Delete "${albumName}"? Photos will be kept but removed from this album.` })) return
+    if (albumFilter === albumId) setAlbumFilter(null)
+    await deleteAlbum(albumId)
   }
 
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
@@ -128,7 +138,7 @@ export default function PhotosPage() {
           </button>
           <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500">
             <Upload className="h-3 w-3" /> Upload
-            <input type="file" accept="image/*" className="hidden" onChange={handleFilePick} />
+            <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilePick} />
           </label>
         </div>
       </div>
@@ -139,9 +149,10 @@ export default function PhotosPage() {
             <FolderOpen className="h-3 w-3" /> All
           </button>
           {albums.map(a => (
-            <button key={a.id} onClick={() => setAlbumFilter(a.id)} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${albumFilter === a.id ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
-              <FolderOpen className="h-3 w-3" />{a.name}
-            </button>
+            <span key={a.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border transition-colors ${albumFilter === a.id ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'}`}>
+              <button onClick={() => setAlbumFilter(a.id)} className="inline-flex items-center gap-1"><FolderOpen className="h-3 w-3" />{a.name}</button>
+              <button onClick={() => handleDeleteAlbum(a.id, a.name)} className="ml-0.5 rounded-full hover:bg-stone-300/50 dark:hover:bg-stone-600/50 p-0.5 -mr-1" aria-label={`Delete ${a.name}`}><X className="h-2.5 w-2.5" /></button>
+            </span>
           ))}
         </div>
       )}
@@ -218,14 +229,22 @@ export default function PhotosPage() {
       )}
 
       {showUpload && (
-        <ModalOverlay onClose={() => { if (!uploading) { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }}} ariaLabel="Upload photo">
+        <ModalOverlay onClose={() => { if (!uploading) { setShowUpload(false); setUploadFiles([]); setUploadCaption(''); setUploadProgress(0); setUploadCount({ done: 0, total: 0 }) }}} ariaLabel="Upload photos">
           <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Upload Photo</h3>
-              {!uploading && <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>}
+              <h3 className="font-semibold text-stone-800 dark:text-stone-200">{uploadFiles.length > 1 ? `Upload ${uploadFiles.length} Photos` : 'Upload Photo'}</h3>
+              {!uploading && <button onClick={() => { setShowUpload(false); setUploadFiles([]); setUploadCaption(''); setUploadProgress(0); setUploadCount({ done: 0, total: 0 }) }} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>}
             </div>
             {uploadPreview && (
               <img src={uploadPreview} alt="Preview" className="w-full aspect-video object-cover rounded-lg mb-4 bg-stone-100 dark:bg-stone-800" />
+            )}
+            {!uploadPreview && uploadFiles.length > 1 && (
+              <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
+                {uploadFiles.slice(0, 8).map((f, i) => (
+                  <img key={i} src={URL.createObjectURL(f)} alt="" className="h-16 w-16 rounded object-cover bg-stone-100 dark:bg-stone-800 shrink-0" />
+                ))}
+                {uploadFiles.length > 8 && <span className="self-center text-xs text-stone-400 dark:text-stone-500 ml-1">+{uploadFiles.length - 8}</span>}
+              </div>
             )}
             <div className="space-y-3">
               <div>
@@ -246,14 +265,14 @@ export default function PhotosPage() {
                   <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
                     <div className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all duration-300 ease-out" style={{ width: `${uploadProgress}%` }} />
                   </div>
-                  <p className="text-xs text-stone-400 dark:text-stone-500 text-right">{uploadProgress}%</p>
+                  <p className="text-xs text-stone-400 dark:text-stone-500 text-right">{uploadCount.done} of {uploadCount.total}</p>
                 </div>
               )}
             </div>
             <div className="flex gap-2 justify-end mt-4">
-              <button onClick={() => { setShowUpload(false); setUploadFile(null); setUploadCaption(''); setUploadProgress(0) }} disabled={uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600 disabled:opacity-40">Cancel</button>
-              <button onClick={doUpload} disabled={uploading || !uploadFile} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
-                {uploading ? 'Uploading...' : 'Upload'}
+              <button onClick={() => { setShowUpload(false); setUploadFiles([]); setUploadCaption(''); setUploadProgress(0); setUploadCount({ done: 0, total: 0 }) }} disabled={uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600 disabled:opacity-40">Cancel</button>
+              <button onClick={doUpload} disabled={uploading || !uploadFiles.length} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
+                {uploading ? 'Uploading...' : uploadFiles.length > 1 ? `Upload ${uploadFiles.length}` : 'Upload'}
               </button>
             </div>
           </div>
