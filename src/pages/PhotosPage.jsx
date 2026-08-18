@@ -101,7 +101,6 @@ export default function PhotosPage() {
   }
 
   const handleAlbumAction = async () => {
-    if (!selected.size) return
     let albumId = targetAlbumId
     if (!albumId) {
       if (!albumName.trim()) return
@@ -110,8 +109,10 @@ export default function PhotosPage() {
       if (error || !data) { setAlbumName(''); setTargetAlbumId(''); setShowAlbumForm(false); return }
       albumId = data.id
     }
-    await supabase.from('photos').update({ album_id: albumId }).in('id', [...selected])
-    setSelected(new Set())
+    if (selected.size > 0) {
+      await supabase.from('photos').update({ album_id: albumId }).in('id', [...selected])
+      setSelected(new Set())
+    }
     setAlbumName(''); setTargetAlbumId(''); setShowAlbumForm(false)
     refresh()
   }
@@ -296,8 +297,8 @@ export default function PhotosPage() {
               <h3 className="font-semibold text-stone-800 dark:text-stone-200">Add to Album</h3>
               <button onClick={() => { setShowAlbumForm(false); setTargetAlbumId(''); setAlbumName('') }} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
             </div>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">{selected.size} photo{selected.size !== 1 ? 's' : ''} selected</p>
-            {albums.length > 0 && (
+            {selected.size > 0 && <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">{selected.size} photo{selected.size !== 1 ? 's' : ''} selected</p>}
+            {selected.size > 0 && albums.length > 0 && (
               <div className="mb-3">
                 <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Existing album</label>
                 <select value={targetAlbumId} onChange={e => { setTargetAlbumId(e.target.value); if (e.target.value) setAlbumName('') }} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200">
@@ -307,13 +308,13 @@ export default function PhotosPage() {
               </div>
             )}
             <div className="mb-4">
-              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Or create a new album</label>
+              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">{selected.size > 0 ? 'Or create a new album' : 'Album name'}</label>
               <input type="text" placeholder="New album name" value={albumName} onChange={e => { setAlbumName(e.target.value); if (e.target.value) setTargetAlbumId('') }} disabled={!!targetAlbumId} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 disabled:opacity-40 disabled:cursor-not-allowed bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" />
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setShowAlbumForm(false); setTargetAlbumId(''); setAlbumName('') }} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600">Cancel</button>
               <button onClick={handleAlbumAction} disabled={!targetAlbumId && !albumName.trim()} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
-                {targetAlbumId ? 'Add to Album' : 'Create & Add'}
+                {selected.size > 0 ? (targetAlbumId ? 'Add to Album' : 'Create & Add') : 'Create'}
               </button>
             </div>
           </div>
