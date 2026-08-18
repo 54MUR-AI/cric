@@ -97,7 +97,11 @@ export default function CabinsPage() {
   }
 
   const profileById = {}
-  for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
+  const profileEmailById = {}
+  for (const p of profiles) {
+    profileById[p.id] = p.display_name || p.email || 'Unknown'
+    profileEmailById[p.id] = p.email
+  }
 
   const isSecretary = officers.some(o => o.title === 'Secretary' && o.profile_id === user?.id)
   const canManageAuthority = isAdmin || isSecretary
@@ -218,7 +222,12 @@ export default function CabinsPage() {
                 )}
                 {!canManageAuthority && cabin.booking_authority_id && (
                   <p className="text-[11px] text-stone-400 dark:text-stone-500">
-                    Bookings confirmed by <span className="font-medium text-stone-600 dark:text-stone-300">{profileById[cabin.booking_authority_id] || 'the authority'}</span>
+                    Bookings confirmed by{' '}
+                    {profileEmailById[cabin.booking_authority_id] ? (
+                      <a href={`mailto:${profileEmailById[cabin.booking_authority_id]}`} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">{profileById[cabin.booking_authority_id]}</a>
+                    ) : (
+                      <span className="font-medium text-stone-600 dark:text-stone-300">{profileById[cabin.booking_authority_id] || 'the authority'}</span>
+                    )}
                   </p>
                 )}
 
