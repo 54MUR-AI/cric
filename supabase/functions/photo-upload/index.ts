@@ -14,6 +14,7 @@ Deno.serve(async (req: Request) => {
 
     const form = await req.formData()
     const file = form.get('file')
+    const folder = (typeof form.get('folder') === 'string' ? form.get('folder') : '') as string
     if (!(file instanceof File)) {
       return new Response(JSON.stringify({ error: 'no file' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } })
     }
@@ -24,6 +25,8 @@ Deno.serve(async (req: Request) => {
     const piUrl = Deno.env.get('PI_PHOTO_SERVER_URL')
     const piKey = Deno.env.get('PI_PHOTO_SERVER_KEY')
 
+    const prefix = folder ? `photos/${folder}` : 'photos'
+
     // Primary: Pi photo server (via Cloudflare Tunnel)
     let piValid = false
     try { if (piUrl && piKey && new URL(piUrl).protocol.startsWith('http')) piValid = true } catch {}
@@ -31,6 +34,7 @@ Deno.serve(async (req: Request) => {
       try {
         const piForm = new FormData()
         piForm.append('file', file)
+        if (folder) piForm.append('folder', folder)
         const piResp = await fetch(`${piUrl}/upload`, {
           method: 'POST',
           headers: { 'X-API-Key': piKey },
@@ -39,7 +43,7 @@ Deno.serve(async (req: Request) => {
         if (piResp.ok) {
           const result = await piResp.json()
           return new Response(JSON.stringify({
-            storage_path: `photos/${result.storage_path}`,
+            storage_path: `${prefix}/${result.storage_path}`,
             url: `${piUrl}/photos/${result.storage_path}`,
             backend: 'pi',
           }), { headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -51,7 +55,7 @@ Deno.serve(async (req: Request) => {
 
     // Fallback: Supabase Storage
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-    const objectPath = `photos/${crypto.randomUUID()}.${ext}`
+    const objectPath = `${prefix}/${crypto.randomUUID()}.${ext}`
     const buf = await file.arrayBuffer()
     const upResp = await fetch(`${supabaseUrl}/storage/v1/object/photos/${objectPath}`, {
       method: 'POST',

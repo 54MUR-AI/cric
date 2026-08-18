@@ -76,11 +76,13 @@ export default function CabinsPage() {
     return () => el.removeEventListener('change', handler)
   }, [showUploadFor])
 
-  async function handleReplaceUpload() {
+  async function handleAddUpload() {
     if (!showUploadFor || !uploadFiles.length) return
     setUploadError('')
+    const cabin = cabins.find(c => c.id === showUploadFor)
+    const folder = cabin ? `${cabin.name} Rooms` : undefined
     try {
-      await cabinPhotoHook.replaceCabinPhotos(showUploadFor, uploadFiles, uploadCaptions)
+      await cabinPhotoHook.addCabinPhotos(showUploadFor, uploadFiles, uploadCaptions, folder)
       closeUpload()
     } catch {
       setUploadError('Upload failed. Please try again.')
@@ -273,54 +275,71 @@ export default function CabinsPage() {
         </ModalOverlay>
       )}
 
-      {showUploadFor && (
-        <ModalOverlay onClose={closeUpload} ariaLabel="Upload room photos">
-          <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Room Photos</h3>
-              {!cabinPhotoHook.uploading && <button onClick={closeUpload} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>}
-            </div>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">
-              Uploading replaces the cabin's current room photos. Name each photo after the room (e.g. Kitchen, Bunk Room).
-            </p>
-            <input key={showUploadFor} ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" />
-            <button type="button" onClick={() => { filePickerOpen.current = true; fileInputRef.current?.click(); setTimeout(() => { filePickerOpen.current = false }, 500) }} className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs cursor-pointer border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
-              <Upload className="h-3 w-3" /> Choose photos
-            </button>
-            {uploadFiles.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {uploadFiles.map((f, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <img src={uploadPreviews[i]} alt="" className="w-12 h-12 object-cover rounded shrink-0" />
-                    <input
-                      type="text"
-                      value={uploadCaptions[i] || ''}
-                      onChange={(e) => setUploadCaptions(cs => cs.map((c, j) => (j === i ? e.target.value : c)))}
-                      placeholder="Room name"
-                      className="flex-1 min-w-0 rounded border border-stone-300 dark:border-stone-600 px-2 py-1.5 text-sm bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                    />
+      {showUploadFor && (() => {
+        const existingPhotos = cabinPhotoHook.photosByCabin[showUploadFor] || []
+        return (
+          <ModalOverlay onClose={closeUpload} ariaLabel="Upload room photos">
+            <div className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-stone-800 dark:text-stone-200">Room Photos</h3>
+                {!cabinPhotoHook.uploading && <button onClick={closeUpload} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>}
+              </div>
+              {existingPhotos.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-stone-500 dark:text-stone-400 mb-2">Current photos</p>
+                  <div className="space-y-2">
+                    {existingPhotos.map(photo => (
+                      <div key={photo.id} className="flex items-center gap-2">
+                        <img src={photo.url} alt="" className="w-12 h-12 object-cover rounded shrink-0" />
+                        <span className="flex-1 min-w-0 text-xs text-stone-600 dark:text-stone-400 truncate">{photo.caption || 'Untitled'}</span>
+                        <button onClick={() => cabinPhotoHook.deleteCabinPhoto(photo)} disabled={cabinPhotoHook.uploading} className="text-stone-400 hover:text-rose-600 dark:hover:text-rose-400 shrink-0 disabled:opacity-40"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-            {uploadError && <p className="text-xs text-rose-600 dark:text-rose-400 mt-3">{uploadError}</p>}
-            {cabinPhotoHook.uploading && (
-              <div className="mt-3 space-y-1">
-                <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
-                  <div className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all duration-300 ease-out" style={{ width: `${cabinPhotoHook.progress}%` }} />
                 </div>
-                <p className="text-xs text-stone-400 dark:text-stone-500 text-right">{cabinPhotoHook.progress}%</p>
-              </div>
-            )}
-            <div className="flex gap-2 justify-end mt-4">
-              <button onClick={closeUpload} disabled={cabinPhotoHook.uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600 disabled:opacity-40">Cancel</button>
-              <button onClick={handleReplaceUpload} disabled={cabinPhotoHook.uploading || !uploadFiles.length} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
-                {cabinPhotoHook.uploading ? 'Uploading...' : 'Upload & Replace'}
+              )}
+              <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">
+                Add room photos to this cabin. Name each photo after the room (e.g. Kitchen, Bunk Room).
+              </p>
+              <input key={showUploadFor} ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" />
+              <button type="button" onClick={() => { filePickerOpen.current = true; fileInputRef.current?.click(); setTimeout(() => { filePickerOpen.current = false }, 500) }} className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs cursor-pointer border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
+                <Upload className="h-3 w-3" /> Choose photos
               </button>
+              {uploadFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {uploadFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <img src={uploadPreviews[i]} alt="" className="w-12 h-12 object-cover rounded shrink-0" />
+                      <input
+                        type="text"
+                        value={uploadCaptions[i] || ''}
+                        onChange={(e) => setUploadCaptions(cs => cs.map((c, j) => (j === i ? e.target.value : c)))}
+                        placeholder="Room name"
+                        className="flex-1 min-w-0 rounded border border-stone-300 dark:border-stone-600 px-2 py-1.5 text-sm bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {uploadError && <p className="text-xs text-rose-600 dark:text-rose-400 mt-3">{uploadError}</p>}
+              {cabinPhotoHook.uploading && (
+                <div className="mt-3 space-y-1">
+                  <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+                    <div className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all duration-300 ease-out" style={{ width: `${cabinPhotoHook.progress}%` }} />
+                  </div>
+                  <p className="text-xs text-stone-400 dark:text-stone-500 text-right">{cabinPhotoHook.progress}%</p>
+                </div>
+              )}
+              <div className="flex gap-2 justify-end mt-4">
+                <button onClick={closeUpload} disabled={cabinPhotoHook.uploading} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600 disabled:opacity-40">Cancel</button>
+                <button onClick={handleAddUpload} disabled={cabinPhotoHook.uploading || !uploadFiles.length} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
+                  {cabinPhotoHook.uploading ? 'Uploading...' : 'Add Photos'}
+                </button>
+              </div>
             </div>
-          </div>
-        </ModalOverlay>
-      )}
+          </ModalOverlay>
+        )
+      })()}
     </div>
   )
 }

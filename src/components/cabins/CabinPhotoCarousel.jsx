@@ -36,7 +36,7 @@ export default function CabinPhotoCarousel({ photos, isAdmin, onUpload, onDelete
         <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">Room Photos</span>
         {isAdmin && (
           <button onClick={onUpload} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
-            <Upload className="h-3 w-3" /> Replace
+            <Upload className="h-3 w-3" /> Add
           </button>
         )}
       </div>

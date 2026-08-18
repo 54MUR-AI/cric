@@ -36,12 +36,13 @@ interface UploadOptions {
   caption?: string
   album_id?: string
   cabin_id?: string
+  folder?: string
   exif?: ExifData
 }
 
 const FUNCTIONS_URL = SUPABASE_FUNCTIONS_URL
 
-async function uploadPhotoCore(file: File, { caption, album_id, cabin_id, exif: exifData }: UploadOptions = {}): Promise<Photo> {
+async function uploadPhotoCore(file: File, { caption, album_id, cabin_id, folder, exif: exifData }: UploadOptions = {}): Promise<Photo> {
   let takenAt: string | null = null; let latitude: number | null = null; let longitude: number | null = null
   if (exifData) {
     takenAt = exifData.takenAt ?? null
@@ -62,6 +63,7 @@ async function uploadPhotoCore(file: File, { caption, album_id, cabin_id, exif: 
 
   const formData = new FormData()
   formData.append('file', file)
+  if (folder) formData.append('folder', folder)
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30000)
@@ -246,7 +248,7 @@ export function useCabinPhotos(cabinIds: string[]) {
 
   useEffect(() => { fetchCabinPhotos() }, [fetchCabinPhotos])
 
-  const replaceCabinPhotos = useCallback(async (cabinId: string, files: File[], captions: (string | null)[]) => {
+  const replaceCabinPhotos = useCallback(async (cabinId: string, files: File[], captions: (string | null)[], folder?: string) => {
     setUploading(true)
     setProgress(5)
     const oldPhotos = photosByCabin[cabinId] || []
@@ -260,6 +262,7 @@ export function useCabinPhotos(cabinIds: string[]) {
         const photo = await uploadPhotoCore(optimized, {
           cabin_id: cabinId,
           caption: captions[i] || undefined,
+          folder,
         })
         uploaded.push(photo)
         db.photos.put(photo)
@@ -281,6 +284,36 @@ export function useCabinPhotos(cabinIds: string[]) {
     }
   }, [photosByCabin, toast])
 
+  const addCabinPhotos = useCallback(async (cabinId: string, files: File[], captions: (string | null)[], folder?: string) => {
+    setUploading(true)
+    setProgress(5)
+    let done = 0
+    const uploaded: Photo[] = []
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const optimized = await resizeImage(files[i])
+        const photo = await uploadPhotoCore(optimized, {
+          cabin_id: cabinId,
+          caption: captions[i] || undefined,
+          folder,
+        })
+        uploaded.push(photo)
+        db.photos.put(photo)
+        done++
+        setProgress(Math.round((done / files.length) * 100))
+      }
+      setPhotosByCabin(prev => ({
+        ...prev,
+        [cabinId]: [...(prev[cabinId] || []), ...uploaded],
+      }))
+      toast.success(`Added ${uploaded.length} photo${uploaded.length === 1 ? '' : 's'}`)
+      return uploaded
+    } finally {
+      setUploading(false)
+      setProgress(0)
+    }
+  }, [toast])
+
   const deleteCabinPhoto = useCallback(async (photo: Photo) => {
     try {
       await deletePhotoCore(photo)
@@ -296,5 +329,5 @@ export function useCabinPhotos(cabinIds: string[]) {
     }
   }, [toast])
 
-  return { photosByCabin, loading, uploading, progress, replaceCabinPhotos, deleteCabinPhoto, refresh: fetchCabinPhotos }
+  return { photosByCabin, loading, uploading, progress, replaceCabinPhotos, addCabinPhotos, deleteCabinPhoto, refresh: fetchCabinPhotos }
 }
