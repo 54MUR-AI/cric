@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Share2, FolderOpen, Plus, X, Upload, Trash2 } from 'lucide-react'
+import { Share2, FolderOpen, Plus, X, Upload, Trash2, Download } from 'lucide-react'
 import { usePhotos } from '../hooks/usePhotos'
 import { useShare } from '../lib/share'
 import { useConfirm } from '../components/ui/useConfirm'
@@ -100,6 +100,21 @@ export default function PhotosPage() {
     vibrate([10, 20, 10])
   }
 
+  const downloadSelected = async () => {
+    const toDownload = photos.filter(p => selected.has(p.id))
+    for (const photo of toDownload) {
+      const a = document.createElement('a')
+      a.href = photo.url
+      a.download = photo.caption || photo.url.split('/').pop() || 'photo.jpg'
+      a.target = '_blank'
+      a.rel = 'noopener'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      await new Promise(r => setTimeout(r, 300))
+    }
+  }
+
   const handleAlbumAction = async () => {
     let albumId = targetAlbumId
     if (!albumId) {
@@ -138,6 +153,9 @@ export default function PhotosPage() {
           {selected.size > 0 && (
             <>
               <span className="text-xs text-stone-500 dark:text-stone-400 self-center">{selected.size} selected</span>
+              <button onClick={downloadSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
+                <Download className="h-3 w-3" /> Download
+              </button>
               <button onClick={deleteSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-800 transition-colors">
                 <Trash2 className="h-3 w-3" /> Delete
               </button>
@@ -147,10 +165,12 @@ export default function PhotosPage() {
           <button onClick={() => setShowAlbumForm(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
             <Plus className="h-3 w-3" /> Album
           </button>
-          <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500">
-            <Upload className="h-3 w-3" /> Upload
-            <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilePick} />
-          </label>
+          {selected.size === 0 && (
+            <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500">
+              <Upload className="h-3 w-3" /> Upload
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilePick} />
+            </label>
+          )}
         </div>
       </div>
 
