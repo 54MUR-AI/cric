@@ -132,18 +132,6 @@ export function usePhotos() {
   const toast = useToast()
 
   const fetchAll = useCallback(async () => {
-    // Seed from cache first for instant/offline render
-    try {
-      const [cachedPhotos, cachedAlbums] = await Promise.all([
-        db.photos.orderBy('taken_at').reverse().toArray(),
-        db.photo_albums.orderBy('name').toArray(),
-      ])
-      if (cachedPhotos.length) setPhotos(cachedPhotos)
-      if (cachedAlbums.length) setAlbums(cachedAlbums)
-    } catch (err) {
-      console.warn('Failed to read photos from cache', err)
-    }
-
     try {
       const [photosRes, albumsRes] = await Promise.all([
         supabase.from('photos').select('*').order('taken_at', { ascending: false }).order('created_at', { ascending: false }),
@@ -152,7 +140,15 @@ export function usePhotos() {
       if (!photosRes.error) { setPhotos(photosRes.data || []); db.photos.bulkPut(photosRes.data || []) }
       if (!albumsRes.error) { setAlbums(albumsRes.data || []); db.photo_albums.bulkPut(albumsRes.data || []) }
     } catch (err) {
-      console.warn('Failed to load photos from network', err)
+      console.warn('Network fetch failed, falling back to cache', err)
+      try {
+        const [cachedPhotos, cachedAlbums] = await Promise.all([
+          db.photos.orderBy('taken_at').reverse().toArray(),
+          db.photo_albums.orderBy('name').toArray(),
+        ])
+        if (cachedPhotos.length) setPhotos(cachedPhotos)
+        if (cachedAlbums.length) setAlbums(cachedAlbums)
+      } catch {}
       if (photos.length === 0) toast.error('Could not load photos')
     } finally {
       setLoading(false)

@@ -102,13 +102,14 @@ export default function PhotosPage() {
   const handleCreateAlbum = async () => {
     if (!albumName.trim()) return
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase.from('photo_albums').insert({ name: albumName.trim(), created_by: user?.id }).select('id').single()
-    if (data && selected.size > 0) {
-      const ids = [...selected]
-      await supabase.from('photos').update({ album_id: data.id }).in('id', ids)
+    const { data, error } = await supabase.from('photo_albums').insert({ name: albumName.trim(), created_by: user?.id }).select('id').single()
+    if (error || !data) { setAlbumName(''); setShowAlbumForm(false); return }
+    if (selected.size > 0) {
+      await supabase.from('photos').update({ album_id: data.id }).in('id', [...selected])
       setSelected(new Set())
     }
-    setAlbumName(''); setShowAlbumForm(false); refresh()
+    setAlbumName(''); setShowAlbumForm(false)
+    refresh()
   }
 
   const handleDeleteAlbum = async (albumId, albumName) => {
