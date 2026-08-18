@@ -283,7 +283,7 @@ export default function CabinsPage() {
             <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">
               Uploading replaces the cabin's current room photos. Name each photo after the room (e.g. Kitchen, Bunk Room).
             </p>
-            <input ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" />
+            <input key={showUploadFor} ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" />
             <button type="button" onClick={() => { filePickerOpen.current = true; fileInputRef.current?.click(); setTimeout(() => { filePickerOpen.current = false }, 500) }} className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs cursor-pointer border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
               <Upload className="h-3 w-3" /> Choose photos
             </button>
