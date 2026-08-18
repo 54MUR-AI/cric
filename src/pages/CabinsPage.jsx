@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import ModalOverlay from '../components/ui/ModalOverlay'
@@ -60,16 +60,21 @@ export default function CabinsPage() {
     setUploadPreviews(prev => { for (const u of prev) URL.revokeObjectURL(u); return [] })
   }
 
-  const handleFilePick = useCallback((e) => {
-    const files = Array.from(e.target.files || [])
-    e.target.value = ''
-    if (!files.length) return
-    for (const u of uploadPreviews) URL.revokeObjectURL(u)
-    setUploadFiles(files)
-    setUploadPreviews(files.map(f => URL.createObjectURL(f)))
-    setUploadCaptions(files.map(f => f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()))
-    setUploadError('')
-  }, [uploadPreviews])
+  useEffect(() => {
+    const el = fileInputRef.current
+    if (!el) return
+    const handler = (e) => {
+      const files = Array.from(e.target.files || [])
+      e.target.value = ''
+      if (!files.length) return
+      setUploadPreviews(prev => { for (const u of prev) URL.revokeObjectURL(u); return files.map(f => URL.createObjectURL(f)) })
+      setUploadFiles(files)
+      setUploadCaptions(files.map(f => f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()))
+      setUploadError('')
+    }
+    el.addEventListener('change', handler)
+    return () => el.removeEventListener('change', handler)
+  }, [showUploadFor])
 
   async function handleReplaceUpload() {
     if (!showUploadFor || !uploadFiles.length) return
@@ -278,7 +283,7 @@ export default function CabinsPage() {
             <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">
               Uploading replaces the cabin's current room photos. Name each photo after the room (e.g. Kitchen, Bunk Room).
             </p>
-            <input ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={handleFilePick} />
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" />
             <button type="button" onClick={() => { filePickerOpen.current = true; fileInputRef.current?.click(); setTimeout(() => { filePickerOpen.current = false }, 500) }} className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs cursor-pointer border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
               <Upload className="h-3 w-3" /> Choose photos
             </button>
