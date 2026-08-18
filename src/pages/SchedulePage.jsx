@@ -3,6 +3,7 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
 import { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Share2, Plus, Ship, Clock, MapPin, Users, DollarSign } from 'lucide-react'
 import { formatDate } from '../lib/utils'
 import { useShare } from '../lib/share'
@@ -42,6 +43,7 @@ export default function SchedulePage() {
   const { user, isAdmin } = useAuth()
   const { copy } = useShare()
   const toast = useToast()
+  const [searchParams] = useSearchParams()
   const [showForm, setShowForm] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -55,6 +57,18 @@ export default function SchedulePage() {
 
   const profileById = {}
   for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
+
+  useEffect(() => {
+    const cabinId = searchParams.get('cabin')
+    if (cabinId && cabins.length > 0 && !showForm) {
+      const today = new Date()
+      const ds = fmtInput(today)
+      setFormData({ cabin_id: cabinId, guests: '', notes: '', start_date: ds, end_date: ds, rooms: [] })
+      setSelectedSlot({ start: today, end: today })
+      setError('')
+      setShowForm(true)
+    }
+  }, [searchParams, cabins])
 
   useEscapeKey(() => setShowForm(false), showForm)
   useEscapeKey(() => { setSelectedEvent(null); setEditing(false) }, !!selectedEvent)

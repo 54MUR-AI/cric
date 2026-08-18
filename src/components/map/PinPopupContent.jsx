@@ -39,7 +39,7 @@ export default function PinPopupContent({ pin, cabin, nextBooking, admin, onDele
       {cabin && (
         <div className="space-y-1">
           <Link to="/cabins" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">View Cabin Details &rarr;</Link>
-          <Link to="/schedule" className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
+          <Link to={`/schedule?cabin=${cabin.id}`} className="block text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium">Book This Cabin &rarr;</Link>
           {nextBooking && <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 text-stone-500 dark:text-stone-400">Next: {nextBooking.guests || 'Someone'} &middot; {new Date(nextBooking.start_date).toLocaleDateString()}</div>}
           {cabin.improvements && cabin.improvements.length > 0 && (
             <div className="bg-stone-50 dark:bg-stone-950 rounded p-1.5 space-y-0.5">
