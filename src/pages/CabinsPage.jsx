@@ -238,12 +238,14 @@ export default function CabinsPage() {
                   onDelete={(photo) => cabinPhotoHook.deleteCabinPhoto(photo)}
                 />
 
-                <Link
-                  to={`/schedule?cabin=${cabin.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-emerald-700 transition-colors"
-                >
-                  Book Now
-                </Link>
+                <div className="flex justify-end">
+                  <Link
+                    to={`/schedule?cabin=${cabin.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-emerald-700 transition-colors"
+                  >
+                    Book Now
+                  </Link>
+                </div>
               </div>
 
               <div className="border-t border-stone-100 dark:border-stone-800">
