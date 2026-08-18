@@ -3,21 +3,29 @@ import { Trash2, Upload, Image as ImageIcon, ChevronLeft, ChevronRight } from 'l
 import LightboxDialog from '../ui/LightboxDialog'
 import { useShare } from '../../lib/share'
 
-const INTERVAL_MS = 5000
+const INTERVAL_MS = 4000
 
 export default function CabinPhotoCarousel({ photos, isAdmin, onUpload, onDelete }) {
-  const [current, setCurrent] = useState(0)
+  const [offset, setOffset] = useState(0)
   const [paused, setPaused] = useState(false)
   const [lightbox, setLightbox] = useState(null)
   const { share } = useShare()
   const timerRef = useRef(null)
 
+  const visibleCount = 3
+
   const go = useCallback((dir) => {
-    setCurrent(prev => (prev + dir + photos.length) % photos.length)
+    setOffset(prev => {
+      const max = Math.max(0, photos.length - visibleCount)
+      const next = prev + dir
+      if (next < 0) return max
+      if (next > max) return 0
+      return next
+    })
   }, [photos.length])
 
   useEffect(() => {
-    if (paused || photos.length <= 1) return
+    if (paused || photos.length <= visibleCount) return
     timerRef.current = setInterval(() => go(1), INTERVAL_MS)
     return () => clearInterval(timerRef.current)
   }, [paused, go, photos.length])
@@ -53,69 +61,75 @@ export default function CabinPhotoCarousel({ photos, isAdmin, onUpload, onDelete
       </div>
 
       <div
-        className="relative group overflow-hidden rounded-lg"
+        className="relative group"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
-        role="region"
-        aria-label="Room photos"
-        aria-roledescription="carousel"
       >
-        <button
-          onClick={() => go(-1)}
-          className="absolute left-1 top-1/2 -translate-y-1/2 z-10 bg-black/40 hover:bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
-          aria-label="Previous photo"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-        </button>
-        <button
-          onClick={() => go(1)}
-          className="absolute right-1 top-1/2 -translate-y-1/2 z-10 bg-black/40 hover:bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
-          aria-label="Next photo"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
-
-        <button
-          onClick={() => setLightbox(photos[current])}
-          className="block w-full aspect-[4/3] relative"
-          aria-label={`View ${photos[current].caption || 'photo'}`}
-        >
-          {photos.map((photo, i) => (
-            <img
-              key={photo.id}
-              src={photo.url}
-              alt={photo.caption || ''}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${i === current ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-              loading={i === 0 ? 'eager' : 'lazy'}
-            />
-          ))}
-          {photos[current].caption && (
-            <span className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-gradient-to-t from-black/60 to-transparent text-[11px] text-white font-medium">
-              {photos[current].caption}
-            </span>
-          )}
-        </button>
-
-        {isAdmin && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(photos[current]) }}
-            className="absolute top-1.5 right-1.5 z-10 bg-black/40 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
-            aria-label="Delete photo"
-          >
-            <Trash2 className="h-2.5 w-2.5" />
-          </button>
+        {photos.length > visibleCount && (
+          <>
+            <button
+              onClick={() => go(-1)}
+              className="absolute left-0 top-0 bottom-0 w-7 z-10 bg-gradient-to-r from-white/80 dark:from-stone-900/80 to-transparent flex items-center justify-start pl-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Previous photos"
+            >
+              <ChevronLeft className="h-4 w-4 text-stone-600 dark:text-stone-300" />
+            </button>
+            <button
+              onClick={() => go(1)}
+              className="absolute right-0 top-0 bottom-0 w-7 z-10 bg-gradient-to-l from-white/80 dark:from-stone-900/80 to-transparent flex items-center justify-end pr-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Next photos"
+            >
+              <ChevronRight className="h-4 w-4 text-stone-600 dark:text-stone-300" />
+            </button>
+          </>
         )}
 
-        {photos.length > 1 && (
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-10" role="tablist">
-            {photos.map((photo, i) => (
+        <div className="flex gap-2 overflow-hidden">
+          {photos.slice(offset, offset + visibleCount).map((photo) => (
+            <button
+              key={photo.id}
+              onClick={() => setLightbox(photo)}
+              className="relative flex-1 min-w-0 group/thumb"
+            >
+              <img
+                src={photo.url}
+                alt={photo.caption || ''}
+                className="w-full aspect-[4/3] object-cover rounded-lg ring-1 ring-stone-200 dark:ring-stone-700 hover:ring-2 hover:ring-blue-500 dark:hover:ring-blue-400 transition-all"
+                loading="lazy"
+              />
+              {photo.caption && (
+                <p className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg text-[10px] text-white font-medium truncate">{photo.caption}</p>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(photo) }}
+                  className="absolute top-1 right-1 bg-black/50 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                  aria-label="Delete photo"
+                >
+                  <Trash2 className="h-2 w-2" />
+                </button>
+              )}
+            </button>
+          ))}
+          {isAdmin && offset + visibleCount >= photos.length && (
+            <button
+              onClick={onUpload}
+              className="flex-1 min-w-0 aspect-[4/3] rounded-lg border-2 border-dashed border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 flex flex-col items-center justify-center gap-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              <span className="text-[10px]">Add</span>
+            </button>
+          )}
+        </div>
+
+        {photos.length > visibleCount && (
+          <div className="flex items-center justify-center gap-1.5 mt-2">
+            {Array.from({ length: Math.ceil(photos.length / visibleCount) }, (_, i) => (
               <button
-                key={photo.id}
-                onClick={() => setCurrent(i)}
-                className={`rounded-full transition-all ${i === current ? 'bg-white w-3 h-1.5' : 'bg-white/50 w-1.5 h-1.5 hover:bg-white/75'}`}
-                role="tab"
-                aria-selected={i === current}
-                aria-label={`Go to ${photo.caption || `photo ${i + 1}`}`}
+                key={i}
+                onClick={() => setOffset(i * visibleCount)}
+                className={`rounded-full transition-all ${Math.floor(offset / visibleCount) === i ? 'bg-stone-800 dark:bg-stone-200 w-3 h-1.5' : 'bg-stone-300 dark:bg-stone-600 w-1.5 h-1.5 hover:bg-stone-400 dark:hover:bg-stone-500'}`}
+                aria-label={`Go to page ${i + 1}`}
               />
             ))}
           </div>
