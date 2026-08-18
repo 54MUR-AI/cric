@@ -101,8 +101,8 @@ function WeatherWidget() {
 
   return (
     <div className="rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 relative overflow-hidden"
-      style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="p-4" style={{ textShadow: '1px 0 0 rgba(0,0,0,0.5), -1px 0 0 rgba(0,0,0,0.5), 0 1px 0 rgba(0,0,0,0.5), 0 -1px 0 rgba(0,0,0,0.5)' }}>
+      style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.45)), url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="p-4" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
         <h2 className="font-semibold text-white/90 mb-3 flex items-center gap-2">
           <CloudSun className="h-4 w-4" /> Cranberry Lake, NY
         </h2>
