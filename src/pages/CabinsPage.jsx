@@ -157,13 +157,13 @@ export default function CabinsPage() {
               {pin?.image_url ? (
                 <div className="relative">
                   <img src={pin.image_url} alt={cabinName} className="w-full aspect-[16/9] object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2">
                       <span className="inline-block h-3 w-3 rounded-full ring-2 ring-white/50 shrink-0" style={{ backgroundColor: cabin.color }} />
-                      <h3 className="font-semibold text-white text-lg drop-shadow">{cabinName}</h3>
+                      <h3 className="font-semibold text-white text-lg" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)' }}>{cabinName}</h3>
                     </div>
-                    {pin.description && <p className="text-xs text-white/80 mt-0.5 truncate">{pin.description}</p>}
+                    {pin.description && <p className="text-xs text-white/90 mt-0.5 truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>{pin.description}</p>}
                   </div>
                   {isAdmin && (
                     <div className="absolute top-2 right-2 flex gap-1">
