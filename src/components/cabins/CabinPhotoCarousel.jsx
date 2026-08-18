@@ -111,15 +111,6 @@ export default function CabinPhotoCarousel({ photos, isAdmin, onUpload, onDelete
               )}
             </button>
           ))}
-          {isAdmin && offset + visibleCount >= photos.length && (
-            <button
-              onClick={onUpload}
-              className="flex-1 min-w-0 aspect-[4/3] rounded-lg border-2 border-dashed border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 flex flex-col items-center justify-center gap-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              <span className="text-[10px]">Add</span>
-            </button>
-          )}
         </div>
 
         {photos.length > visibleCount && (
