@@ -302,7 +302,7 @@ export default function SchedulePage() {
               },
             }
           }}
-          style={{ height: 'calc(100vh - 300px)', minHeight: 400, maxHeight: 800 }}
+          style={{ height: isMobile ? 250 : 'calc(100vh - 300px)', minHeight: isMobile ? 180 : 400, maxHeight: isMobile ? 350 : 800 }}
         />
       </div>
 
