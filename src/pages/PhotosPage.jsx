@@ -102,7 +102,12 @@ export default function PhotosPage() {
   const handleCreateAlbum = async () => {
     if (!albumName.trim()) return
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('photo_albums').insert({ name: albumName.trim(), created_by: user?.id })
+    const { data } = await supabase.from('photo_albums').insert({ name: albumName.trim(), created_by: user?.id }).select('id').single()
+    if (data && selected.size > 0) {
+      const ids = [...selected]
+      await supabase.from('photos').update({ album_id: data.id }).in('id', ids)
+      setSelected(new Set())
+    }
     setAlbumName(''); setShowAlbumForm(false); refresh()
   }
 
