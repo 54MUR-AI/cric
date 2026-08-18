@@ -1,25 +1,25 @@
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Trash2, Upload, Image as ImageIcon } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Trash2, Upload, Image as ImageIcon, ChevronRight } from 'lucide-react'
 import LightboxDialog from '../ui/LightboxDialog'
 import { useShare } from '../../lib/share'
 
 export default function CabinPhotoCarousel({ photos, isAdmin, onUpload, onDelete }) {
-  const [index, setIndex] = useState(0)
   const [lightbox, setLightbox] = useState(null)
   const { share } = useShare()
+  const scrollRef = useRef(null)
 
   if (!photos.length) {
     return (
-      <div className="mt-3">
+      <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">Room Photos</span>
+          <span className="text-[11px] font-medium text-stone-400 dark:text-stone-500 uppercase tracking-wide">Rooms</span>
         </div>
-        <div className="rounded-lg border border-dashed border-stone-300 dark:border-stone-600 flex flex-col items-center justify-center gap-2 py-6 text-center">
-          <ImageIcon className="h-6 w-6 text-stone-300 dark:text-stone-600" />
-          <p className="text-xs text-stone-400 dark:text-stone-500">No room photos yet.</p>
+        <div className="rounded-lg border border-dashed border-stone-200 dark:border-stone-700 flex flex-col items-center justify-center gap-1.5 py-4 text-center">
+          <ImageIcon className="h-5 w-5 text-stone-300 dark:text-stone-600" />
+          <p className="text-[11px] text-stone-400 dark:text-stone-500">No room photos yet</p>
           {isAdmin && (
-            <button onClick={onUpload} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 hover:bg-stone-700 dark:hover:bg-stone-300 transition-colors">
-              <Upload className="h-3 w-3" /> Upload photos
+            <button onClick={onUpload} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-800 hover:bg-stone-700 dark:hover:bg-stone-300 transition-colors">
+              <Upload className="h-2.5 w-2.5" /> Upload
             </button>
           )}
         </div>
@@ -27,51 +27,61 @@ export default function CabinPhotoCarousel({ photos, isAdmin, onUpload, onDelete
     )
   }
 
-  const i = Math.min(index, photos.length - 1)
-  const photo = photos[i]
-
   return (
-    <div className="mt-3">
+    <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">Room Photos</span>
+        <span className="text-[11px] font-medium text-stone-400 dark:text-stone-500 uppercase tracking-wide">Rooms ({photos.length})</span>
         {isAdmin && (
-          <button onClick={onUpload} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
-            <Upload className="h-3 w-3" /> Add
+          <button onClick={onUpload} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
+            <Upload className="h-2.5 w-2.5" /> Add
           </button>
         )}
       </div>
 
-      <div className="relative rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800">
-        <button onClick={() => setLightbox(photo)} className="block w-full" aria-label="View photo">
-          <img src={photo.url} alt={photo.caption || ''} className="w-full aspect-[16/10] object-cover" loading="lazy" />
-        </button>
-        <span className="absolute bottom-2 right-2 rounded-full bg-black/50 text-white text-[10px] px-2 py-0.5">{i + 1} / {photos.length}</span>
-        {isAdmin && (
-          <button onClick={() => onDelete(photo)} className="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center transition-colors" aria-label="Delete photo">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
-        {i > 0 && (
-          <button onClick={() => setIndex(i - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" aria-label="Previous photo">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        )}
-        {i < photos.length - 1 && (
-          <button onClick={() => setIndex(i + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" aria-label="Next photo">
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-
-      {photo.caption && <p className="mt-1 text-center text-xs text-stone-500 dark:text-stone-400 truncate">{photo.caption}</p>}
-
-      {photos.length > 1 && (
-        <div className="flex justify-center gap-1.5 mt-2">
-          {photos.map((p, j) => (
-            <button key={p.id} onClick={() => setIndex(j)} className={`h-1.5 rounded-full transition-all ${j === i ? 'w-4 bg-stone-800 dark:bg-stone-200' : 'w-1.5 bg-stone-300 dark:bg-stone-600'}`} aria-label={`Go to photo ${j + 1}`} />
+      <div className="relative group">
+        <div ref={scrollRef} className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {photos.map((photo, j) => (
+            <button
+              key={photo.id}
+              onClick={() => setLightbox(photo)}
+              className="relative shrink-0 group/thumb"
+            >
+              <img
+                src={photo.url}
+                alt={photo.caption || ''}
+                className="w-20 h-16 sm:w-24 sm:h-20 object-cover rounded-md ring-1 ring-stone-200 dark:ring-stone-700 hover:ring-2 hover:ring-blue-500 dark:hover:ring-blue-400 transition-all"
+                loading="lazy"
+              />
+              {photo.caption && (
+                <p className="absolute bottom-0 left-0 right-0 px-1 py-0.5 bg-gradient-to-t from-black/70 to-transparent rounded-b-md text-[9px] text-white truncate">{photo.caption}</p>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(photo) }}
+                  className="absolute top-0.5 right-0.5 bg-black/50 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                  aria-label="Delete photo"
+                >
+                  <Trash2 className="h-2 w-2" />
+                </button>
+              )}
+            </button>
           ))}
+          {isAdmin && (
+            <button
+              onClick={onUpload}
+              className="shrink-0 w-20 h-16 sm:w-24 sm:h-20 rounded-md border-2 border-dashed border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 flex flex-col items-center justify-center gap-0.5 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors"
+            >
+              <Upload className="h-3 w-3" />
+              <span className="text-[9px]">Add</span>
+            </button>
+          )}
         </div>
-      )}
+        {photos.length > 3 && (
+          <div className="absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-white dark:from-stone-900 to-transparent pointer-events-none flex items-center justify-end pr-1">
+            <ChevronRight className="h-3 w-3 text-stone-400" />
+          </div>
+        )}
+      </div>
 
       {lightbox && (
         <LightboxDialog photo={lightbox} photos={photos} onClose={() => setLightbox(null)} onNavigate={setLightbox} onShare={share} />

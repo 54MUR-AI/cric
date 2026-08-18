@@ -150,50 +150,49 @@ export default function CabinsPage() {
           const pin = pinsByCabin[cabin.id]
           const improvements = cabin.improvements || []
           const isExpanded = expandedCabin === cabin.id
+          const cabinPhotos = cabinPhotoHook.photosByCabin[cabin.id] || []
 
           return (
-            <div key={cabin.id} className={`rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border ${cabin.is_active ? 'border-stone-200 dark:border-stone-700' : 'border-stone-200 dark:border-stone-700 opacity-60'}`}>
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="inline-block h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: cabin.color }} />
-                    <div>
-                      <h3 className="font-medium text-stone-800 dark:text-stone-200 truncate">{cabinName}</h3>
-                      <p className="text-xs text-stone-400 dark:text-stone-500 whitespace-pre-wrap">{blurb}</p>
+            <div key={cabin.id} className={`rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border overflow-hidden ${cabin.is_active ? 'border-stone-200 dark:border-stone-700' : 'border-stone-200 dark:border-stone-700 opacity-60'}`}>
+              {pin?.image_url ? (
+                <div className="relative">
+                  <img src={pin.image_url} alt={cabinName} className="w-full aspect-[16/9] object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-3 w-3 rounded-full ring-2 ring-white/50 shrink-0" style={{ backgroundColor: cabin.color }} />
+                      <h3 className="font-semibold text-white text-lg drop-shadow">{cabinName}</h3>
                     </div>
+                    {pin.description && <p className="text-xs text-white/80 mt-0.5 truncate">{pin.description}</p>}
                   </div>
                   {isAdmin && (
-                    <div className="flex gap-1 shrink-0">
-                      <button onClick={() => editCabin(cabin)} className="p-1.5 rounded text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800"><Pencil className="h-4 w-4" /></button>
-                      <button onClick={() => updateCabin(cabin.id, { is_active: !cabin.is_active })} className="p-1.5 rounded text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium">{cabin.is_active ? 'Disable' : 'Enable'}</button>
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <button onClick={() => editCabin(cabin)} className="p-1.5 rounded bg-black/40 text-white hover:bg-black/60 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => updateCabin(cabin.id, { is_active: !cabin.is_active })} className="px-2 py-1 rounded bg-black/40 text-white hover:bg-black/60 transition-colors text-[10px] font-medium">{cabin.is_active ? 'Disable' : 'Enable'}</button>
                     </div>
                   )}
                 </div>
-
-                {canManageAuthority && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <label className="text-xs text-stone-500 dark:text-stone-400 shrink-0">Booking authority</label>
-                    <select
-                      value={cabin.booking_authority_id || ''}
-                      onChange={(e) => updateCabin(cabin.id, { booking_authority_id: e.target.value || null })}
-                      className="flex-1 min-w-0 rounded border border-stone-300 dark:border-stone-600 px-2 py-1 text-xs bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200"
-                    >
-                      <option value="">None</option>
-                      {profiles.map(p => <option key={p.id} value={p.id}>{p.display_name || p.email || 'Unknown'}</option>)}
-                    </select>
+              ) : (
+                <div className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="inline-block h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cabin.color }} />
+                      <h3 className="font-semibold text-stone-800 dark:text-stone-200">{cabinName}</h3>
+                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => editCabin(cabin)} className="p-1.5 rounded text-stone-400 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800"><Pencil className="h-4 w-4" /></button>
+                        <button onClick={() => updateCabin(cabin.id, { is_active: !cabin.is_active })} className="p-1.5 rounded text-stone-400 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium">{cabin.is_active ? 'Disable' : 'Enable'}</button>
+                      </div>
+                    )}
                   </div>
-                )}
-                {!canManageAuthority && cabin.booking_authority_id && (
-                  <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
-                    Bookings confirmed by <span className="font-medium text-stone-600 dark:text-stone-300">{profileById[cabin.booking_authority_id] || 'the authority'}</span>
-                  </p>
-                )}
+                </div>
+              )}
 
-                {pin && (
-                  <div className="mt-3 flex gap-3 items-start rounded-md border border-stone-100 dark:border-stone-800 p-2">
-                    {pin.image_url
-                      ? <img src={pin.image_url} alt="" className="w-16 h-16 object-cover rounded shrink-0" />
-                      : <span className="w-16 h-16 rounded flex items-center justify-center bg-stone-100 dark:bg-stone-800 text-stone-300 dark:text-stone-600 shrink-0"><MapPin className="h-6 w-6" /></span>}
+              <div className="p-4 pt-3 space-y-3">
+                {pin && !pin.image_url && (
+                  <div className="flex gap-3 items-start">
+                    <span className="w-12 h-12 rounded flex items-center justify-center bg-stone-100 dark:bg-stone-800 text-stone-300 dark:text-stone-600 shrink-0"><MapPin className="h-5 w-5" /></span>
                     <div className="text-xs text-stone-500 dark:text-stone-400 space-y-0.5 min-w-0">
                       {pin.description && <div className="truncate">{pin.description}</div>}
                       <div>{formatDistance(pin.latitude, pin.longitude)}</div>
@@ -202,8 +201,29 @@ export default function CabinsPage() {
                   </div>
                 )}
 
+                <p className="text-xs text-stone-500 dark:text-stone-400 whitespace-pre-wrap leading-relaxed">{blurb}</p>
+
+                {canManageAuthority && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] text-stone-400 dark:text-stone-500 shrink-0">Booking authority</label>
+                    <select
+                      value={cabin.booking_authority_id || ''}
+                      onChange={(e) => updateCabin(cabin.id, { booking_authority_id: e.target.value || null })}
+                      className="flex-1 min-w-0 rounded border border-stone-200 dark:border-stone-700 px-2 py-1 text-xs bg-stone-50 dark:bg-stone-950 text-stone-700 dark:text-stone-300"
+                    >
+                      <option value="">None</option>
+                      {profiles.map(p => <option key={p.id} value={p.id}>{p.display_name || p.email || 'Unknown'}</option>)}
+                    </select>
+                  </div>
+                )}
+                {!canManageAuthority && cabin.booking_authority_id && (
+                  <p className="text-[11px] text-stone-400 dark:text-stone-500">
+                    Bookings confirmed by <span className="font-medium text-stone-600 dark:text-stone-300">{profileById[cabin.booking_authority_id] || 'the authority'}</span>
+                  </p>
+                )}
+
                 <CabinPhotoCarousel
-                  photos={cabinPhotoHook.photosByCabin[cabin.id] || []}
+                  photos={cabinPhotos}
                   isAdmin={isAdmin}
                   onUpload={() => { setUploadFiles([]); setUploadCaptions([]); setUploadError(''); setShowUploadFor(cabin.id) }}
                   onDelete={(photo) => cabinPhotoHook.deleteCabinPhoto(photo)}

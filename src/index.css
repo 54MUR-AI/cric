@@ -142,6 +142,9 @@ html { scroll-behavior: smooth; }
 * { scrollbar-width: thin; scrollbar-color: #a8a29e #e7e5e4; }
 .dark * { scrollbar-color: #57534e #292524; }
 
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+
 @keyframes slide-in-from-left {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
