@@ -153,9 +153,6 @@ export default function PhotosPage() {
           {selected.size > 0 && (
             <>
               <span className="text-xs text-stone-500 dark:text-stone-400 self-center">{selected.size} selected</span>
-              <button onClick={downloadSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
-                <Download className="h-3 w-3" /> Download
-              </button>
               <button onClick={deleteSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-800 transition-colors">
                 <Trash2 className="h-3 w-3" /> Delete
               </button>
@@ -165,11 +162,15 @@ export default function PhotosPage() {
           <button onClick={() => setShowAlbumForm(true)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
             <Plus className="h-3 w-3" /> Album
           </button>
-          {selected.size === 0 && (
+          {selected.size === 0 ? (
             <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs cursor-pointer transition-colors bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500">
               <Upload className="h-3 w-3" /> Upload
               <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilePick} />
             </label>
+          ) : (
+            <button onClick={downloadSelected} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border text-xs bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 transition-colors">
+              <Download className="h-3 w-3" /> Download
+            </button>
           )}
         </div>
       </div>
