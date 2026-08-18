@@ -34,6 +34,7 @@ export default function PhotosPage() {
   const [albumFilter, setAlbumFilter] = useState(null)
   const [showAlbumForm, setShowAlbumForm] = useState(false)
   const [albumName, setAlbumName] = useState('')
+  const [targetAlbumId, setTargetAlbumId] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const [selected, setSelected] = useState(new Set())
   const fileRef = useRef()
@@ -99,16 +100,19 @@ export default function PhotosPage() {
     vibrate([10, 20, 10])
   }
 
-  const handleCreateAlbum = async () => {
-    if (!albumName.trim()) return
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data, error } = await supabase.from('photo_albums').insert({ name: albumName.trim(), created_by: user?.id }).select('id').single()
-    if (error || !data) { setAlbumName(''); setShowAlbumForm(false); return }
-    if (selected.size > 0) {
-      await supabase.from('photos').update({ album_id: data.id }).in('id', [...selected])
-      setSelected(new Set())
+  const handleAlbumAction = async () => {
+    if (!selected.size) return
+    let albumId = targetAlbumId
+    if (!albumId) {
+      if (!albumName.trim()) return
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase.from('photo_albums').insert({ name: albumName.trim(), created_by: user?.id }).select('id').single()
+      if (error || !data) { setAlbumName(''); setTargetAlbumId(''); setShowAlbumForm(false); return }
+      albumId = data.id
     }
-    setAlbumName(''); setShowAlbumForm(false)
+    await supabase.from('photos').update({ album_id: albumId }).in('id', [...selected])
+    setSelected(new Set())
+    setAlbumName(''); setTargetAlbumId(''); setShowAlbumForm(false)
     refresh()
   }
 
@@ -286,16 +290,31 @@ export default function PhotosPage() {
       )}
 
       {showAlbumForm && (
-        <ModalOverlay onClose={() => setShowAlbumForm(false)} ariaLabel="Create album">
+        <ModalOverlay onClose={() => { setShowAlbumForm(false); setTargetAlbumId(''); setAlbumName('') }} ariaLabel="Add to album">
           <div className="w-full max-w-sm max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-stone-900 p-6 shadow-xl dark:shadow-black/30">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-stone-800 dark:text-stone-200">New Album</h3>
-              <button onClick={() => setShowAlbumForm(false)} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
+              <h3 className="font-semibold text-stone-800 dark:text-stone-200">Add to Album</h3>
+              <button onClick={() => { setShowAlbumForm(false); setTargetAlbumId(''); setAlbumName('') }} aria-label="Close"><X className="h-4 w-4 text-stone-400 dark:text-stone-500" /></button>
             </div>
-            <input type="text" placeholder="Album name" value={albumName} onChange={e => setAlbumName(e.target.value)} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500" autoFocus />
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">{selected.size} photo{selected.size !== 1 ? 's' : ''} selected</p>
+            {albums.length > 0 && (
+              <div className="mb-3">
+                <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Existing album</label>
+                <select value={targetAlbumId} onChange={e => { setTargetAlbumId(e.target.value); if (e.target.value) setAlbumName('') }} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200">
+                  <option value="">— Select an album —</option>
+                  {albums.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Or create a new album</label>
+              <input type="text" placeholder="New album name" value={albumName} onChange={e => { setAlbumName(e.target.value); if (e.target.value) setTargetAlbumId('') }} disabled={!!targetAlbumId} className="w-full rounded-md border border-stone-300 dark:border-stone-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 disabled:opacity-40 disabled:cursor-not-allowed bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200" />
+            </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowAlbumForm(false)} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600">Cancel</button>
-              <button onClick={handleCreateAlbum} className="rounded-md px-3 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300">Create</button>
+              <button onClick={() => { setShowAlbumForm(false); setTargetAlbumId(''); setAlbumName('') }} className="rounded-md px-3 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-600">Cancel</button>
+              <button onClick={handleAlbumAction} disabled={!targetAlbumId && !albumName.trim()} className="rounded-md px-4 py-1.5 text-xs text-white dark:text-stone-800 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 disabled:opacity-40">
+                {targetAlbumId ? 'Add to Album' : 'Create & Add'}
+              </button>
             </div>
           </div>
         </ModalOverlay>
