@@ -191,3 +191,7 @@ html { scroll-behavior: smooth; }
   top: 0;
   z-index: 1;
 }
+
+/* Week view: hide time gutter and time grid (bookings are all-day only) */
+.rbc-time-view .rbc-time-gutter { display: none; }
+.rbc-time-view .rbc-time-content { display: none; }
