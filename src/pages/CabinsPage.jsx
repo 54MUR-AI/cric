@@ -15,10 +15,10 @@ import { CRANBERRY_LAKE } from '../lib/map/constants'
 import { haversineKm, bearing } from '../lib/map/utils'
 
 const CABIN_DESCRIPTIONS = {
-  'Bat Manor': '6 bd (1 king, 1 full, 11 twin) · 2 ba · Full kitchen · Large dining/common area\nRustic log cabin with room for the whole crew. Wrap-around deck and character-rich interior with vaulted ceilings and exposed beams.',
-  'Loon Lodge': '2 bd + loft (3 queen, 2 twin) · 2 ba · Full kitchen · Small dining/common area\nLakeside lodge with water views and loft sleeping. Great for families who want to wake up to the lake.',
-  'Toad Hall': '2 bd · 1 ba · Full kitchen · Small dining/common area\nCozy and efficient with modern updates including metal roof and new septic system. A solid, well-maintained option.',
-  'The Bunkhouse': 'Studio with loft (3 queen in loft, 1 full, 2 twin) · 1 ba · Half kitchen (no oven) · Small dining area\nFunctional bunkhouse ideal for overflow guests. Recent window and door replacements keep it tight and dry.',
+  'Bat Manor': '6 bd (1 king, 1 full, 11 twin) | 2 ba | Full kitchen | Large dining/common area\nRustic log cabin with room for the whole crew. Wrap-around deck and character-rich interior with vaulted ceilings and exposed beams.',
+  'Loon Lodge': '2 bd + loft (3 queen, 2 twin) | 2 ba | Full kitchen | Small dining/common area\nLakeside lodge with water views and loft sleeping. Great for families who want to wake up to the lake.',
+  'Toad Hall': '2 bd | 1 ba | Full kitchen | Small dining/common area\nCozy and efficient with modern updates including metal roof and new septic system. A solid, well-maintained option.',
+  'The Bunkhouse': 'Studio with loft (3 queen in loft, 1 full, 2 twin) | 1 ba | Half kitchen (no oven) | Small dining area\nFunctional bunkhouse ideal for overflow guests. Recent window and door replacements keep it tight and dry.',
 }
 
 function formatDistance(lat, lon) {
