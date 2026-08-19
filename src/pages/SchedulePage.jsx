@@ -54,7 +54,8 @@ export default function SchedulePage() {
   const [error, setError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
   const [conflicts, setConflicts] = useState(null)
-  const [currentView, setCurrentView] = useState(isMobile ? Views.WEEK : Views.MONTH)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+  const [currentView, setCurrentView] = useState(() => window.innerWidth < 768 ? Views.WEEK : Views.MONTH)
 
   const profileById = {}
   for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
@@ -71,7 +72,6 @@ export default function SchedulePage() {
     }
   }, [searchParams, cabins])
 
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
     const handler = (e) => setIsMobile(e.matches)
