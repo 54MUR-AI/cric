@@ -74,7 +74,7 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Passengers</label>
-            <input type="number" min="1" value={form.passengers} onChange={e => setForm({ ...form, passengers: parseInt(e.target.value) || 1 })} className="w-full rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 px-3 py-2 text-sm text-stone-800 dark:text-stone-200" />
+            <input type="number" min="1" value={form.passengers} onChange={e => { const v = e.target.value; setForm({ ...form, passengers: v === '' ? '' : Math.max(1, Number(v)) }) }} className="w-full rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 px-3 py-2 text-sm text-stone-800 dark:text-stone-200" />
           </div>
           <div>
             <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Notes (bags, equipment, etc.)</label>
