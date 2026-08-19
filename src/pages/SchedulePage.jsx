@@ -304,7 +304,7 @@ export default function SchedulePage() {
               },
             }
           }}
-          style={{ height: currentView === Views.WEEK && isMobile ? 200 : 'calc(100vh - 300px)', minHeight: currentView === Views.WEEK && isMobile ? 150 : 400, maxHeight: currentView === Views.WEEK && isMobile ? 300 : 800 }}
+          style={{ height: 'calc(100vh - 300px)', minHeight: 400, maxHeight: 800 }}
         />
       </div>
 
