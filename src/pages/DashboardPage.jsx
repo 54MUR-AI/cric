@@ -169,7 +169,7 @@ export default function DashboardPage() {
 
   const triggerTestAlert = () => {
     toast.warning('TEST: Severe Thunderstorm Warning for St. Lawrence County', 8000)
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       try { new Notification('TEST: Severe Thunderstorm Warning', { body: 'Test notification - you should see this as a system notification.', icon: '/icons/icon-192x192.png' }) } catch { /* ignore */ }
     }
   }

@@ -84,7 +84,7 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   const [showFireDanger, setShowFireDanger] = useState(prefs?.showFireDanger ?? DEFAULT_PREFS.showFireDanger)
   const [cellCarriers, setCellCarriers] = useState(prefs?.cellCarriers ?? DEFAULT_PREFS.cellCarriers)
   const [fireDanger, setFireDanger] = useState(null)
-  const [notifyPerm, setNotifyPerm] = useState(Notification.permission)
+  const [notifyPerm, setNotifyPerm] = useState(() => typeof Notification !== 'undefined' ? Notification.permission : 'denied')
   const [baseLayer, setBaseLayer] = useState(prefs?.baseLayer ?? DEFAULT_PREFS.baseLayer)
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [editingPin, setEditingPin] = useState(null)
@@ -167,11 +167,11 @@ export default function MapPage({ compact, onLightningStrike } = {}) {
   useEffect(() => { savePreferences() }, [baseLayer, showRadar, showStations, showTrails, showPins, showLightning, showPhotos, showForecast, showBathymetry, showFireDanger, cellCarriers, savePreferences])
 
   useEffect(() => {
-    if (notifyPerm !== 'granted' && Notification.permission === 'default') Notification.requestPermission().then(p => setNotifyPerm(p))
+    if (typeof Notification !== 'undefined' && notifyPerm !== 'granted' && Notification.permission === 'default') Notification.requestPermission().then(p => setNotifyPerm(p))
   }, [notifyPerm])
 
   function sendSystemNotification(title, body) {
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       try { new Notification(title, { body, icon: '/icons/icon-192x192.png' }) } catch { /* ignore */ }
     }
   }
