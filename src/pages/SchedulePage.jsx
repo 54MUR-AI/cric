@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
@@ -56,6 +56,7 @@ export default function SchedulePage() {
   const [conflicts, setConflicts] = useState(null)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const [currentView, setCurrentView] = useState(() => window.innerWidth < 768 ? Views.WEEK : Views.MONTH)
+  const [currentDate, setCurrentDate] = useState(new Date())
 
   const profileById = {}
   for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
@@ -126,6 +127,27 @@ export default function SchedulePage() {
         allDay: true,
       }
     })
+
+  const weekHeight = useMemo(() => {
+    if (currentView !== Views.WEEK) return null
+    const startOfWeek = new Date(currentDate)
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    const s = fmtInput(startOfWeek)
+    const e = fmtInput(endOfWeek)
+    let maxDay = 0
+    for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
+      const ds = fmtInput(d)
+      const de = fmtInput(d)
+      const count = events.filter(ev => ev.start <= de && ev.end >= ds).length
+      if (count > maxDay) maxDay = count
+    }
+    const headerH = 30
+    const rowH = 28
+    const padding = 16
+    return Math.max(100, headerH + maxDay * rowH + padding)
+  }, [currentView, currentDate, events])
 
   function handleSelectSlot({ start, end }) {
     const endDay = new Date(new Date(end).getTime() - 86400000)
@@ -277,14 +299,16 @@ export default function SchedulePage() {
         <Plus className="h-6 w-6" />
       </button>
 
-      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 overflow-visible">
+      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
         <Calendar
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
           view={currentView}
+          date={currentDate}
           onView={setCurrentView}
+          onNavigate={setCurrentDate}
           views={isMobile ? [Views.WEEK, Views.MONTH] : [Views.MONTH, Views.WEEK]}
           selectable="ignoreEvents"
           popup
@@ -304,7 +328,7 @@ export default function SchedulePage() {
               },
             }
           }}
-          style={{ height: currentView === Views.WEEK ? (isMobile ? 350 : 450) : 'calc(100vh - 300px)', minHeight: currentView === Views.WEEK ? 250 : 400, maxHeight: currentView === Views.WEEK ? 600 : 800 }}
+          style={{ height: weekHeight || 'calc(100vh - 300px)' }}
         />
       </div>
 
