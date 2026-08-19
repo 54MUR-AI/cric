@@ -179,6 +179,11 @@ html { scroll-behavior: smooth; }
 .rbc-month-view .rbc-row { min-height: 0; }
 .rbc-month-row { min-height: 0; }
 
+/* Week view: hide time grid, let all-day row fill the space */
+.rbc-time-view { display: flex; flex-direction: column; }
+.rbc-time-view .rbc-time-content { display: none; }
+.rbc-time-view .rbc-time-header { flex: 1; overflow: auto; }
+
 /* Calendar "+N more" popup: keep inside the viewport on small screens */
 .rbc-overlay {
   max-width: min(92vw, 320px);
