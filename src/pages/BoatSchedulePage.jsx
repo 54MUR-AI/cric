@@ -22,7 +22,7 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
     e.preventDefault()
     setSaving(true)
     try {
-      const payload = { ...form, created_by: user.id }
+      const { profiles: _, ...payload } = { ...form, created_by: user.id }
       if (trip) {
         const { error } = await supabase.from('boat_trips').update(payload).eq('id', trip.id)
         if (error) throw error
