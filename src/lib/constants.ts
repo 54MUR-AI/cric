@@ -7,14 +7,14 @@ interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
   { to: '/map', label: 'Map', icon: 'Map' },
-  { to: '/schedule', label: 'Schedule', icon: 'Calendar' },
-  { to: '/emergency', label: 'Emergency', icon: 'AlertTriangle' },
-  { to: '/cabins', label: 'Cabins', icon: 'Home' },
   { to: '/guide', label: 'Guide', icon: 'BookOpen' },
+  { to: '/cabins', label: 'Cabins', icon: 'Home' },
   { to: '/maintenance', label: 'Maintenance', icon: 'Wrench' },
+  { to: '/schedule', label: 'Schedule', icon: 'Calendar' },
   { to: '/meetings', label: 'Meetings', icon: 'FileText' },
   { to: '/records', label: 'Records', icon: 'ScrollText' },
   { to: '/photos', label: 'Photos', icon: 'Image' },
+  { to: '/emergency', label: 'Emergency', icon: 'AlertTriangle' },
 ]
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
