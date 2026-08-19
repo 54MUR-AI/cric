@@ -54,6 +54,7 @@ export default function SchedulePage() {
   const [error, setError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
   const [conflicts, setConflicts] = useState(null)
+  const [currentView, setCurrentView] = useState(isMobile ? Views.WEEK : Views.MONTH)
 
   const profileById = {}
   for (const p of profiles) profileById[p.id] = p.display_name || p.email || 'Unknown'
@@ -282,7 +283,8 @@ export default function SchedulePage() {
           events={events}
           startAccessor="start"
           endAccessor="end"
-          defaultView={isMobile ? Views.WEEK : Views.MONTH}
+          view={currentView}
+          onView={setCurrentView}
           views={isMobile ? [Views.WEEK, Views.MONTH] : [Views.MONTH, Views.WEEK]}
           selectable="ignoreEvents"
           popup
@@ -302,7 +304,7 @@ export default function SchedulePage() {
               },
             }
           }}
-          style={{ height: isMobile ? 250 : 'calc(100vh - 300px)', minHeight: isMobile ? 180 : 400, maxHeight: isMobile ? 350 : 800 }}
+          style={{ height: currentView === Views.WEEK && isMobile ? 200 : 'calc(100vh - 300px)', minHeight: currentView === Views.WEEK && isMobile ? 150 : 400, maxHeight: currentView === Views.WEEK && isMobile ? 300 : 800 }}
         />
       </div>
 
