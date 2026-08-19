@@ -1,5 +1,5 @@
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || ''
-const FROM = 'CRIC Island <noreply@chairrock.app>'
+const FROM = 'CRIC Manager <noreply@chairrock.app>'
 
 export async function sendEmail(
   to: string,
