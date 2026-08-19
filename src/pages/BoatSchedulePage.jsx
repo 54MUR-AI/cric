@@ -22,7 +22,8 @@ function TripModal({ trip, onClose, onSave, onDelete }) {
     e.preventDefault()
     setSaving(true)
     try {
-      const { profiles: _, ...payload } = { ...form, created_by: user.id }
+      const { profiles: _, created_by: cb, ...rest } = { ...form, created_by: user.id }
+      const payload = trip && cb !== trip.created_by ? { ...rest, created_by: cb, edited_by: user.id } : { ...rest, created_by: cb }
       if (trip) {
         const { error } = await supabase.from('boat_trips').update(payload).eq('id', trip.id)
         if (error) throw error
@@ -132,8 +133,8 @@ export default function BoatSchedulePage() {
       supabase.from('boat_trips').select('*').order('trip_date').order('departure_time'),
       supabase.from('profiles').select('id, display_name'),
     ])
-    const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
-    const merged = (tripsRes.data ?? []).map(t => ({ ...t, profiles: profMap.get(t.created_by) ?? null }))
+      const profMap = new Map((profilesRes.data ?? []).map(p => [p.id, { display_name: p.display_name }]))
+      const merged = (tripsRes.data ?? []).map(t => ({ ...t, profiles: profMap.get(t.created_by) ?? null, edited_by_profile: t.edited_by ? profMap.get(t.edited_by) ?? null : null }))
     setTrips(merged)
     // Cache for offline
     if (tripsRes.data) db.boat_trips.bulkPut(tripsRes.data)
@@ -185,6 +186,7 @@ export default function BoatSchedulePage() {
                       <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{trip.destination}</span>
                       <span className="flex items-center gap-1"><Users className="h-3 w-3" />{trip.passengers} {trip.passengers === 1 ? 'person' : 'people'}</span>
                       <span className="flex items-center gap-1">{trip.profiles?.display_name}</span>
+                      {trip.edited_by_profile && <span className="flex items-center gap-1 text-stone-400 dark:text-stone-500 italic">Edited by {trip.edited_by_profile.display_name}</span>}
                       {trip.gas_fee_paid && <span className="flex items-center gap-1 text-emerald-600"><DollarSign className="h-3 w-3" />Paid</span>}
                     </div>
                     {trip.notes && <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">{trip.notes}</p>}
