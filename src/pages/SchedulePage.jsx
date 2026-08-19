@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
@@ -127,27 +127,6 @@ export default function SchedulePage() {
         allDay: true,
       }
     })
-
-  const weekHeight = useMemo(() => {
-    if (currentView !== Views.WEEK) return null
-    const startOfWeek = new Date(currentDate)
-    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
-    const endOfWeek = new Date(startOfWeek)
-    endOfWeek.setDate(startOfWeek.getDate() + 6)
-    const s = fmtInput(startOfWeek)
-    const e = fmtInput(endOfWeek)
-    let maxDay = 0
-    for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
-      const ds = fmtInput(d)
-      const de = fmtInput(d)
-      const count = events.filter(ev => ev.start <= de && ev.end >= ds).length
-      if (count > maxDay) maxDay = count
-    }
-    const headerH = 30
-    const rowH = 28
-    const padding = 16
-    return Math.max(100, headerH + maxDay * rowH + padding)
-  }, [currentView, currentDate, events])
 
   function handleSelectSlot({ start, end }) {
     const endDay = new Date(new Date(end).getTime() - 86400000)
@@ -328,7 +307,7 @@ export default function SchedulePage() {
               },
             }
           }}
-          style={{ height: weekHeight || 'calc(100vh - 300px)' }}
+          style={{ height: 'calc(100vh - 300px)', minHeight: 400, maxHeight: 800 }}
         />
       </div>
 
