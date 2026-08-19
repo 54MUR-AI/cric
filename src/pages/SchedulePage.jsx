@@ -277,7 +277,7 @@ export default function SchedulePage() {
         <Plus className="h-6 w-6" />
       </button>
 
-      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700">
+      <div className="rounded-lg bg-white dark:bg-stone-900 shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 overflow-visible">
         <Calendar
           localizer={localizer}
           events={events}
@@ -304,7 +304,7 @@ export default function SchedulePage() {
               },
             }
           }}
-          style={{ height: currentView === Views.WEEK ? (isMobile ? 200 : 300) : 'calc(100vh - 300px)', minHeight: currentView === Views.WEEK ? 150 : 400, maxHeight: currentView === Views.WEEK ? 400 : 800 }}
+          style={{ height: currentView === Views.WEEK ? (isMobile ? 350 : 450) : 'calc(100vh - 300px)', minHeight: currentView === Views.WEEK ? 250 : 400, maxHeight: currentView === Views.WEEK ? 600 : 800 }}
         />
       </div>
 
