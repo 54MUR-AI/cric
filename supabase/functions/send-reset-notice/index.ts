@@ -26,8 +26,22 @@ Deno.serve(async (req) => {
   if (!NOTICE_SECRET || !safeEqual(req.headers.get('x-reset-notice-secret') ?? '', NOTICE_SECRET)) {
     return json({ error: 'unauthorized' }, 401)
   }
-  let body: { mode?: string; dry_run?: boolean }
-  try { body = await req.json() } catch { return json({ error: 'bad json' }, 400) }
+  // Tolerant body parsing: raw text -> JSON (parse twice if double-encoded), plus ?mode=&dry_run= query params.
+  const url = new URL(req.url)
+  const raw = await req.text().catch(() => '')
+  let body: { mode?: string; dry_run?: unknown } = {}
+  if (raw.trim()) {
+    try {
+      let parsed: unknown = JSON.parse(raw)
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed)
+      if (parsed && typeof parsed === 'object') body = parsed as typeof body
+      else throw new Error('not an object')
+    } catch {
+      return json({ error: 'bad json', content_type: req.headers.get('content-type'), body_length: raw.length }, 400)
+    }
+  }
+  if (body.mode === undefined && url.searchParams.has('mode')) body.mode = url.searchParams.get('mode') ?? undefined
+  if (body.dry_run === undefined && url.searchParams.has('dry_run')) body.dry_run = url.searchParams.get('dry_run') === 'true'
   const mode = body.mode
   if (mode !== 'initial' && mode !== 'reminder') return json({ error: "mode must be 'initial' or 'reminder'" }, 400)
   const dryRun = body.dry_run === true
