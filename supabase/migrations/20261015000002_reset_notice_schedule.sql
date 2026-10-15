@@ -3,6 +3,7 @@
 -- Prereq (Vault, done by the owner in the SQL editor, not in this file):
 --   select vault.create_secret('<same value as RESET_NOTICE_SECRET>', 'reset_notice_secret');
 -- Times are UTC: Sun Oct 25 2026 1:15 PM PT = 20:15 UTC; Tue Oct 27 10:15 AM PT = 17:15 UTC.
+-- The Vault value is trimmed: a trailing newline in it breaks the HTTP headers (seen in the Oct 15 dry runs).
 -- pg_cron has no year field, so each job unschedules itself after running once.
 
 create extension if not exists pg_cron;
@@ -16,9 +17,9 @@ select cron.schedule(
     url := 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1/send-reset-notice',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'x-reset-notice-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'reset_notice_secret')
+      'x-reset-notice-secret', (select btrim(decrypted_secret, E' \r\n\t') from vault.decrypted_secrets where name = 'reset_notice_secret')
     ),
-    body := '{"mode":"initial"}'::jsonb,
+    body := jsonb_build_object('mode', 'initial'),
     timeout_milliseconds := 120000
   );
   select cron.unschedule('reset-notice-initial');
@@ -33,9 +34,9 @@ select cron.schedule(
     url := 'https://lncewemrcsfqfzjgrcdu.supabase.co/functions/v1/send-reset-notice',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'x-reset-notice-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'reset_notice_secret')
+      'x-reset-notice-secret', (select btrim(decrypted_secret, E' \r\n\t') from vault.decrypted_secrets where name = 'reset_notice_secret')
     ),
-    body := '{"mode":"reminder"}'::jsonb,
+    body := jsonb_build_object('mode', 'reminder'),
     timeout_milliseconds := 120000
   );
   select cron.unschedule('reset-notice-reminder');

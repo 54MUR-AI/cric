@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       if (parsed && typeof parsed === 'object') body = parsed as typeof body
       else throw new Error('not an object')
     } catch {
-      return json({ error: 'bad json', content_type: req.headers.get('content-type'), body_length: raw.length }, 400)
+      return json({ error: 'bad json', content_type: req.headers.get('content-type'), body_length: raw.length, body_preview: raw.slice(0, 120) }, 400)
     }
   }
   if (body.mode === undefined && url.searchParams.has('mode')) body.mode = url.searchParams.get('mode') ?? undefined
