@@ -6,7 +6,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [resetSent, setResetSent] = useState(false)
-  const [showForgot, setShowForgot] = useState(false)
+  const [showForgot, setShowForgot] = useState(() => new URLSearchParams(window.location.search).has('forgot'))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { signInWithPassword } = useAuth()

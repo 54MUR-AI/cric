@@ -11,6 +11,7 @@ export default function UpdatePasswordPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [ready, setReady] = useState(false)
+  const [linkError, setLinkError] = useState('')
   const readyRef = useRef(false)
 
   useEffect(() => {
@@ -22,6 +23,19 @@ export default function UpdatePasswordPage() {
       readyRef.current = true
       setReady(true)
       setError('')
+    }
+
+    // Expired/used links come back as #error=...&error_code=otp_expired (or ?error=...)
+    const errParams = new URLSearchParams(
+      (window.location.hash.replace(/^#/, '') || '') + '&' + window.location.search.replace(/^\?/, ''),
+    )
+    if (errParams.get('error') || errParams.get('error_code')) {
+      setLinkError(
+        errParams.get('error_code') === 'otp_expired'
+          ? 'This reset link has expired or was already used.'
+          : (errParams.get('error_description') || 'This reset link is invalid.').replace(/\+/g, ' '),
+      )
+      return () => { cancelled = true }
     }
 
     async function recoverFromURL() {
@@ -60,7 +74,7 @@ export default function UpdatePasswordPage() {
 
     const timeout = setTimeout(() => {
       if (!cancelled && !readyRef.current) {
-        setError('No reset token found. Use the link from your email.')
+        setLinkError('No valid reset link found.')
       }
     }, 15000)
 
@@ -86,6 +100,16 @@ export default function UpdatePasswordPage() {
         <div className="text-3xl mb-3">✅</div>
         <h1 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-1">Password Updated</h1>
         <p className="text-sm text-stone-500 dark:text-stone-400">Redirecting to dashboard...</p>
+      </div>
+    </div>
+  )
+
+  if (linkError) return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center bg-white/90 dark:bg-stone-900/90 rounded-lg shadow-sm dark:shadow-black/20 border border-stone-200 dark:border-stone-700 p-8 max-w-sm w-full">
+        <h1 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-2">Reset link problem</h1>
+        <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">{linkError} Reset links are single-use and expire after a short time. Request a new one below.</p>
+        <Button className="w-full" onClick={() => navigate('/login?forgot=1', { replace: true })}>Request a new reset link</Button>
       </div>
     </div>
   )
