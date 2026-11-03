@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, SUPABASE_FUNCTIONS_URL, getAccessToken } from '../lib/supabase'
-import exifr from 'exifr'
 import db from '../lib/db'
 import { useToast } from '../components/ui/Toast'
 import { resizeImage } from '../lib/resizeImage'
@@ -50,6 +49,7 @@ async function uploadPhotoCore(file: File, { caption, album_id, cabin_id, folder
     longitude = exifData.longitude ?? null
   } else {
     try {
+      const { default: exifr } = await import('exifr')
       const exif = await exifr.parse(file, ['DateTimeOriginal', 'latitude', 'longitude'])
       if (exif?.DateTimeOriginal) takenAt = exif.DateTimeOriginal.toISOString()
       if (Number.isFinite(exif?.latitude) && Number.isFinite(exif?.longitude)) {

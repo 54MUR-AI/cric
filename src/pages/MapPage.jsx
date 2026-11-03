@@ -26,7 +26,8 @@ import WindArrow from '../components/map/WindArrow'
 import CellCoverageLayer, { CARRIERS } from '../components/map/CellCoverageLayer'
 import PinPopupContent from '../components/map/PinPopupContent'
 import { CHAIR_ROCK_ISLAND, CRANBERRY_LAKE, PIN_COLORS, PIN_TYPE_LABELS, ESRI_SAT, ESRI_TOPO, ESRI_ATTR } from '../lib/map/constants'
-import { bearing, pinIcon } from '../lib/map/utils'
+import { pinIcon } from '../lib/map/pinIcon'
+import { bearing } from '../lib/map/utils'
 
 const DEFAULT_PREFS = {
   center: CHAIR_ROCK_ISLAND,

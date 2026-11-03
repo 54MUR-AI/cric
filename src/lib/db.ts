@@ -17,7 +17,11 @@ interface CabinImprovement {
   cabin_id: string
   year: number
   description: string
+  cost?: number | null
+  done_by?: string | null
+  source_task_id?: string | null
   created_at?: string
+  updated_at?: string
 }
 
 interface Booking {
@@ -79,8 +83,51 @@ interface MeetingAgendaItem {
   meeting_id: string
   title: string
   sort_order: number
+  description?: string
+  proposer?: string
+  seconder?: string
+  vote_yes?: number
+  vote_no?: number
+  vote_abstain?: number
+  outcome?: 'passed' | 'failed' | 'tabled' | null
+  vote_notes?: string | null
   notes?: string
   completed?: boolean
+  created_at?: string
+}
+
+interface MeetingMinutes {
+  id: string
+  meeting_id: string
+  status: 'draft' | 'final'
+  summary?: string | null
+  body?: string | null
+  source_url?: string | null
+  received_at?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+interface ProjectEstimateLineItem {
+  description?: string
+  amount?: number | null
+  category?: string
+}
+
+interface ProjectEstimate {
+  id: string
+  project_name: string
+  vendor?: string | null
+  line_items?: ProjectEstimateLineItem[]
+  materials_amount?: number | null
+  labor_amount?: number | null
+  delivery_amount?: number | null
+  total?: number | null
+  status?: 'draft' | 'received' | 'accepted' | 'declined'
+  notes?: string | null
+  source?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 interface MapPin {
@@ -193,6 +240,8 @@ class CricDatabase extends Dexie {
   maintenance_comments!: Table<MaintenanceComment, string>
   meetings!: Table<Meeting, string>
   meeting_agenda_items!: Table<MeetingAgendaItem, string>
+  meeting_minutes!: Table<MeetingMinutes, string>
+  project_estimates!: Table<ProjectEstimate, string>
   map_pins!: Table<MapPin, string>
   photos!: Table<Photo, string>
   photo_albums!: Table<PhotoAlbum, string>
@@ -397,9 +446,31 @@ class CricDatabase extends Dexie {
       boat_trips: 'id, trip_date, departure_time, created_by',
       docks: 'id, name, sort_order',
     })
+
+    this.version(11).stores({
+      cabins: 'id, name, sort_order',
+      cabin_improvements: 'id, cabin_id, year, created_at',
+      bookings: 'id, cabin_id, room, start_date, end_date',
+      maintenance_tasks: 'id, status, category_id, due_date, created_at',
+      maintenance_categories: 'id, name, sort_order',
+      maintenance_comments: 'id, task_id, created_at',
+      meetings: 'id, date',
+      meeting_agenda_items: 'id, meeting_id, sort_order',
+      meeting_minutes: 'id, meeting_id, status, received_at',
+      project_estimates: 'id, status, project_name',
+      map_pins: 'id, type, label',
+      photos: 'id, album_id, cabin_id, taken_at, created_at',
+      photo_albums: 'id, name',
+      weather_cache: '++id, key',
+      pending_changes: '++id, table, action, payload, created_at',
+      profiles: 'id',
+      officers: 'id, profile_id, title, sort_order',
+      boat_trips: 'id, trip_date, departure_time, created_by',
+      docks: 'id, name, sort_order',
+    })
   }
 }
 
 const db = new CricDatabase()
 export default db
-export type { Cabin, CabinImprovement, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip, Dock, MapPreferences }
+export type { Cabin, CabinImprovement, Booking, MaintenanceTask, MaintenanceCategory, MaintenanceComment, Meeting, MeetingAgendaItem, MeetingMinutes, ProjectEstimate, ProjectEstimateLineItem, MapPin, Photo, PhotoAlbum, WeatherCache, PendingChange, Profile, Officer, BoatTrip, Dock, MapPreferences }
