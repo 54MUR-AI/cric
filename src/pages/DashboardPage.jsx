@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatDate } from '../lib/utils'
@@ -7,7 +7,16 @@ import { CloudSun, Thermometer, Wind, Droplets, AlertTriangle, Zap, CloudRain, X
 import LightboxDialog from '../components/ui/LightboxDialog'
 import { useToast } from '../components/ui/Toast'
 import { useWeatherAlerts } from '../hooks/useWeatherAlerts'
-import MapPage from './MapPage'
+
+const MapPage = lazy(() => import('./MapPage'))
+
+function MapFallback() {
+  return (
+    <div className="flex min-h-[250px] h-[250px] md:min-h-[400px] md:h-[400px] items-center justify-center rounded-lg border border-stone-200 bg-stone-100 text-sm text-stone-500 dark:border-stone-700 dark:bg-stone-800">
+      Loading map…
+    </div>
+  )
+}
 
 const CRANBERRY_POINT = 'https://api.weather.gov/points/44.2228,-74.8344'
 const AIRNOW_KEY = '043241C9-8A16-49B8-B754-AB9D7B84216C'
@@ -322,7 +331,9 @@ export default function DashboardPage() {
 
       <div>
         <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-300 mb-3">Cranberry Lake Map</h2>
-        <MapPage compact onLightningStrike={handleLightningStrike} />
+        <Suspense fallback={<MapFallback />}>
+          <MapPage compact onLightningStrike={handleLightningStrike} />
+        </Suspense>
       </div>
 
       {recentPhotos.length > 0 && (

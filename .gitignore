@@ -16,6 +16,12 @@ scripts/
 cric_emails.json
 supabase/.temp/
 
+# Local credentials and scratch files. test-account holds keys and passwords.
+/test-account/
+/snapshots/
+*.patch
+/*.pdf
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

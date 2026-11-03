@@ -23,8 +23,17 @@ interface AgendaItem {
   meeting_id: string
   title: string
   sort_order: number
+  description?: string
+  proposer?: string
+  seconder?: string
+  vote_yes?: number
+  vote_no?: number
+  vote_abstain?: number
+  outcome?: 'passed' | 'failed' | 'tabled' | null
+  vote_notes?: string | null
   notes?: string
   completed?: boolean
+  created_at?: string
 }
 
 export function useMeetings() {

@@ -1,7 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import KeyboardShortcutHelp from '../ui/KeyboardShortcutHelp'
-import { Outlet, useLocation } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, RotateCcw, RefreshCw, Bell, BellOff, Mail, MailX } from 'lucide-react'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
@@ -15,6 +13,7 @@ import { useToast } from '../ui/Toast'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
 import { Download, X } from 'lucide-react'
+import PageTransition from './PageTransition'
 
 function PullToRefresh({ onRefresh }) {
   const [pulling, setPulling] = useState(false)
@@ -62,7 +61,6 @@ export default function AppShell() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === '1')
   useEffect(() => { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0') }, [collapsed])
   const [refreshKey, setRefreshKey] = useState(0)
-  const location = useLocation()
   useSync()
   const { updateAvailable, activateUpdate } = useSWUpdate()
   const [showKeys, setShowKeys] = useState(false)
@@ -207,17 +205,7 @@ export default function AppShell() {
         <main id="main-content" className="flex-1 overflow-y-auto pb-16 md:pb-0" key={refreshKey}>
           <PullToRefresh onRefresh={triggerRefresh} />
           <div className="p-4 md:p-6">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Outlet />
-              </motion.div>
-            </AnimatePresence>
+            <PageTransition />
           </div>
         </main>
         <MobileNav />
